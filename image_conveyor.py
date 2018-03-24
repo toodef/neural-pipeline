@@ -15,13 +15,22 @@ class ImageLoader(metaclass=ABCMeta):
 
 
 class UrlLoader(ImageLoader):
-    def load(self, url):
-        response = requests.get(url)
-        return Image.open(BytesIO(response.content))
+    def load(self, image):
+        url = image['path']
+        try:
+            response = requests.get(url, timeout=10)
+            if response.ok:
+                image['object'] = Image.open(BytesIO(response.content))
+            else:
+                image['object'] = None
+        except requests.exce:
+            image['object'] = None
+
+        return image
 
 
 class ImageConveyor:
-    def __init__(self, image_loader: ImageLoader, pathes: [str] = None, images_bucket_size: int = 1):
+    def __init__(self, image_loader: ImageLoader, pathes: [{}] = None, images_bucket_size: int = 1):
         self.__images_bucket_size = images_bucket_size
         self.__image_loader = image_loader
         self.__image_pathes = pathes
@@ -51,6 +60,6 @@ class ImageConveyor:
         for i in range(self.__images_bucket_size):
             if self.__cur_index + i == len(self.__image_pathes):
                 break
-            new_buffer.append(self.__image_loader.load(self.__cur_index + i))
+            new_buffer.append(self.__image_loader.load(self.__image_pathes[self.__cur_index + i]))
         self.__cur_index += self.__images_bucket_size
         self.__images_buffer = new_buffer
