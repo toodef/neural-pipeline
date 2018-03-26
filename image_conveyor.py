@@ -23,7 +23,7 @@ class UrlLoader(ImageLoader):
                 image['object'] = Image.open(BytesIO(response.content))
             else:
                 image['object'] = None
-        except requests.exce:
+        except Exception:
             image['object'] = None
 
         return image
