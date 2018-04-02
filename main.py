@@ -1,7 +1,6 @@
 import os
 import sys
 import time
-import psutil
 import cv2
 
 from image_conveyor import ImageConveyor, ImageLoader, UrlLoader
@@ -33,10 +32,9 @@ def main():
                 if img['object'] is None:
                     failed_num += 1
                     failed_url.append(img['path'])
-                    string = "download {} failed; {:.2f} sec, failed {:.2f}%, mem in use: {}%".format(i,
+                    string = "download {} failed; {:.2f} sec, failed {:.2f}%".format(i,
                                                                                                       time.time() - start_time,
-                                                                                                      100 * failed_num / i,
-                                                                                                      psutil.virtual_memory().percent)
+                                                                                                      100 * failed_num / i)
                     print(string, file=sys.stderr)
                     log_file.write(string + "\n")
                     continue
@@ -48,10 +46,9 @@ def main():
                 except Exception:
                     failed_num += 1
                     failed_url.append(img['path'])
-                    string = "download {} failed; {:.2f} sec, failed {:.2f}%, mem in use: {}%".format(i,
+                    string = "download {} failed; {:.2f} sec, failed {:.2f}%".format(i,
                                                                                                       time.time() - start_time,
-                                                                                                      100 * failed_num / i,
-                                                                                                      psutil.virtual_memory().percent)
+                                                                                                      100 * failed_num / i)
                     print(string, file=sys.stderr)
                     log_file.write(string + "\n")
                     failed_url.append(img['path'])
@@ -60,10 +57,9 @@ def main():
                 del img['object']
 
                 loaded_num += 1
-                string = "download {} succeed; {:.2f} sec, failed {:.2f}%, mem in use: {}%".format(i,
+                string = "download {} succeed; {:.2f} sec, failed {:.2f}%".format(i,
                                                                                                    time.time() - start_time,
-                                                                                                   100 * failed_num / i,
-                                                                                                   psutil.virtual_memory().percent)
+                                                                                                   100 * failed_num / i)
                 print(string)
                 log_file.write(string + "\n")
                 log_file.flush()
