@@ -1,6 +1,6 @@
-from PIL import Image
+import cv2
+import numpy as np
 import requests
-from io import BytesIO
 from abc import ABCMeta, abstractmethod
 from multiprocessing import Pool
 
@@ -17,23 +17,21 @@ class ImageLoader(metaclass=ABCMeta):
 
 class UrlLoader(ImageLoader):
     def load(self, image):
-        url = image['path']
         try:
-            response = requests.get(url, timeout=10)
+            response = requests.get(image['path'], timeout=100)
             if response.ok:
-                image['object'] = Image.open(BytesIO(response.content))
+                img_array = np.asarray(bytearray(response.content), dtype=np.uint8)
+                image['object'] = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
             else:
                 image['object'] = None
-        except Exception:
+        except:
             image['object'] = None
 
         return image
 
 
-def load_image(info: [int, ImageLoader, {}]):
-    if info[0] == len(info[2]):
-        return None
-    return info[1].load(info[2])
+def load_image(info: [ImageLoader, {}]):
+    return UrlLoader().load(info[1])
 
 
 class ImageConveyor:
@@ -57,7 +55,6 @@ class ImageConveyor:
             raise IndexError
         self.__swap_buffers()
         return self.__images_buffers[0]
-        # return self.__load_buffer()
 
     def __enter__(self):
         return self
@@ -66,15 +63,23 @@ class ImageConveyor:
         pass
 
     def __load_buffer(self):
-        threads_data = [[idx, self.__image_loader, self.__image_pathes[idx]] for idx in
-                        range(self.__cur_index, self.__cur_index + self.__images_bucket_size) if
-                        idx < len(self.__image_pathes)]
+        threads_data = [[self.__image_loader, self.__image_pathes[idx]] for idx in
+                        range(self.__cur_index, (self.__cur_index + self.__images_bucket_size)
+                        if (self.__cur_index + self.__images_bucket_size) < len(self.__image_pathes)
+                        else len(self.__image_pathes))]
         if len(threads_data) == 0:
             return []
         if len(threads_data) == 1:
+            self.__cur_index += 1
             return [load_image(threads_data[0])]
-        pool = Pool(len(threads_data))
-        new_buffer = pool.map(load_image, threads_data)
+        pool = Pool(10)
+        try:
+            new_buffer = pool.map(load_image, threads_data)
+        except:
+            print(len(threads_data))
+            print(threads_data)
+            self.__cur_index += self.__images_bucket_size
+            return []
         self.__cur_index += self.__images_bucket_size
         return new_buffer
 
