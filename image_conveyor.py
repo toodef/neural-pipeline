@@ -2,6 +2,7 @@ from PIL import Image
 import requests
 from io import BytesIO
 from abc import ABCMeta, abstractmethod
+from multiprocessing import Pool
 
 
 class ImageLoader(metaclass=ABCMeta):
@@ -29,6 +30,12 @@ class UrlLoader(ImageLoader):
         return image
 
 
+def load_image(info: [int, ImageLoader, {}]):
+    if info[0] == len(info[2]):
+        return None
+    return info[1].load(info[2])
+
+
 class ImageConveyor:
     def __init__(self, image_loader: ImageLoader, pathes: [{}] = None, images_bucket_size: int = 1):
         self.__images_bucket_size = images_bucket_size
@@ -50,6 +57,7 @@ class ImageConveyor:
             raise IndexError
         self.__swap_buffers()
         return self.__images_buffers[0]
+        # return self.__load_buffer()
 
     def __enter__(self):
         return self
@@ -58,14 +66,18 @@ class ImageConveyor:
         pass
 
     def __load_buffer(self):
-        new_buffer = []
-        for i in range(self.__images_bucket_size):
-            if self.__cur_index == len(self.__image_pathes):
-                break
-            new_buffer.append(self.__image_loader.load(self.__image_pathes[self.__cur_index]))
-            self.__cur_index += 1
+        threads_data = [[idx, self.__image_loader, self.__image_pathes[idx]] for idx in
+                        range(self.__cur_index, self.__cur_index + self.__images_bucket_size) if
+                        idx < len(self.__image_pathes)]
+        if len(threads_data) == 0:
+            return []
+        if len(threads_data) == 1:
+            return [load_image(threads_data[0])]
+        pool = Pool(len(threads_data))
+        new_buffer = pool.map(load_image, threads_data)
+        self.__cur_index += self.__images_bucket_size
         return new_buffer
 
     def __swap_buffers(self):
-        new_buffer = self.__load_buffer()
-        self.__images_buffers = [self.__images_buffers[1], new_buffer]
+        del self.__images_buffers[0]
+        self.__images_buffers.append(self.__load_buffer())

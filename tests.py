@@ -11,7 +11,7 @@ class ImageConveyorTest(unittest.TestCase):
 
     def test_get_data_test(self):
         PATHES_NUM = 23
-        BUCKET_SIZE = 4
+        BUCKET_SIZE = 7
         pathes = [{'path': str(path), 'some_data': path * 31} for path in range(PATHES_NUM)]
         getting_pathes = []
         with ImageConveyor(self.TestImageLoader(), pathes, BUCKET_SIZE) as conveyor:
@@ -19,8 +19,6 @@ class ImageConveyorTest(unittest.TestCase):
                 for img in images:
                     getting_pathes.append(img)
 
-        print(pathes)
-        print(getting_pathes)
         self.assertEqual(len(pathes), len(getting_pathes))
 
 

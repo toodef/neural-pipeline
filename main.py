@@ -1,8 +1,7 @@
 import os
-
 import sys
-
 import time
+import psutil
 
 from image_conveyor import ImageConveyor, ImageLoader, UrlLoader
 import json
@@ -19,9 +18,10 @@ def main():
 
     pathes = []
     for i, item in enumerate(data['images']):
-        pathes.append({'path': item['url'][0], 'label_id': data['annotations'][item['image_id'] - 1]['label_id']})
+        pathes.append({'path': item['url'][0], 'label_id': data['annotations'][item['image_id'] - 1]['label_id'],
+                       'image_id': item['image_id']})
 
-    with ImageConveyor(UrlLoader(), pathes, 4) as conveyor:
+    with ImageConveyor(UrlLoader(), pathes, 6) as conveyor, open('log.txt', 'w') as log_file:
         i = 0
         start_time = time.time()
         loaded_num, failed_num = 0, 0
@@ -30,30 +30,54 @@ def main():
             for img in images:
                 i += 1
                 if img['object'] is None:
-                    print("download {} failed".format(i), file=sys.stderr)
                     failed_num += 1
                     failed_url.append(img['path'])
+                    string = "download {} failed; {:.2f} sec, failed {:.2f}%, mem in use: {}%".format(i,
+                                                                                                      time.time() - start_time,
+                                                                                                      100 * failed_num / i,
+                                                                                                      psutil.virtual_memory().percent)
+                    print(string, file=sys.stderr)
+                    log_file.write(string + "\n")
                     continue
-                dir = "C:\\workspace\\projects\\nn\\furniture_segmentation\\data\\{}".format(img['label_id'])
+                dir = "C:\\workspace\\projects\\nn\\furniture_segmentation\\data2\\{}".format(img['label_id'])
                 if not os.path.exists(dir):
                     os.makedirs(dir)
                 try:
-                    img['object'].convert('RGB').save(os.path.join(dir, "{}.jpg".format(i)), "JPEG", quality=90, optimize=True, progressive=True)
+                    img['object'].convert('RGB').save(os.path.join(dir, "{}.jpg".format(img['image_id'])), "JPEG",
+                                                      quality=90, optimize=True, progressive=True)
                 except Exception:
-                    print("download {} failed".format(i), file=sys.stderr)
-                    failed_url.append(img['path'])
                     failed_num += 1
+                    failed_url.append(img['path'])
+                    string = "download {} failed; {:.2f} sec, failed {:.2f}%, mem in use: {}%".format(i,
+                                                                                                      time.time() - start_time,
+                                                                                                      100 * failed_num / i,
+                                                                                                      psutil.virtual_memory().percent)
+                    print(string, file=sys.stderr)
+                    log_file.write(string + "\n")
+                    failed_url.append(img['path'])
                     continue
 
-                print("download {} succeed".format(i))
+                del img['object']
+
                 loaded_num += 1
+                failed_url.append(img['path'])
+                string = "download {} succeed; {:.2f} sec, failed {:.2f}%, mem in use: {}%".format(i,
+                                                                                                   time.time() - start_time,
+                                                                                                   100 * failed_num / i,
+                                                                                                   psutil.virtual_memory().percent)
+                print(string)
+                log_file.write(string + "\n")
+                log_file.flush()
 
-        print("elapsed: {} sec; loaded: {}, failed: {} ({} % of failed)".format(time.time() - start_time, loaded_num, failed_num, 100 * failed_num / len(pathes)))
+        print("elapsed: {} sec; loaded: {}, failed: {} ({} % of failed)".format(time.time() - start_time, loaded_num,
+                                                                                failed_num,
+                                                                                100 * failed_num / len(pathes)))
 
-        with open("C:\\workspace\\projects\\nn\\furniture_segmentation\\data\\log.txt") as log_file:
+        with open("failed_urls_log.txt") as url_log_file:
             for url in failed_url:
-                log_file.write(url)
-            log_file.flush()
+                url_log_file.write(url)
+            url_log_file.flush()
+
 
 if __name__ == "__main__":
     main()
