@@ -13,7 +13,7 @@ class TestLoader(ImageLoader):
 
 
 def main():
-    with open("train.json", 'r') as file:
+    with open("validation.json", 'r') as file:
         data = json.load(file)
 
     pathes = []
@@ -32,13 +32,12 @@ def main():
                 if img['object'] is None:
                     failed_num += 1
                     failed_url.append(img['path'])
-                    string = "download {} failed; {:.2f} sec, failed {:.2f}%".format(i,
-                                                                                                      time.time() - start_time,
-                                                                                                      100 * failed_num / i)
+                    string = "download {} failed; {:.2f} sec, failed {:.2f}%".format(i, time.time() - start_time,
+                                                                                     100 * failed_num / i)
                     print(string, file=sys.stderr)
                     log_file.write(string + "\n")
                     continue
-                dir = "data\\{}".format(img['label_id'])
+                dir = "validation\\{}".format(img['label_id'])
                 if not os.path.exists(dir):
                     os.makedirs(dir)
                 try:
@@ -46,9 +45,8 @@ def main():
                 except Exception:
                     failed_num += 1
                     failed_url.append(img['path'])
-                    string = "download {} failed; {:.2f} sec, failed {:.2f}%".format(i,
-                                                                                                      time.time() - start_time,
-                                                                                                      100 * failed_num / i)
+                    string = "download {} failed; {:.2f} sec, failed {:.2f}%".format(i, time.time() - start_time,
+                                                                                     100 * failed_num / i)
                     print(string, file=sys.stderr)
                     log_file.write(string + "\n")
                     failed_url.append(img['path'])
@@ -57,9 +55,8 @@ def main():
                 del img['object']
 
                 loaded_num += 1
-                string = "download {} succeed; {:.2f} sec, failed {:.2f}%".format(i,
-                                                                                                   time.time() - start_time,
-                                                                                                   100 * failed_num / i)
+                string = "download {} succeed; {:.2f} sec, failed {:.2f}%".format(i, time.time() - start_time,
+                                                                                  100 * failed_num / i)
                 print(string)
                 log_file.write(string + "\n")
                 log_file.flush()
