@@ -3,6 +3,7 @@ import numpy as np
 import requests
 from abc import ABCMeta, abstractmethod
 from multiprocessing import Pool
+from threading import Thread
 
 
 class ImageLoader(metaclass=ABCMeta):
@@ -40,7 +41,10 @@ class ImageConveyor:
         self.__image_loader = image_loader
         self.__image_pathes = pathes
         self.__cur_index = 0
-        self.__images_buffers = [None, self.__load_buffer()]
+        self.__buffer_is_ready = False
+        self.__buffer_load_thread = None
+        self.__images_buffers = [None, None]
+        self.__swap_buffers()
 
     def load(self, path: str):
         """
@@ -53,6 +57,8 @@ class ImageConveyor:
     def __getitem__(self, index):
         if (index - 1) * self.__images_bucket_size >= len(self.__image_pathes):
             raise IndexError
+        if not self.__buffer_is_ready:
+            self.__buffer_load_thread.join()
         self.__swap_buffers()
         return self.__images_buffers[0]
 
@@ -72,9 +78,10 @@ class ImageConveyor:
         if len(threads_data) == 1:
             self.__cur_index += 1
             return [load_image(threads_data[0])]
-        pool = Pool(10)
+        pool = Pool(100)
         try:
             new_buffer = pool.map(load_image, threads_data)
+            pool.close()
         except:
             print(len(threads_data))
             print(threads_data)
@@ -84,5 +91,11 @@ class ImageConveyor:
         return new_buffer
 
     def __swap_buffers(self):
+        def process():
+            self.__images_buffers.append(self.__load_buffer())
+            self.__buffer_is_ready = True
+
         del self.__images_buffers[0]
-        self.__images_buffers.append(self.__load_buffer())
+        self.__buffer_is_ready = False
+        self.__buffer_load_thread = Thread(target=process)
+        self.__buffer_load_thread.start()
