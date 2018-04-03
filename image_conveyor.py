@@ -8,7 +8,7 @@ from threading import Thread
 
 class ImageLoader(metaclass=ABCMeta):
     @abstractmethod
-    def load(self, path: {}):
+    def load(self, image: {}):
         """
         Load image
         :param path: path to image
@@ -16,8 +16,17 @@ class ImageLoader(metaclass=ABCMeta):
         """
 
 
+class PathLoader(ImageLoader):
+    def load(self, image: {}):
+        try:
+            image['object'] = cv2.imread(image['path'], cv2.IMREAD_COLOR)
+        except:
+            image['object'] = None
+        return image
+
+
 class UrlLoader(ImageLoader):
-    def load(self, image):
+    def load(self, image: {}):
         try:
             response = requests.get(image['path'], timeout=100)
             if response.ok:
@@ -66,7 +75,9 @@ class ImageConveyor:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+        self.__buffer_load_thread.set()
+        self.__images_buffers = [None, None]
+        self.__buffer_is_ready = False
 
     def __load_buffer(self):
         threads_data = [[self.__image_loader, self.__image_pathes[idx]] for idx in
