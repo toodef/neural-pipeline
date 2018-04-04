@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 
 class ImageProcessor:
@@ -9,16 +10,16 @@ class ImageProcessor:
         def __str__(self):
             return self.__msg
 
-    def __init__(self, train_images: [{}], validation_images: [{}], classes_number: int, image_size: []):
+    def __init__(self, classes_number: int, train_images_num: int, image_size: []):
         self.__batch_size = 16
-        self.__train_images = train_images
-        self.__validation_images = validation_images
         if type(image_size) != list or len(image_size) != 3:
             raise self.ImageProcessorException("Bad image size data. This must be list of 3 integers")
         self.__image_size = image_size
         self.__classes_num = classes_number
-
+        self.__on_epoch = None
         self.__init_nn()
+        self.__iteration_idx = 0
+        self.__train_images_num = train_images_num
 
     @staticmethod
     def __create_weights(shape):
@@ -70,11 +71,12 @@ class ImageProcessor:
 
     def __init_nn(self):
         # set variables
-        self.__x = tf.placeholder(tf.float32, shape=[None, self.__image_size[0], self.__image_size[1], self.__image_size[2]],
-                           name='x')
+        self.__x = tf.placeholder(tf.float32,
+                                  shape=[None, self.__image_size[0], self.__image_size[1], self.__image_size[2]],
+                                  name='x')
 
         self.__y_true = tf.placeholder(tf.float32, shape=[None, self.__classes_num], name='y_true')
-        y_true_cls = tf.argmax(self.__y_true, dimension=1)
+        y_true_cls = tf.argmax(self.__y_true, axis=0)
 
         self.__session = tf.Session()
         self.__session.run(tf.global_variables_initializer())
@@ -88,7 +90,7 @@ class ImageProcessor:
         num_filters_conv3 = 64
         fc_layer_size = 128
 
-        layer_conv1 = self.__create_convolutional_layer(input=x, num_input_channels=self.__image_size[2],
+        layer_conv1 = self.__create_convolutional_layer(input=self.__x, num_input_channels=self.__image_size[2],
                                                         conv_filter_size=filter_size_conv1,
                                                         num_filters=num_filters_conv1)
 
@@ -112,26 +114,60 @@ class ImageProcessor:
 
         y_pred = tf.nn.softmax(layer_fc2, name='y_pred')
 
-        y_pred_cls = tf.argmax(y_pred, dimension=1)
+        y_pred_cls = tf.argmax(y_pred, axis=0)
         self.__session.run(tf.global_variables_initializer())
 
         # prediction variables
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=layer_fc2,
-                                                                labels=y_true)
-        cost = tf.reduce_mean(cross_entropy)
+                                                                labels=self.__y_true)
+        self.__cost = tf.reduce_mean(cross_entropy)
 
         # optimisation
-        self.__optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
+        self.__optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(self.__cost)
 
         correct_prediction = tf.equal(y_pred_cls, y_true_cls)
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        self.__accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         self.__session.run(tf.global_variables_initializer())
 
-    def train_batch(self, ):
-        x_batch, y_true_batch = data.train.next_batch(batch_size)
+    def __init_label(self, label_id: int):
+        label = np.zeros(self.__classes_num)
+        label[label_id] = 1.0
+        return label
 
-        feed_dict_tr = {self.__x: x_batch,
-                        self.__y_true: y_true_batch}
+    def train_batch(self, images: [{}]):
+        print('train')
+        x_batch = [img['object'] for img in images]
+        y_true_batch = [self.__init_label(int(img['label_id']) - 1) for img in images]
 
-        self.__session.run(self.__optimizer, feed_dict=feed_dict_tr)
+        feed_dict = {self.__x: x_batch, self.__y_true: y_true_batch}
+
+        self.__session.run(self.__optimizer, feed_dict=feed_dict)
+
+        if self.__on_epoch is not None:
+            if self.__iteration_idx % int(self.__train_images_num / self.__batch_size) == 0:
+                self.__on_epoch()
+
+        self.__iteration_idx += 1
+
+    def set_on_epoch(self, callback: callable):
+        self.__on_epoch = callback
+
+    def get_loss_value(self, images: [{}]):
+        x_batch = [img['object'] for img in images]
+        y_true_batch = [self.__init_label(int(img['label_id']) - 1) for img in images]
+
+        feed_dict = {self.__x: x_batch, self.__y_true: y_true_batch}
+
+        return self.__session.run(self.__cost, feed_dict=feed_dict)
+
+    def get_accuracy(self, images: [{}]):
+        x_batch = [img['object'] for img in images]
+        y_true_batch = [self.__init_label(int(img['label_id']) - 1) for img in images]
+
+        feed_dict = {self.__x: x_batch, self.__y_true: y_true_batch}
+
+        return self.__session.run(self.__accuracy, feed_dict=feed_dict)
+
+    def get_cur_epoch(self):
+        return int(self.__iteration_idx / int(self.__train_images_num / self.__batch_size))

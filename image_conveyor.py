@@ -41,7 +41,7 @@ class UrlLoader(ImageLoader):
 
 
 def load_image(info: [ImageLoader, {}]):
-    return UrlLoader().load(info[1])
+    return info[0].load(info[1])
 
 
 class ImageConveyor:
@@ -53,6 +53,7 @@ class ImageConveyor:
         self.__buffer_is_ready = False
         self.__buffer_load_thread = None
         self.__images_buffers = [None, None]
+        self.__processes_num = 1
         self.__swap_buffers()
 
     def load(self, path: str):
@@ -62,6 +63,9 @@ class ImageConveyor:
         :return: image object
         """
         self.__image_loader.load(path)
+
+    def set_processes_num(self, processes_num):
+        self.__processes_num = processes_num
 
     def __getitem__(self, index):
         if (index - 1) * self.__images_bucket_size >= len(self.__image_pathes):
@@ -75,7 +79,6 @@ class ImageConveyor:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.__buffer_load_thread.set()
         self.__images_buffers = [None, None]
         self.__buffer_is_ready = False
 
@@ -89,15 +92,20 @@ class ImageConveyor:
         if len(threads_data) == 1:
             self.__cur_index += 1
             return [load_image(threads_data[0])]
-        pool = Pool(100)
-        try:
-            new_buffer = pool.map(load_image, threads_data)
-            pool.close()
-        except:
-            print(len(threads_data))
-            print(threads_data)
-            self.__cur_index += self.__images_bucket_size
-            return []
+
+        if self.__processes_num > 1:
+            pool = Pool(self.__processes_num)
+            try:
+                new_buffer = pool.map(load_image, threads_data)
+                pool.close()
+            except:
+                print(len(threads_data))
+                print(threads_data)
+                self.__cur_index += self.__images_bucket_size
+                return []
+        else:
+            new_buffer = [load_image(thread_data) for thread_data in threads_data]
+
         self.__cur_index += self.__images_bucket_size
         return new_buffer
 
