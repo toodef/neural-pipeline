@@ -18,6 +18,8 @@ class ImageProcessor:
         self.__image_size = image_size
         self.__classes_num = classes_number
 
+        self.__init_nn()
+
     @staticmethod
     def __create_weights(shape):
         return tf.Variable(tf.truncated_normal(shape, stddev=0.05))
@@ -66,15 +68,26 @@ class ImageProcessor:
 
         return layer
 
-    def init_nn(self):
+    def __init_nn(self):
         # set variables
-        x = tf.placeholder(tf.float32, shape=[None, self.__image_size[0], self.__image_size[1], self.__image_size[2]],
+        self.__x = tf.placeholder(tf.float32, shape=[None, self.__image_size[0], self.__image_size[1], self.__image_size[2]],
                            name='x')
 
-        y_true = tf.placeholder(tf.float32, shape=[None, self.__classes_num], name='y_true')
-        y_true_cls = tf.argmax(y_true, dimension=1)
+        self.__y_true = tf.placeholder(tf.float32, shape=[None, self.__classes_num], name='y_true')
+        y_true_cls = tf.argmax(self.__y_true, dimension=1)
+
+        self.__session = tf.Session()
+        self.__session.run(tf.global_variables_initializer())
 
         # network design
+        filter_size_conv1 = 3
+        num_filters_conv1 = 32
+        filter_size_conv2 = 3
+        num_filters_conv2 = 32
+        filter_size_conv3 = 3
+        num_filters_conv3 = 64
+        fc_layer_size = 128
+
         layer_conv1 = self.__create_convolutional_layer(input=x, num_input_channels=self.__image_size[2],
                                                         conv_filter_size=filter_size_conv1,
                                                         num_filters=num_filters_conv1)
@@ -94,8 +107,13 @@ class ImageProcessor:
                                            use_relu=True)
 
         layer_fc2 = self.__create_fc_layer(input=layer_fc1, num_inputs=fc_layer_size,
-                                           num_outputs=num_classes,
+                                           num_outputs=self.__classes_num,
                                            use_relu=False)
+
+        y_pred = tf.nn.softmax(layer_fc2, name='y_pred')
+
+        y_pred_cls = tf.argmax(y_pred, dimension=1)
+        self.__session.run(tf.global_variables_initializer())
 
         # prediction variables
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=layer_fc2,
@@ -103,7 +121,17 @@ class ImageProcessor:
         cost = tf.reduce_mean(cross_entropy)
 
         # optimisation
-        optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
+        self.__optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
 
-    def train_batch(self):
-        pass
+        correct_prediction = tf.equal(y_pred_cls, y_true_cls)
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+        self.__session.run(tf.global_variables_initializer())
+
+    def train_batch(self, ):
+        x_batch, y_true_batch = data.train.next_batch(batch_size)
+
+        feed_dict_tr = {self.__x: x_batch,
+                        self.__y_true: y_true_batch}
+
+        self.__session.run(self.__optimizer, feed_dict=feed_dict_tr)
