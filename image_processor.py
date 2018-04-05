@@ -10,7 +10,7 @@ class ImageProcessor:
         def __str__(self):
             return self.__msg
 
-    def __init__(self, classes_number: int, train_images_num: int, image_size: []):
+    def __init__(self, classes_number: int, train_images_num: int, image_size: [], epoch_every_train_num: int):
         self.__batch_size = 16
         if type(image_size) != list or len(image_size) != 3:
             raise self.ImageProcessorException("Bad image size data. This must be list of 3 integers")
@@ -20,6 +20,8 @@ class ImageProcessor:
         self.__init_nn()
         self.__iteration_idx = 0
         self.__train_images_num = train_images_num
+        self.__saver = tf.train.Saver()
+        self.__epoch_every_train_num = epoch_every_train_num
 
     @staticmethod
     def __create_weights(shape):
@@ -136,7 +138,6 @@ class ImageProcessor:
         return label
 
     def train_batch(self, images: [{}]):
-        print('train')
         x_batch = [img['object'] for img in images]
         y_true_batch = [self.__init_label(int(img['label_id']) - 1) for img in images]
 
@@ -145,7 +146,7 @@ class ImageProcessor:
         self.__session.run(self.__optimizer, feed_dict=feed_dict)
 
         if self.__on_epoch is not None:
-            if self.__iteration_idx % int(self.__train_images_num / self.__batch_size) == 0:
+            if self.__iteration_idx % self.__epoch_every_train_num == 0:
                 self.__on_epoch()
 
         self.__iteration_idx += 1
@@ -159,7 +160,10 @@ class ImageProcessor:
 
         feed_dict = {self.__x: x_batch, self.__y_true: y_true_batch}
 
-        return self.__session.run(self.__cost, feed_dict=feed_dict)
+        try:
+            return self.__session.run(self.__cost, feed_dict=feed_dict)
+        except ValueError:
+            print('kek')
 
     def get_accuracy(self, images: [{}]):
         x_batch = [img['object'] for img in images]
@@ -170,4 +174,7 @@ class ImageProcessor:
         return self.__session.run(self.__accuracy, feed_dict=feed_dict)
 
     def get_cur_epoch(self):
-        return int(self.__iteration_idx / int(self.__train_images_num / self.__batch_size))
+        return self.__iteration_idx // self.__epoch_every_train_num
+
+    def save_state(self, path: str):
+        self.__saver.save(self.__session, path)
