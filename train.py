@@ -10,7 +10,7 @@ from random import shuffle
 train_dir = 'train'
 validation_dir = 'validation'
 image_size = 128
-images_part = 32
+images_part = 128
 result_path = os.path.abspath('result\\furniture_segmentation')
 
 classes = [int(dir) for dir in os.listdir(train_dir)]

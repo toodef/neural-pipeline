@@ -11,7 +11,7 @@ class ImageProcessor:
             return self.__msg
 
     def __init__(self, classes_number: int, train_images_num: int, image_size: [], epoch_every_train_num: int):
-        self.__batch_size = 16
+        self.__batch_size = 64
         if type(image_size) != list or len(image_size) != 3:
             raise self.ImageProcessorException("Bad image size data. This must be list of 3 integers")
         self.__image_size = image_size
