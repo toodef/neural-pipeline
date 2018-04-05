@@ -54,7 +54,7 @@ def on_epoch():
     epoch = img_processor.get_cur_epoch()
     valid_acc = np.mean(np.array(valid_accuracies))
     loss = np.mean(np.array(loss_values))
-    print("Epoch: {}, Training accuracy: {:>6.1%}, Validation accuracy {:>6.1%}, validation loss: {:.3f},  Time: {:.2f} sec".format(epoch, accuracy, valid_acc, loss, time.time() - start_time))
+    print("Epoch: {}, Training accuracy: {:>6.1%}, Validation accuracy {:>6.1%}, validation loss: {:.3f},  Time: {:.2f} min".format(epoch, accuracy, valid_acc, loss, (time.time() - start_time) / 60))
 
 
 img_processor.set_on_epoch(on_epoch)
