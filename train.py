@@ -68,7 +68,7 @@ def after_load(image: {}):
 
 with ImageConveyor(PathLoader().after_load(after_load), train_pathes, images_part) as conveyor:
     conveyor.set_iterations_num(len(train_pathes) * 100)
-    conveyor.set_processes_num(images_part)
+    # conveyor.set_processes_num(4)
     start_time = time.time()
     for images in conveyor:
         if len(images) < images_part:
