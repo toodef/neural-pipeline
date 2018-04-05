@@ -45,10 +45,11 @@ def load_image(info: [ImageLoader, {}]):
 
 
 class ImageConveyor:
-    def __init__(self, image_loader: ImageLoader, pathes: [{}] = None, images_bucket_size: int = 1):
+    def __init__(self, image_loader: ImageLoader, pathes: [{}] = None, images_bucket_size: int = 1, get_images_num: int = None):
         self.__images_bucket_size = images_bucket_size
-        self.__image_loader = image_loader
         self.__image_pathes = pathes
+        self.__get_images_num = get_images_num if get_images_num is not None else len(self.__image_pathes)
+        self.__image_loader = image_loader
         self.__cur_index = 0
         self.__buffer_is_ready = False
         self.__buffer_load_thread = None
@@ -67,8 +68,11 @@ class ImageConveyor:
     def set_processes_num(self, processes_num):
         self.__processes_num = processes_num
 
+    def set_iterations_num(self, get_images_num):
+        self.__get_images_num = get_images_num
+
     def __getitem__(self, index):
-        if (index - 1) * self.__images_bucket_size >= len(self.__image_pathes):
+        if (index - 1) * self.__images_bucket_size >= (len(self.__image_pathes) if self.__get_images_num is None else self.__get_images_num):
             raise IndexError
         if not self.__buffer_is_ready:
             self.__buffer_load_thread.join()
@@ -83,11 +87,21 @@ class ImageConveyor:
         self.__buffer_is_ready = False
 
     def __load_buffer(self):
-        threads_data = [[self.__image_loader, self.__image_pathes[idx]] for idx in
-                        range(self.__cur_index, (self.__cur_index + self.__images_bucket_size)
-                        if (self.__cur_index + self.__images_bucket_size) < len(self.__image_pathes)
-                        else len(self.__image_pathes))]
-        if len(threads_data) == 0:
+        def form_thread_data():
+            def get_data(idx_number: int):
+                indices = np.roll(np.arange(len(self.__image_pathes)), -self.__cur_index)[0: idx_number]
+                return [[self.__image_loader, self.__image_pathes[idx]] for idx in indices]
+
+            if (self.__cur_index + self.__images_bucket_size) < self.__get_images_num:
+                return get_data(self.__images_bucket_size)
+            elif self.__cur_index < self.__get_images_num:
+                return get_data(self.__get_images_num - self.__cur_index)
+            else:
+                return None
+
+        threads_data = form_thread_data()
+
+        if threads_data is None:
             return []
         if len(threads_data) == 1:
             self.__cur_index += 1
