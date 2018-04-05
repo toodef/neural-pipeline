@@ -5,7 +5,7 @@ from image_conveyor import ImageConveyor, ImageLoader
 
 class ImageConveyorTest(unittest.TestCase):
     class TestImageLoader(ImageLoader):
-        def load(self, path: {}):
+        def _load(self, path: {}):
             path['additional_data'] = path['path'] + "add"
             return path
 
@@ -23,6 +23,15 @@ class ImageConveyorTest(unittest.TestCase):
 
         getting_pathes = []
         with ImageConveyor(self.TestImageLoader(), pathes, BUCKET_SIZE, get_images_num=100) as conveyor:
+            for images in conveyor:
+                for img in images:
+                    getting_pathes.append(img)
+
+        self.assertEqual(100, len(getting_pathes))
+
+        getting_pathes = []
+        with ImageConveyor(self.TestImageLoader(), pathes, BUCKET_SIZE, get_images_num=100) as conveyor:
+            conveyor.set_processes_num(3)
             for images in conveyor:
                 for img in images:
                     getting_pathes.append(img)

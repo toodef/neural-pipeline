@@ -11,7 +11,7 @@ train_dir = 'train'
 validation_dir = 'validation'
 image_size = 128
 images_part = 32
-result_path = 'result\\furniture_segmentation'
+result_path = os.path.abspath('result\\furniture_segmentation')
 
 classes = [int(dir) for dir in os.listdir(train_dir)]
 
@@ -54,19 +54,24 @@ def on_epoch():
     epoch = img_processor.get_cur_epoch()
     valid_acc = np.mean(np.array(valid_accuracies))
     loss = np.mean(np.array(loss_values))
-    print("Epoch: {}, Training accuracy: {:>6.1%}, Validation accuracy {:>6.1%}, validation loss: {:.3f},  Time: {:.2f} min".format(epoch, accuracy, valid_acc, loss, (time.time() - start_time) / 60))
+    print(
+        "Epoch: {}, Training accuracy: {:>6.1%}, Validation accuracy {:>6.1%}, validation loss: {:.3f},  Time: {:.2f} min".format(
+            epoch, accuracy, valid_acc, loss, (time.time() - start_time) / 60))
 
 
 img_processor.set_on_epoch(on_epoch)
 
 
-with ImageConveyor(PathLoader(), train_pathes, images_part) as conveyor:
+def after_load(image: {}):
+    image['object'] = cv2.resize(image['object'], (image_size, image_size), 0, 0, cv2.INTER_LINEAR)
+
+
+with ImageConveyor(PathLoader().after_load(after_load), train_pathes, images_part) as conveyor:
     conveyor.set_iterations_num(len(train_pathes) * 100)
+    conveyor.set_processes_num(images_part)
     start_time = time.time()
     for images in conveyor:
         if len(images) < images_part:
             continue
-        for img in images:
-            img['object'] = cv2.resize(img['object'], (image_size, image_size), 0, 0, cv2.INTER_LINEAR)
         last_train_images = images
         img_processor.train_batch(images)

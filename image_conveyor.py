@@ -7,8 +7,31 @@ from threading import Thread
 
 
 class ImageLoader(metaclass=ABCMeta):
-    @abstractmethod
+    def __init__(self):
+        self.__after_load_callback = None
+
     def load(self, image: {}):
+        """
+        Load image
+        :param image:
+        :return: image object
+        """
+        self._load(image)
+        if self.__after_load_callback is not None:
+            self.__after_load_callback(image)
+        return image
+
+    def after_load(self, callback: callable):
+        """
+        Set operations, that performs after every loading
+        :param callback: callback function that will be called
+        :return:
+        """
+        self.__after_load_callback = callback
+        return self
+
+    @abstractmethod
+    def _load(self, image: {}):
         """
         Load image
         :param path: path to image
@@ -17,7 +40,7 @@ class ImageLoader(metaclass=ABCMeta):
 
 
 class PathLoader(ImageLoader):
-    def load(self, image: {}):
+    def _load(self, image: {}):
         try:
             image['object'] = cv2.imread(image['path'], cv2.IMREAD_COLOR)
         except:
@@ -26,7 +49,7 @@ class PathLoader(ImageLoader):
 
 
 class UrlLoader(ImageLoader):
-    def load(self, image: {}):
+    def _load(self, image: {}):
         try:
             response = requests.get(image['path'], timeout=100)
             if response.ok:
@@ -45,7 +68,8 @@ def load_image(info: [ImageLoader, {}]):
 
 
 class ImageConveyor:
-    def __init__(self, image_loader: ImageLoader, pathes: [{}] = None, images_bucket_size: int = 1, get_images_num: int = None):
+    def __init__(self, image_loader: ImageLoader, pathes: [{}] = None, images_bucket_size: int = 1,
+                 get_images_num: int = None):
         self.__images_bucket_size = images_bucket_size
         self.__image_pathes = pathes
         self.__get_images_num = get_images_num if get_images_num is not None else len(self.__image_pathes)
@@ -72,7 +96,8 @@ class ImageConveyor:
         self.__get_images_num = get_images_num
 
     def __getitem__(self, index):
-        if (index - 1) * self.__images_bucket_size >= (len(self.__image_pathes) if self.__get_images_num is None else self.__get_images_num):
+        if (index - 1) * self.__images_bucket_size >= (
+        len(self.__image_pathes) if self.__get_images_num is None else self.__get_images_num):
             raise IndexError
         if not self.__buffer_is_ready:
             self.__buffer_load_thread.join()
