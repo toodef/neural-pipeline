@@ -63,7 +63,7 @@ img_processor.set_on_epoch(on_epoch)
 
 
 def after_load(image: {}):
-    image['object'] = cv2.resize(image['object'], (image_size, image_size), 0, 0, cv2.INTER_LINEAR)
+    image['object'] = np.multiply(cv2.resize(image['object'], (image_size, image_size), 0, 0, cv2.INTER_LINEAR), 1 / 255)
 
 
 with ImageConveyor(PathLoader().after_load(after_load), train_pathes, images_part) as conveyor:
