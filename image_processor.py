@@ -178,3 +178,21 @@ class ImageProcessor:
 
     def save_state(self, path: str):
         self.__saver.save(self.__session, path)
+
+
+class Predictor:
+    def __init__(self, path):
+        self.__session = tf.Session()
+        self.__saver = tf.train.import_meta_graph(path)
+        self.__saver.restore(self.__session, tf.train.latest_checkpoint('./'))
+        self.__graph = tf.get_default_graph()
+        self.__y_pred = self.__graph.get_tensor_by_name("y_pred:0")
+        self.__x = self.__graph.get_tensor_by_name("x:0")
+        self.__y_true = self.__graph.get_tensor_by_name("y_true:0")
+        self.__y_test_images = np.zeros((1, 2))
+
+    def predict(self, images):
+        images_data = np.array([img['object'] for img in images])
+        x_batch = images.reshape(1, image_size, image_size, num_channels)
+        feed_dict_testing = {self.__x: x_batch, self.__y_true: self.__y_test_images}
+        return self.__session.run(self.__y_pred, feed_dict=feed_dict_testing)
