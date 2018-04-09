@@ -33,20 +33,14 @@ class ImageProcessor:
 
     @staticmethod
     def __create_convolutional_layer(input, num_input_channels, conv_filter_size, num_filters):
-        ## We shall define the weights that will be trained using create_weights function.
         weights = ImageProcessor.__create_weights(
             shape=[conv_filter_size, conv_filter_size, num_input_channels, num_filters])
-        ## We create biases using the create_biases function. These are also trained.
         biases = ImageProcessor.__create_biases(num_filters)
 
-        ## Creating the convolutional layer
         layer = tf.nn.conv2d(input=input, filter=weights, strides=[1, 1, 1, 1], padding='SAME')
-
         layer += biases
 
-        ## We shall be using max-pooling.
         layer = tf.nn.max_pool(value=layer, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-        ## Output of pooling is fed to Relu which is the activation function for us.
         layer = tf.nn.relu(layer)
 
         return layer
@@ -61,7 +55,6 @@ class ImageProcessor:
 
     @staticmethod
     def __create_fc_layer(input, num_inputs, num_outputs, use_relu=True):
-        # Let's define trainable weights and biases.
         weights = ImageProcessor.__create_weights(shape=[num_inputs, num_outputs])
         biases = ImageProcessor.__create_biases(num_outputs)
 
