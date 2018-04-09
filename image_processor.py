@@ -181,18 +181,18 @@ class ImageProcessor:
 
 
 class Predictor:
-    def __init__(self, path):
+    def __init__(self, path, classes_number: int, image_size: []):
         self.__session = tf.Session()
-        self.__saver = tf.train.import_meta_graph(path)
-        self.__saver.restore(self.__session, tf.train.latest_checkpoint('./'))
-        self.__graph = tf.get_default_graph()
-        self.__y_pred = self.__graph.get_tensor_by_name("y_pred:0")
-        self.__x = self.__graph.get_tensor_by_name("x:0")
-        self.__y_true = self.__graph.get_tensor_by_name("y_true:0")
-        self.__y_test_images = np.zeros((1, 2))
+        saver = tf.train.import_meta_graph(path)
+        saver.restore(self.__session, tf.train.latest_checkpoint('./'))
+        graph = tf.get_default_graph()
+        self.__y_pred = graph.get_tensor_by_name("y_pred:0")
+        self.__x = graph.get_tensor_by_name("x:0")
+        self.__y_true = graph.get_tensor_by_name("y_true:0")
+        self.__y_test_images = np.zeros((1, classes_number))
+        self.__image_size = image_size
 
-    def predict(self, images):
-        images_data = np.array([img['object'] for img in images])
-        x_batch = images.reshape(1, image_size, image_size, num_channels)
+    def predict(self, image):
+        x_batch = image['object'].reshape(1, self.__image_size[0], self.__image_size[1], self.__image_size[2])
         feed_dict_testing = {self.__x: x_batch, self.__y_true: self.__y_test_images}
         return self.__session.run(self.__y_pred, feed_dict=feed_dict_testing)
