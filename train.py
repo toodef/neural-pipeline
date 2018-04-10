@@ -46,10 +46,11 @@ def on_epoch():
         for images in conveyor:
             if len(images) < images_part:
                 continue
-            for img in images:
-                img['object'] = cv2.resize(img['object'], (image_size, image_size), 0, 0, cv2.INTER_LINEAR)
             loss_values.append(img_processor.get_loss_value(images))
             valid_accuracies.append(img_processor.get_accuracy(images))
+
+            for img in images:
+                img['object'] = None
 
     epoch = img_processor.get_cur_epoch()
     valid_acc = np.mean(np.array(valid_accuracies))
@@ -75,3 +76,6 @@ with ImageConveyor(PathLoader().after_load(after_load), train_pathes, images_par
             continue
         last_train_images = images
         img_processor.train_batch(images)
+
+        for img in images:
+            img['object'] = None
