@@ -36,11 +36,15 @@ last_train_images = []
 start_time = None
 
 
+def after_load(image: {}):
+    image['object'] = np.multiply(cv2.resize(image['object'], (image_size, image_size), 0, 0, cv2.INTER_LINEAR), 1 / 255)
+
+
 def on_epoch():
     img_processor.save_state(result_path)
 
     accuracy = img_processor.get_accuracy(last_train_images)
-    with ImageConveyor(PathLoader(), validation_pathes, images_part) as conveyor:
+    with ImageConveyor(PathLoader().after_load(after_load), validation_pathes, images_part) as conveyor:
         loss_values = []
         valid_accuracies = []
         for images in conveyor:
@@ -61,10 +65,6 @@ def on_epoch():
 
 
 img_processor.set_on_epoch(on_epoch)
-
-
-def after_load(image: {}):
-    image['object'] = np.multiply(cv2.resize(image['object'], (image_size, image_size), 0, 0, cv2.INTER_LINEAR), 1 / 255)
 
 
 with ImageConveyor(PathLoader().after_load(after_load), train_pathes, images_part) as conveyor:
