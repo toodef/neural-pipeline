@@ -9,8 +9,9 @@ from random import shuffle
 
 train_dir = 'train'
 validation_dir = 'validation'
-image_size = 128
-images_part = 128
+image_size = 64
+images_part = 32
+batch_size = 16
 result_path = os.path.abspath('result\\furniture_segmentation')
 
 classes = [int(dir) for dir in os.listdir(train_dir)]
@@ -29,7 +30,7 @@ train_pathes = get_pathes(train_dir)
 shuffle(train_pathes)
 validation_pathes = get_pathes(validation_dir)
 
-img_processor = ImageProcessor(len(classes), len(train_pathes), [image_size, image_size, 3], epoch_every_train_num=1000)
+img_processor = ImageProcessor(len(classes), len(train_pathes), [image_size, image_size, 3], batch_size=batch_size, epoch_every_train_num=1000)
 
 last_train_images = []
 
