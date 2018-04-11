@@ -77,11 +77,11 @@ class ImageProcessor:
         self.__session.run(tf.global_variables_initializer())
 
         # network design
-        filter_size_conv1 = 3
+        filter_size_conv1 = 7
         num_filters_conv1 = 32
-        filter_size_conv2 = 3
+        filter_size_conv2 = 7
         num_filters_conv2 = 32
-        filter_size_conv3 = 3
+        filter_size_conv3 = 7
         num_filters_conv3 = 64
         fc_layer_size = 128
 
