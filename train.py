@@ -12,6 +12,7 @@ validation_dir = 'validation'
 image_size = 256
 images_part = 32
 batch_size = 16
+epoch_every_images_parts = 4
 result_path = os.path.abspath('result\\furniture_segmentation')
 
 classes = [int(dir) for dir in os.listdir(train_dir)]
@@ -30,7 +31,9 @@ train_pathes = get_pathes(train_dir)
 shuffle(train_pathes)
 validation_pathes = get_pathes(validation_dir)
 
-img_processor = ImageProcessor(len(classes), len(train_pathes), [image_size, image_size, 3], batch_size=batch_size, epoch_every_train_num=1000)
+epoch_every_train_num = int(epoch_every_images_parts * len(train_pathes) / images_part)
+
+img_processor = ImageProcessor(len(classes), len(train_pathes), [image_size, image_size, 3], batch_size=batch_size, epoch_every_train_num=epoch_every_train_num)
 
 last_train_images = []
 
