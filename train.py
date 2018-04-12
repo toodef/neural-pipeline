@@ -9,7 +9,7 @@ from random import shuffle
 
 train_dir = 'train'
 validation_dir = 'validation'
-image_size = 64
+image_size = 256
 images_part = 32
 batch_size = 16
 result_path = os.path.abspath('result\\furniture_segmentation')
@@ -38,6 +38,8 @@ start_time = None
 
 
 def after_load(image: {}):
+    cv2.imshow("img", cv2.resize(image['object'], (image_size, image_size), 0, 0, cv2.INTER_LINEAR))
+    cv2.waitKey()
     image['object'] = np.multiply(cv2.resize(image['object'], (image_size, image_size), 0, 0, cv2.INTER_LINEAR), 1 / 255)
 
 
