@@ -13,7 +13,8 @@ image_size = 256
 images_part = 32
 batch_size = 16
 epoch_every_images_parts = 4
-result_path = os.path.abspath('result\\furniture_segmentation')
+result_dir = 'result'
+result_name_preffix = 'furniture_segmentation''
 
 classes = [int(dir) for dir in os.listdir(train_dir)]
 
@@ -45,7 +46,9 @@ def after_load(image: {}):
 
 
 def on_epoch():
-    img_processor.save_state(result_path)
+    if not os.path.exists(result_dir):
+        os.mkdir(result_dir)
+    img_processor.save_state(os.path.join(result_dir, result_name_preffix))
 
     accuracy = img_processor.get_accuracy(last_train_images)
     with ImageConveyor(PathLoader().after_load(after_load), validation_pathes, images_part) as conveyor:
