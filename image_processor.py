@@ -139,7 +139,7 @@ class ImageProcessor:
         self.__session.run(self.__optimizer, feed_dict=feed_dict)
 
         if self.__on_epoch is not None:
-            if self.__iteration_idx % self.__epoch_every_train_num == 0:
+            if self.__iteration_idx > 0 and self.__iteration_idx % self.__epoch_every_train_num == 0:
                 self.__on_epoch()
 
         self.__iteration_idx += 1
