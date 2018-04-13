@@ -16,7 +16,8 @@ epoch_every_images_parts = 4
 result_dir = 'result'
 result_name_preffix = 'furniture_segmentation'
 
-classes = [int(dir) for dir in os.listdir(train_dir)[0:2]]
+# classes = [int(dir) for dir in os.listdir(train_dir)]
+classes = [1, 2]
 
 
 def get_pathes(directory):
