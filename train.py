@@ -64,9 +64,9 @@ def on_epoch():
             for img in images:
                 img['object'] = None
 
-    # tmp_train_pathes = train_pathes.copy()[0:batch_size * 50]
-    # shuffle(tmp_train_pathes)
-    with ImageConveyor(PathLoader().after_load(after_load), train_pathes, batch_size) as tmp_conveyor:
+    tmp_train_pathes = train_pathes.copy()[0:batch_size * 50]
+    shuffle(tmp_train_pathes)
+    with ImageConveyor(PathLoader().after_load(after_load), tmp_train_pathes, batch_size) as tmp_conveyor:
         accuracyes = []
         for images in tmp_conveyor:
             if len(images) < batch_size:
