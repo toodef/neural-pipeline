@@ -10,8 +10,7 @@ from random import shuffle
 train_dir = 'train'
 validation_dir = 'validation'
 image_size = 256
-images_part = 32
-batch_size = 16
+batch_size = 32
 epoch_every_images_parts = 4
 result_dir = 'result'
 result_name_preffix = 'furniture_segmentation'
@@ -33,7 +32,7 @@ train_pathes = get_pathes(train_dir)
 shuffle(train_pathes)
 validation_pathes = get_pathes(validation_dir)
 
-epoch_every_train_num = int(epoch_every_images_parts * len(train_pathes) / images_part)
+epoch_every_train_num = int(epoch_every_images_parts * len(train_pathes) / batch_size)
 
 img_processor = ImageProcessor(len(classes), len(train_pathes), [image_size, image_size, 3], batch_size=batch_size, epoch_every_train_num=epoch_every_train_num)
 
@@ -51,16 +50,28 @@ def on_epoch():
         os.mkdir(result_dir)
     img_processor.save_state(os.path.join(result_dir, result_name_preffix))
 
-    with ImageConveyor(PathLoader().after_load(after_load), validation_pathes, images_part) as conveyor:
+    with ImageConveyor(PathLoader().after_load(after_load), validation_pathes, batch_size) as conveyor:
         loss_values = []
         valid_accuracies = []
         accuracyes = []
         for images in conveyor:
-            if len(images) < images_part:
+            if len(images) < batch_size:
                 continue
             accuracyes.append(img_processor.get_accuracy(images))
             loss_values.append(img_processor.get_loss_value(images))
             valid_accuracies.append(img_processor.get_accuracy(images))
+
+            for img in images:
+                img['object'] = None
+
+    tmp_train_pathes = train_pathes[0:10000]
+    shuffle(tmp_train_pathes)
+    with ImageConveyor(PathLoader().after_load(after_load), tmp_train_pathes, batch_size) as conveyor:
+        accuracyes = []
+        for images in conveyor:
+            if len(images) < batch_size:
+                continue
+            accuracyes.append(img_processor.get_accuracy(images))
 
             for img in images:
                 img['object'] = None
@@ -77,12 +88,12 @@ def on_epoch():
 img_processor.set_on_epoch(on_epoch)
 
 
-with ImageConveyor(PathLoader().after_load(after_load), train_pathes, images_part) as conveyor:
+with ImageConveyor(PathLoader().after_load(after_load), train_pathes, batch_size) as conveyor:
     conveyor.set_iterations_num(len(train_pathes) * 100)
     # conveyor.set_processes_num(4)
     start_time = time.time()
     for images in conveyor:
-        if len(images) < images_part:
+        if len(images) < batch_size:
             continue
         last_train_images = images
         img_processor.train_batch(images)
