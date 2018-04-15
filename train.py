@@ -51,13 +51,14 @@ def on_epoch():
         os.mkdir(result_dir)
     img_processor.save_state(os.path.join(result_dir, result_name_preffix))
 
-    accuracy = img_processor.get_accuracy(last_train_images)
     with ImageConveyor(PathLoader().after_load(after_load), validation_pathes, images_part) as conveyor:
         loss_values = []
         valid_accuracies = []
+        accuracyes = []
         for images in conveyor:
             if len(images) < images_part:
                 continue
+            accuracyes.append(img_processor.get_accuracy(images))
             loss_values.append(img_processor.get_loss_value(images))
             valid_accuracies.append(img_processor.get_accuracy(images))
 
@@ -65,8 +66,9 @@ def on_epoch():
                 img['object'] = None
 
     epoch = img_processor.get_cur_epoch()
-    valid_acc = np.mean(np.array(valid_accuracies))
-    loss = np.mean(np.array(loss_values))
+    valid_acc = np.average(np.array(valid_accuracies))
+    loss = np.average(np.array(loss_values))
+    accuracy = np.average(np.array(accuracyes))
     print(
         "Epoch: {}, Training accuracy: {:>6.1%}, Validation accuracy {:>6.1%}, validation loss: {:.3f},  Time: {:.2f} min".format(
             epoch, accuracy, valid_acc, loss, (time.time() - start_time) / 60))
