@@ -36,7 +36,7 @@ epoch_every_train_num = int(epoch_every_images_parts * len(train_pathes) / batch
 
 img_processor = ImageProcessor(len(classes), len(train_pathes), [image_size, image_size, 3], epoch_every_train_num=epoch_every_train_num)
 
-last_train_images = []
+# last_train_images = []
 
 start_time = None
 
@@ -95,7 +95,7 @@ with ImageConveyor(PathLoader().after_load(after_load), train_pathes, batch_size
     for images in conveyor:
         if len(images) < batch_size:
             continue
-        last_train_images = images
+        # last_train_images = images
         img_processor.train_batch(images)
 
         for img in images:
