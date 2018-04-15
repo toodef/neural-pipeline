@@ -50,11 +50,11 @@ def on_epoch():
         os.mkdir(result_dir)
     img_processor.save_state(os.path.join(result_dir, result_name_preffix))
 
-    with ImageConveyor(PathLoader().after_load(after_load), validation_pathes, batch_size) as conveyor:
+    with ImageConveyor(PathLoader().after_load(after_load), validation_pathes, batch_size) as tmp_conveyor:
         loss_values = []
         valid_accuracies = []
         accuracyes = []
-        for images in conveyor:
+        for images in tmp_conveyor:
             if len(images) < batch_size:
                 continue
             accuracyes.append(img_processor.get_accuracy(images))
@@ -66,9 +66,9 @@ def on_epoch():
 
     tmp_train_pathes = train_pathes[0:10000]
     shuffle(tmp_train_pathes)
-    with ImageConveyor(PathLoader().after_load(after_load), tmp_train_pathes, batch_size) as conveyor:
+    with ImageConveyor(PathLoader().after_load(after_load), tmp_train_pathes, batch_size) as tmp_conveyor:
         accuracyes = []
-        for images in conveyor:
+        for images in tmp_conveyor:
             if len(images) < batch_size:
                 continue
             accuracyes.append(img_processor.get_accuracy(images))
