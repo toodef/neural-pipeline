@@ -36,7 +36,7 @@ epoch_every_train_num = int(epoch_every_images_parts * len(train_pathes) / batch
 
 img_processor = ImageProcessor(len(classes), len(train_pathes), [image_size, image_size, 3], epoch_every_train_num=epoch_every_train_num)
 
-last_train_images = []
+# last_train_images = []
 
 start_time = None
 
@@ -66,20 +66,20 @@ def on_epoch():
 
     # tmp_train_pathes = train_pathes.copy()[0:batch_size * 50]
     # shuffle(tmp_train_pathes)
-    # with ImageConveyor(PathLoader().after_load(after_load), train_pathes, batch_size) as tmp_conveyor:
-    #     accuracyes = []
-    #     for images in tmp_conveyor:
-    #         if len(images) < batch_size:
-    #             continue
-    #         accuracyes.append(img_processor.get_accuracy(images))
-    #
-    #         for img in images:
-    #             img['object'] = None
+    with ImageConveyor(PathLoader().after_load(after_load), train_pathes, batch_size) as tmp_conveyor:
+        accuracyes = []
+        for images in tmp_conveyor:
+            if len(images) < batch_size:
+                continue
+            accuracyes.append(img_processor.get_accuracy(images))
+
+            for img in images:
+                img['object'] = None
 
     epoch = img_processor.get_cur_epoch()
     valid_acc = np.average(np.array(valid_accuracies))
     loss = np.average(np.array(loss_values))
-    accuracy = img_processor.get_accuracy(last_train_images) #np.average(np.array(accuracyes))
+    accuracy = np.average(np.array(accuracyes)) # img_processor.get_accuracy(last_train_images)
     print(
         "Epoch: {}, Training accuracy: {:>6.1%}, Validation accuracy {:>6.1%}, validation loss: {:.3f},  Time: {:.2f} min".format(
             epoch, accuracy, valid_acc, loss, (time.time() - start_time) / 60))
@@ -95,7 +95,7 @@ with ImageConveyor(PathLoader().after_load(after_load), train_pathes, batch_size
     for images in conveyor:
         if len(images) < batch_size:
             continue
-        last_train_images = images
+        # last_train_images = images
         img_processor.train_batch(images)
 
         for img in images:
