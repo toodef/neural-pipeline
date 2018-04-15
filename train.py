@@ -66,8 +66,8 @@ def on_epoch():
 
     idxs = [i for i in range(len(train_pathes) - 1)]
     shuffle(idxs)
-    idxs = idxs[0:len(idxs) * batch_size // 100]
-    tmp_train_pathes = [train_pathes[i] for i in idxs]
+    idxs = idxs[0:batch_size * (len(idxs) // 100)]
+    tmp_train_pathes = [{'path': train_pathes[i]['path'], 'label_id': train_pathes[i]['label_id']} for i in idxs]
     shuffle(tmp_train_pathes)
     with ImageConveyor(PathLoader().after_load(after_load), tmp_train_pathes, batch_size) as tmp_conveyor:
         accuracyes = []
