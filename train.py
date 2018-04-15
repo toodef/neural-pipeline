@@ -9,14 +9,14 @@ from random import shuffle
 
 train_dir = 'train'
 validation_dir = 'validation'
-image_size = 256
+image_size = 512
 batch_size = 32
 epoch_every_images_parts = 4
 result_dir = 'result'
 result_name_preffix = 'furniture_segmentation'
 
-# classes = [int(dir) for dir in os.listdir(train_dir)]
-classes = [1, 2]
+classes = [int(dir) for dir in os.listdir(train_dir)]
+# classes = [1, 2]
 
 
 def get_pathes(directory):
