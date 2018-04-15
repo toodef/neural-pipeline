@@ -10,8 +10,7 @@ class ImageProcessor:
         def __str__(self):
             return self.__msg
 
-    def __init__(self, classes_number: int, train_images_num: int, image_size: [], batch_size: int, epoch_every_train_num: int):
-        self.__batch_size = batch_size
+    def __init__(self, classes_number: int, train_images_num: int, image_size: [], epoch_every_train_num: int):
         if type(image_size) != list or len(image_size) != 3:
             raise self.ImageProcessorException("Bad image size data. This must be list of 3 integers")
         self.__image_size = image_size
@@ -79,9 +78,9 @@ class ImageProcessor:
         # network design
         filter_size_conv1 = 7
         num_filters_conv1 = 32
-        filter_size_conv2 = 7
+        filter_size_conv2 = 3
         num_filters_conv2 = 32
-        filter_size_conv3 = 7
+        filter_size_conv3 = 3
         num_filters_conv3 = 64
         fc_layer_size = 128
 

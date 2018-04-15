@@ -34,7 +34,7 @@ validation_pathes = get_pathes(validation_dir)
 
 epoch_every_train_num = int(epoch_every_images_parts * len(train_pathes) / batch_size)
 
-img_processor = ImageProcessor(len(classes), len(train_pathes), [image_size, image_size, 3], batch_size=batch_size, epoch_every_train_num=epoch_every_train_num)
+img_processor = ImageProcessor(len(classes), len(train_pathes), [image_size, image_size, 3], epoch_every_train_num=epoch_every_train_num)
 
 last_train_images = []
 
@@ -64,7 +64,7 @@ def on_epoch():
             for img in images:
                 img['object'] = None
 
-    tmp_train_pathes = train_pathes[0:10000].copy()
+    tmp_train_pathes = train_pathes.copy()[0:batch_size * 50]
     shuffle(tmp_train_pathes)
     with ImageConveyor(PathLoader().after_load(after_load), tmp_train_pathes, batch_size) as tmp_conveyor:
         accuracyes = []
