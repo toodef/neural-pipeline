@@ -6,20 +6,20 @@ from multiprocessing import Pool
 from threading import Thread
 
 
-class ImageLoader(metaclass=ABCMeta):
+class DataLoader(metaclass=ABCMeta):
     def __init__(self):
         self.__after_load_callback = None
 
-    def load(self, image: {}):
+    def load(self, data: {}):
         """
         Load image
-        :param image:
+        :param data:
         :return: image object
         """
-        self._load(image)
+        self._load(data)
         if self.__after_load_callback is not None:
-            self.__after_load_callback(image)
-        return image
+            self.__after_load_callback(data)
+        return data
 
     def after_load(self, callback: callable):
         """
@@ -31,7 +31,7 @@ class ImageLoader(metaclass=ABCMeta):
         return self
 
     @abstractmethod
-    def _load(self, image: {}):
+    def _load(self, data: {}):
         """
         Load image
         :param path: path to image
@@ -39,38 +39,38 @@ class ImageLoader(metaclass=ABCMeta):
         """
 
 
-class PathLoader(ImageLoader):
-    def _load(self, image: {}):
+class PathLoader(DataLoader):
+    def _load(self, data: {}):
         try:
-            image['object'] = cv2.imread(image['path'], cv2.IMREAD_COLOR)
+            data['object'] = cv2.imread(data['path'], cv2.IMREAD_COLOR)
         except:
-            image['object'] = None
-        return image
+            data['object'] = None
+        return data
 
 
-class UrlLoader(ImageLoader):
-    def _load(self, image: {}):
+class UrlLoader(DataLoader):
+    def _load(self, data: {}):
         try:
-            response = requests.get(image['path'], timeout=100)
+            response = requests.get(data['path'], timeout=100)
             if response.ok:
-                img_array = np.asarray(bytearray(response.content), dtype=np.uint8)
-                image['object'] = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+                data_array = np.asarray(bytearray(response.content), dtype=np.uint8)
+                data['object'] = cv2.imdecode(data_array, cv2.IMREAD_COLOR)
             else:
-                image['object'] = None
+                data['object'] = None
         except:
-            image['object'] = None
+            data['object'] = None
 
-        return image
+        return data
 
 
-def load_image(info: [ImageLoader, {}]):
+def load_image(info: [DataLoader, {}]):
     return info[0].load(info[1])
 
 
-class ImageConveyor:
-    def __init__(self, image_loader: ImageLoader, pathes: [{}] = None, images_bucket_size: int = 1,
+class DataConveyor:
+    def __init__(self, image_loader: DataLoader, pathes: [{}] = None, batch_size: int = 1,
                  get_images_num: int = None):
-        self.__images_bucket_size = images_bucket_size
+        self.__batch_size = batch_size
         self.__image_pathes = pathes
         self.__get_images_num = get_images_num if get_images_num is not None else len(self.__image_pathes)
         self.__image_loader = image_loader
@@ -96,7 +96,7 @@ class ImageConveyor:
         self.__get_images_num = get_images_num
 
     def __getitem__(self, index):
-        if (index - 1) * self.__images_bucket_size >= (
+        if (index - 1) * self.__batch_size >= (
         len(self.__image_pathes) if self.__get_images_num is None else self.__get_images_num):
             raise IndexError
         if not self.__buffer_is_ready:
@@ -117,8 +117,8 @@ class ImageConveyor:
                 indices = np.roll(np.arange(len(self.__image_pathes)), -self.__cur_index)[0: idx_number]
                 return [[self.__image_loader, self.__image_pathes[idx]] for idx in indices]
 
-            if (self.__cur_index + self.__images_bucket_size) < self.__get_images_num:
-                return get_data(self.__images_bucket_size)
+            if (self.__cur_index + self.__batch_size) < self.__get_images_num:
+                return get_data(self.__batch_size)
             elif self.__cur_index < self.__get_images_num:
                 return get_data(self.__get_images_num - self.__cur_index)
             else:
@@ -140,12 +140,12 @@ class ImageConveyor:
             except:
                 print(len(threads_data))
                 print(threads_data)
-                self.__cur_index += self.__images_bucket_size
+                self.__cur_index += self.__batch_size
                 return []
         else:
             new_buffer = [load_image(thread_data) for thread_data in threads_data]
 
-        self.__cur_index += self.__images_bucket_size
+        self.__cur_index += self.__batch_size
         return new_buffer
 
     def __swap_buffers(self):

@@ -1,7 +1,7 @@
 import time
 
-from image_conveyor import ImageConveyor, PathLoader
-from image_processor import ImageProcessor
+from data_conveyor import DataConveyor, PathLoader
+from data_processor.data_processor import ImageProcessor
 import os
 import cv2
 import numpy as np
@@ -50,7 +50,7 @@ def on_epoch():
         os.mkdir(result_dir)
     img_processor.save_state(os.path.join(result_dir, result_name_preffix))
 
-    with ImageConveyor(PathLoader().after_load(after_load), validation_pathes, batch_size) as tmp_conveyor:
+    with DataConveyor(PathLoader().after_load(after_load), validation_pathes, batch_size) as tmp_conveyor:
         loss_values = []
         valid_accuracies = []
         accuracyes = []
@@ -69,7 +69,7 @@ def on_epoch():
     idxs = idxs[0:batch_size * (len(idxs) // 100)]
     tmp_train_pathes = [{'path': train_pathes[i]['path'], 'label_id': train_pathes[i]['label_id']} for i in idxs]
     shuffle(tmp_train_pathes)
-    with ImageConveyor(PathLoader().after_load(after_load), tmp_train_pathes, batch_size) as tmp_conveyor:
+    with DataConveyor(PathLoader().after_load(after_load), tmp_train_pathes, batch_size) as tmp_conveyor:
         accuracyes = []
         for images in tmp_conveyor:
             if len(images) < batch_size:
@@ -91,7 +91,7 @@ def on_epoch():
 img_processor.set_on_epoch(on_epoch)
 
 
-with ImageConveyor(PathLoader().after_load(after_load), train_pathes, batch_size) as conveyor:
+with DataConveyor(PathLoader().after_load(after_load), train_pathes, batch_size) as conveyor:
     conveyor.set_iterations_num(len(train_pathes) * 100)
     # conveyor.set_processes_num(4)
     start_time = time.time()

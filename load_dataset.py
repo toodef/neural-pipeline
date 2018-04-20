@@ -3,7 +3,7 @@ import sys
 import time
 import cv2
 
-from image_conveyor import ImageConveyor, UrlLoader
+from data_conveyor import DataConveyor, UrlLoader
 import json
 
 
@@ -19,7 +19,7 @@ def load(data_file_path: str):
     for img in data['images']:
         pathes.append({'path': img['url'][0], 'label_id': label_ids[img['image_id']], 'image_id': img['image_id']})
 
-    with ImageConveyor(UrlLoader(), pathes, 1000) as conveyor, open(data_file_path + '_log.log', 'w') as log_file:
+    with DataConveyor(UrlLoader(), pathes, 1000) as conveyor, open(data_file_path + '_log.log', 'w') as log_file:
         i = 0
         start_time = time.time()
         loaded_num, failed_num = 0, 0
