@@ -58,10 +58,10 @@ class Model(InitedByConfig, torch.nn.Module):
         return {"network": {
             "architecture": ["resnet34"],
             "weights_dir": ["weights"],
-            "start_from": ["begin"]
+            "start_from": ["begin", "url"]
         },
             "workdir_path": "workdir"
         }
 
-    def __call__(self, *args, **kwargs):
-        self.__model(args, kwargs)
+    def __call__(self, x):
+        return self.__model(x)

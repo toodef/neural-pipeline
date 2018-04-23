@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from multiprocessing import freeze_support
 
 import torch
@@ -24,8 +25,8 @@ def main():
         datasets.ImageFolder(traindir, transforms.Compose([
             transforms.RandomResizedCrop(224),
             # transforms.RandomHorizontalFlip(),
-            transforms.ToTensor()
-            # normalize,
+            transforms.ToTensor(),
+            normalize,
         ])),
         batch_size=batch_size, shuffle=True,
         num_workers=threads_num, pin_memory=True)
@@ -42,8 +43,14 @@ def main():
 
     data_processor = DataProcessor(config)
 
-    for i, (input, target) in enumerate(train_loader):
-        data_processor.train_batch(input, target)
+    images_num = len(train_loader)
+    for epoch_idx in range(50):
+        start_time = time.time()
+        for (input, target) in train_loader:
+            data_processor.train_batch(input, target)
+
+        print("Epoch: {}; loss: {}; accuracy: {}; elapsed {} min"
+              .format(epoch_idx + 1, data_processor.get_loss_value(images_num), data_processor.get_accuracy(images_num), (time.time() - start_time) // 60))
 
 
 if __name__ == "__main__":

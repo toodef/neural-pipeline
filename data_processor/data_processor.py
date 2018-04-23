@@ -10,27 +10,32 @@ class DataProcessor(InitedByConfig):
         self.__learning_rate = float(config['network']['learning_rate'])
         self.__optimizer = getattr(torch.optim, config['network']['optimizer'])(self.__model.parameters(), lr=self.__learning_rate, weight_decay=1.e-4)
         self.__criterion = torch.nn.CrossEntropyLoss().cuda()
-        self.__output = None
+        self.__losses = 0
+        self.__accuracies = 0
 
     def train_batch(self, input, target):
-        self.__model.train()
+        self.__model.train(True)
 
         target = target.cuda(async=True)
-        input_var = torch.autograd.Variable(input)
-        target_var = torch.autograd.Variable(target)
+        input_var = torch.autograd.Variable(input.cuda())
+        target_var = torch.autograd.Variable(target.cuda())
 
-        self.__output = self.__model(input_var)
-        loss = self.__criterion(self.__output, target_var)
+        output = self.__model(input_var)
+        _, preds = torch.max(output.data, 1)
+        loss = self.__criterion(output, target_var)
 
         self.__optimizer.zero_grad()
         loss.backward()
         self.__optimizer.step()
 
-    def get_loss_value(self, images: [{}]):
-        pass
+        self.__losses += loss.data[0] * input_var.size(0)
+        self.__accuracies += torch.sum(preds == target_var.data)
 
-    def get_accuracy(self, images: [{}]):
-        pass
+    def get_loss_value(self, images_num: int):
+        return self.__losses / images_num
+
+    def get_accuracy(self, images_num: int):
+        return self.__accuracies / images_num
 
     def get_cur_epoch(self):
         pass
