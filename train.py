@@ -21,13 +21,14 @@ def main():
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    train_loader = torch.utils.data.DataLoader(
-        datasets.ImageFolder(traindir, transforms.Compose([
+    train_folder = datasets.ImageFolder(traindir, transforms.Compose([
             transforms.RandomResizedCrop(224),
             # transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
-        ])),
+        ]))
+    train_loader = torch.utils.data.DataLoader(
+        train_folder,
         batch_size=batch_size, shuffle=True,
         num_workers=threads_num, pin_memory=True)
 
@@ -43,7 +44,7 @@ def main():
 
     data_processor = DataProcessor(config)
 
-    images_num = len(train_loader)
+    images_num = len(train_folder)
     for epoch_idx in range(50):
         start_time = time.time()
         for (input, target) in train_loader:
