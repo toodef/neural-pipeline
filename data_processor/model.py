@@ -15,7 +15,7 @@ model_urls = {
 }
 
 
-class Model(InitedByConfig, torch.nn.Module):
+class Model(InitedByConfig):
     def __init__(self, config: {}):
         super().__init__()
         self.__model = None
