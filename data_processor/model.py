@@ -40,6 +40,8 @@ class Model(InitedByConfig, torch.nn.Module):
             model_url = model_urls[self.__config['network']['architecture']]
             init_weights_file = os.path.join(self.__weights_dir, model_url.split("/")[-1])
             if not os.path.isfile(init_weights_file):
+                if not os.path.exists(self.__weights_dir) or not os.apth.isdir(self.__weights_dir):
+                    os.makedirs(self.__weights_dir)
                 response = requests.get(model_url)
                 with open(init_weights_file, 'wb') as file:
                     file.write(response.content)
