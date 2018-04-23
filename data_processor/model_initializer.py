@@ -20,6 +20,7 @@ class Model(InitedByConfig, torch.nn.Module):
         super().__init__()
         self.__model = None
         self.__config = config
+        self.__init_from_config()
 
     def model(self):
         return self.__model
@@ -62,5 +63,5 @@ class Model(InitedByConfig, torch.nn.Module):
             "workdir_path": "workdir"
         }
 
-    def forward(self, *input):
-        super(Model, self).forward(input)
+    def forward(self, x):
+        return x

@@ -4,7 +4,7 @@ from data_processor.model_initializer import Model
 from utils.config import InitedByConfig
 
 
-class ImageProcessor(InitedByConfig):
+class DataProcessor(InitedByConfig):
     def __init__(self, config: {}):
         self.__model = torch.nn.DataParallel(Model(config)).cuda()
         self.__learning_rate = float(config['network']['learning_rate'])
@@ -14,12 +14,12 @@ class ImageProcessor(InitedByConfig):
     def train_batch(self, input, target):
         self.__model.train()
 
-        target = target.cuda(assync=True)
+        target = target.cuda(async=True)
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
 
-        output = self.__model(input_var)
-        loss = self.__criterion(output, target_var)
+        self.__output = self.__model(input_var)
+        loss = self.__criterion(self.__output, target_var)
 
         self.__optimizer.zero_grad()
         loss.backward()

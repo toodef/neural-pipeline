@@ -1,4 +1,3 @@
-import json
 from abc import ABCMeta, abstractmethod
 
 
@@ -27,15 +26,12 @@ class ConfigException(Exception):
 
 
 class InitedByConfig(metaclass=ABCMeta):
-    def check_config(self, config_path: str):
+    def check_config(self, config: {}):
         """
         Check config is correct for this module
         :return: None
         :raise: ConfigException if config is wrong
         """
-        with open(config_path, 'r') as file:
-            config = json.load(file)
-
         needed_params = self._check_config()
 
         missed_params = []
