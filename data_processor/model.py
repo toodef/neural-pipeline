@@ -63,5 +63,5 @@ class Model(InitedByConfig, torch.nn.Module):
             "workdir_path": "workdir"
         }
 
-    def forward(self, x):
-        return x
+    def __call__(self, *args, **kwargs):
+        self.__model(args, kwargs)
