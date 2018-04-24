@@ -37,6 +37,9 @@ class DataProcessor(InitedByConfig):
     def get_accuracy(self, images_num: int):
         return self.__accuracies / images_num
 
+    def clear_metrics(self):
+        self.__losses, self.__accuracies = 0, 0
+
     def get_cur_epoch(self):
         pass
 

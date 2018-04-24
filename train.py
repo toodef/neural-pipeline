@@ -52,7 +52,7 @@ def main():
 
         print("Epoch: {}; loss: {}; accuracy: {}; elapsed {} min"
               .format(epoch_idx + 1, data_processor.get_loss_value(images_num), data_processor.get_accuracy(images_num), (time.time() - start_time) // 60))
-
+        data_processor.clear_metrics()
 
 if __name__ == "__main__":
     freeze_support()
