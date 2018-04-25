@@ -7,6 +7,7 @@ import torch
 from torchvision import transforms, datasets
 
 from data_processor import DataProcessor
+from data_processor.monitoring import Monitor
 
 
 def main():
@@ -47,11 +48,13 @@ def main():
     data_processor = DataProcessor(config)
 
     images_num = len(train_folder)
+    monitor = Monitor(images_num)
     for epoch_idx in range(epoch_num):
         start_time = time.time()
         for (input, target) in train_loader:
             data_processor.train_batch(input, target)
 
+        monitor.update(epoch_idx, data_processor)
         print("Epoch: {}; loss: {}; accuracy: {}; elapsed {} min"
               .format(epoch_idx + 1, data_processor.get_loss_value(images_num), data_processor.get_accuracy(images_num),
                       (time.time() - start_time) // 60))
