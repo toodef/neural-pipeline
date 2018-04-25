@@ -19,12 +19,12 @@ class DataProcessor(InitedByConfig):
         self.clear_metrics()
         self.__images_processeed = {"val": 0, "train": 0}
 
-    def process_batch(self, input, target, is_train=True):
+    def process_batch(self, input, target, is_train):
         self.__model.train(is_train)
 
-        target = target.cuda(async=True)
-        input_var = torch.autograd.Variable(input.cuda(), volatile=not is_train)
-        target_var = torch.autograd.Variable(target.cuda(), volatile=not is_train)
+        # target = target.cuda(async=True)
+        input_var = torch.autograd.Variable(input.cuda())
+        target_var = torch.autograd.Variable(target.cuda())
 
         output = self.__model(input_var)
         _, preds = torch.max(output.data, 1)
