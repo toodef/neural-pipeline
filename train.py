@@ -27,7 +27,8 @@ def main():
 
     train_loader = torch.utils.data.DataLoader(
         datasets.ImageFolder(traindir, transforms.Compose([
-            transforms.RandomResizedCrop(224),
+            transforms.Resize(data_size[:2]),
+            # transforms.RandomResizedCrop(size=data_size[:2], scale=(0.9, 0.9), ratio=data_size[0] / data_size[1]),
             # transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,

@@ -20,7 +20,7 @@ class DataProcessor(InitedByConfig):
     def process_batch(self, input, target, is_train):
         self.__model.train(is_train)
 
-        target = target.cuda(async=True)
+        # target = target.cuda(async=True)
         input_var = torch.autograd.Variable(input.cuda(), volatile=not is_train)
         target_var = torch.autograd.Variable(target.cuda(), volatile=not is_train)
 
