@@ -1,5 +1,7 @@
 from tensorboardX import SummaryWriter
 
+from data_processor import DataProcessor
+
 
 class Monitor:
     def __init__(self, images_num: int):
