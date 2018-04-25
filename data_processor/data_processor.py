@@ -15,7 +15,7 @@ class DataProcessor(InitedByConfig):
         self.__criterion = torch.nn.CrossEntropyLoss().cuda()
         self.__monitor = Monitor()
         self.clear_metrics()
-        self.__images_processeed = {"val": 0, "train": 0}
+        self.__batch_size = int(config['data_conveyor']['batch_size'])
 
     def process_batch(self, input, target, is_train):
         self.__model.train(is_train)
@@ -38,7 +38,7 @@ class DataProcessor(InitedByConfig):
         else:
             self.__metrics['val_accuracy'] += torch.sum(preds == target_var.data)
 
-        self.__images_processeed['train' if is_train else 'val'] += len(input[0])
+        self.__images_processeed['train' if is_train else 'val'] += self.__batch_size
 
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
         start_time = time.time()
@@ -60,6 +60,7 @@ class DataProcessor(InitedByConfig):
 
     def clear_metrics(self):
         self.__metrics = {"loss": 0, "val_accuracy": 0, "train_accuracy": 0}
+        self.__images_processeed = {"val": 0, "train": 0}
 
     def save_state(self, path: str):
         pass
