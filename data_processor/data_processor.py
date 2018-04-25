@@ -1,6 +1,9 @@
+import time
+
 import torch
 
 from data_processor.model import Model
+from data_processor.monitoring import Monitor
 from utils.config import InitedByConfig
 
 
@@ -12,36 +15,55 @@ class DataProcessor(InitedByConfig):
         self.__criterion = torch.nn.CrossEntropyLoss().cuda()
         self.__losses = 0
         self.__accuracies = 0
+        self.__monitor = Monitor()
+        self.clear_metrics()
+        self.__images_processeed = {"val": 0, "train": 0}
 
-    def train_batch(self, input, target):
-        self.__model.train(True)
+    def process_batch(self, input, target, is_train=True):
+        self.__model.train(is_train)
 
         target = target.cuda(async=True)
-        input_var = torch.autograd.Variable(input.cuda())
-        target_var = torch.autograd.Variable(target.cuda())
+        input_var = torch.autograd.Variable(input.cuda(), volatile=not is_train)
+        target_var = torch.autograd.Variable(target.cuda(), volatile=not is_train)
 
         output = self.__model(input_var)
         _, preds = torch.max(output.data, 1)
-        loss = self.__criterion(output, target_var)
 
-        self.__optimizer.zero_grad()
-        loss.backward()
-        self.__optimizer.step()
+        if is_train:
+            loss = self.__criterion(output, target_var)
+            self.__optimizer.zero_grad()
+            loss.backward()
+        if is_train:
+            self.__optimizer.step()
 
-        self.__losses += loss.data[0] * input_var.size(0)
-        self.__accuracies += torch.sum(preds == target_var.data)
+        if is_train:
+            self.__metrics['loss'] += loss.data[0] * input_var.size(0)
+            self.__metrics['train_accuracy'] += torch.sum(preds == target_var.data)
+        else:
+            self.__metrics['val_accuracy'] += torch.sum(preds == target_var.data)
 
-    def get_loss_value(self, images_num: int):
-        return self.__losses / images_num
+        self.__images_processeed['train' if is_train else 'val'] += len(input[0])
 
-    def get_accuracy(self, images_num: int):
-        return self.__accuracies / images_num
+    def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
+        start_time = time.time()
+        for (input, target) in train_dataloader:
+            self.process_batch(input, target, is_train=True)
+        for (input, target) in validation_dataloader:
+            self.process_batch(input, target, is_train=False)
+
+        cur_metrics = self.get_metrics()
+        self.__monitor.update(epoch_idx, cur_metrics)
+        print("Epoch: {}; loss: {}; val_accuracy: {}; train_accuracy: {}, elapsed {} min"
+              .format(epoch_idx + 1, cur_metrics['loss'], cur_metrics['val_accuracy'], cur_metrics['train_accuracy'], (time.time() - start_time) // 60))
+        self.clear_metrics()
+
+    def get_metrics(self):
+        return {"loss": self.__metrics['loss'] / self.__images_processeed['train'],
+                "val_accuracy": self.__metrics['val_accuracy'] / self.__images_processeed['val'],
+                "train_accuracy": self.__metrics['train_accuracy'] / self.__images_processeed['train']}
 
     def clear_metrics(self):
-        self.__losses, self.__accuracies = 0, 0
-
-    def get_cur_epoch(self):
-        pass
+        self.__metrics = {"loss": 0, "val_accuracy": 0, "train_accuracy": 0}
 
     def save_state(self, path: str):
         pass
