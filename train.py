@@ -1,13 +1,11 @@
 import json
 import os
-import time
 from multiprocessing import freeze_support
 
 import torch
 from torchvision import transforms, datasets
 
 from data_processor import DataProcessor
-from data_processor.monitoring import Monitor
 
 
 def main():
@@ -19,7 +17,7 @@ def main():
     batch_size = int(config['data_conveyor']['batch_size'])
     threads_num = int(config['data_conveyor']['threads_num'])
 
-    data_size = config['data_conveyor']['data_size']
+    data_size = config['data_conveyor']['data_size'][:2]
 
     traindir = os.path.join(config['workdir_path'], 'train')
     valdir = os.path.join(config['workdir_path'], 'validation')
@@ -27,7 +25,8 @@ def main():
                                      std=[0.229, 0.224, 0.225])
 
     train_folder = datasets.ImageFolder(traindir, transforms.Compose([
-        transforms.Resize(data_size[:2]),
+        transforms.RandomResizedCrop(224),
+        # transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         normalize,
     ]))
@@ -38,7 +37,8 @@ def main():
 
     val_loader = torch.utils.data.DataLoader(
         datasets.ImageFolder(valdir, transforms.Compose([
-            transforms.Resize(data_size[:2]),
+            transforms.Scale(256),
+            # transforms.CenterCrop(224),
             transforms.ToTensor(),
             normalize,
         ])),
