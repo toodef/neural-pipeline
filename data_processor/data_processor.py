@@ -13,8 +13,6 @@ class DataProcessor(InitedByConfig):
         self.__learning_rate = float(config['network']['learning_rate'])
         self.__optimizer = getattr(torch.optim, config['network']['optimizer'])(self.__model.parameters(), lr=self.__learning_rate, weight_decay=1.e-4)
         self.__criterion = torch.nn.CrossEntropyLoss().cuda()
-        self.__losses = 0
-        self.__accuracies = 0
         self.__monitor = Monitor()
         self.clear_metrics()
         self.__images_processeed = {"val": 0, "train": 0}
@@ -33,10 +31,8 @@ class DataProcessor(InitedByConfig):
             loss = self.__criterion(output, target_var)
             self.__optimizer.zero_grad()
             loss.backward()
-        if is_train:
             self.__optimizer.step()
 
-        if is_train:
             self.__metrics['loss'] += loss.data[0] * input_var.size(0)
             self.__metrics['train_accuracy'] += torch.sum(preds == target_var.data)
         else:
