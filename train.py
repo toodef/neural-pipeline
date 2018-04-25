@@ -19,14 +19,15 @@ def main():
     batch_size = int(config['data_conveyor']['batch_size'])
     threads_num = int(config['data_conveyor']['threads_num'])
 
+    data_size = config['data_conveyor']['data_size']
+
     traindir = os.path.join(config['workdir_path'], 'train')
     valdir = os.path.join(config['workdir_path'], 'validation')
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
     train_folder = datasets.ImageFolder(traindir, transforms.Compose([
-        transforms.RandomResizedCrop(224),
-        # transforms.RandomHorizontalFlip(),
+        transforms.Resize(data_size[:2]),
         transforms.ToTensor(),
         normalize,
     ]))
@@ -35,31 +36,20 @@ def main():
         batch_size=batch_size, shuffle=True,
         num_workers=threads_num, pin_memory=True)
 
-    # val_loader = torch.utils.data.DataLoader(
-    #     datasets.ImageFolder(valdir, transforms.Compose([
-    #         # transforms.Scale(256),
-    #         # transforms.CenterCrop(224),
-    #         transforms.ToTensor(),
-    #         normalize,
-    #     ])),
-    #     batch_size=batch_size, shuffle=False,
-    #     num_workers=threads_num, pin_memory=True)
+    val_loader = torch.utils.data.DataLoader(
+        datasets.ImageFolder(valdir, transforms.Compose([
+            transforms.Resize(data_size[:2]),
+            transforms.ToTensor(),
+            normalize,
+        ])),
+        batch_size=batch_size, shuffle=False,
+        num_workers=threads_num, pin_memory=True)
 
     data_processor = DataProcessor(config)
 
-    images_num = len(train_folder)
-    monitor = Monitor(images_num)
     for epoch_idx in range(epoch_num):
-        start_time = time.time()
-        for (input, target) in train_loader:
-            data_processor.train_batch(input, target)
-
-        monitor.update(epoch_idx, data_processor)
-        print("Epoch: {}; loss: {}; accuracy: {}; elapsed {} min"
-              .format(epoch_idx + 1, data_processor.get_loss_value(images_num), data_processor.get_accuracy(images_num),
-                      (time.time() - start_time) // 60))
-        data_processor.clear_metrics()
-    monitor.close()
+        data_processor.train_epoch(train_loader, val_loader, epoch_idx)
+    data_processor.close()
 
 
 if __name__ == "__main__":

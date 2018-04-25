@@ -68,6 +68,9 @@ class DataProcessor(InitedByConfig):
     def save_state(self, path: str):
         pass
 
+    def close(self):
+        self.__monitor.close()
+
     def _required_params(self):
         return {
                 "network": {
