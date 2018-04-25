@@ -2,8 +2,6 @@ import os
 
 from tensorboardX import SummaryWriter
 
-from data_processor import DataProcessor
-
 
 class Monitor:
     def __init__(self):
