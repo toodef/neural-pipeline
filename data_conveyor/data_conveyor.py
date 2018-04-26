@@ -24,7 +24,7 @@ class Dataset:
 
     def __getitem__(self, item):
         def target_to_tensor(target: int):
-            tensor = np.zeros((1, self.__classes_num))
+            tensor = np.zeros((self.__classes_num, 1))
             tensor[target] = 1
             return torchvision.transforms.ToTensor()(tensor)
 
