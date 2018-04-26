@@ -20,12 +20,12 @@ class Dataset:
         classes = [int(d) for d in os.listdir(dir)]
         self.__classes_num = len(classes)
         self.__pathes = get_pathes(dir)
+        self.__cell_size = 100 / percentage
         self.__data_num = len(self.__pathes) * percentage // 100
         self.__transforms = transforms
 
     def __getitem__(self, item):
-        cell_size = len(self.__pathes) // self.__data_num
-        item += randint(0, cell_size) + item * cell_size
+        item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1
         return {'data': self.__transforms(torchvision.transforms.ToPILImage()(cv2.imread(self.__pathes[item]['path']))),
                 'target': self.__pathes[item]['target']}
 
