@@ -32,8 +32,8 @@ def main():
 
     train_loader = torch.utils.data.DataLoader(
         TmpImageFolder(traindir, transforms.Compose([
-            transforms.Resize(size=data_size[0]),
-            transforms.RandomCrop(size=(data_size[0], data_size[1])),
+            transforms.Resize(size=(data_size[0], data_size[1])),
+            # transforms.RandomCrop(size=(data_size[0], data_size[1])),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,

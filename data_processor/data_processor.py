@@ -14,7 +14,7 @@ class DataProcessor(InitedByConfig):
         self.__learning_rate = float(config['network']['learning_rate'])
         self.__optimizer = getattr(torch.optim, config['network']['optimizer'])(self.__model.parameters(), lr=self.__learning_rate, weight_decay=1.e-4)
         self.__criterion = torch.nn.CrossEntropyLoss().cuda()
-        self.__monitor = Monitor()
+        self.__monitor = Monitor(config)
         self.clear_metrics()
         self.__batch_size = int(config['data_conveyor']['batch_size'])
 
