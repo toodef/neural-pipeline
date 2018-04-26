@@ -24,12 +24,12 @@ class Dataset:
 
     def __getitem__(self, item):
         def target_to_tensor(target: int):
-            tensor = np.zeros((self.__classes_num, 1))
-            tensor[target] = 1
+            tensor = np.zeros((1, self.__classes_num))
+            tensor[0][target] = 1
             return torchvision.transforms.ToTensor()(tensor)
 
         return {'data': self.__transforms(torchvision.transforms.ToPILImage()(cv2.imread(self.__pathes[item]['path']))),
-                'target': target_to_tensor(self.__pathes[item]['target'])}
+                'target': self.__pathes[item]['target']}
 
     def __len__(self):
         return len(self.__pathes)

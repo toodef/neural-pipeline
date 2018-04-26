@@ -10,10 +10,15 @@ from utils.config import InitedByConfig
 
 class DataProcessor(InitedByConfig):
     def __init__(self, config: {}):
-        self.__model = torch.nn.DataParallel(Model(config).model()).cuda()
+        self.__is_cuda = True
+        self.__model = torch.nn.DataParallel(Model(config).model())
+        if self.__is_cuda:
+            self.__model = self.__model.cuda()
         self.__learning_rate = float(config['network']['learning_rate'])
         self.__optimizer = getattr(torch.optim, config['network']['optimizer'])(self.__model.parameters(), lr=self.__learning_rate, weight_decay=1.e-4)
-        self.__criterion = torch.nn.CrossEntropyLoss().cuda()
+        self.__criterion = torch.nn.CrossEntropyLoss()
+        if self.__is_cuda:
+            self.__criterion = self.__criterion.cuda()
         self.__monitor = Monitor(config)
         self.clear_metrics()
         self.__batch_size = int(config['data_conveyor']['batch_size'])
@@ -22,8 +27,12 @@ class DataProcessor(InitedByConfig):
         self.__model.train(is_train)
 
         # target = target.cuda(async=True)
-        input_var = torch.autograd.Variable(input.cuda(), volatile=not is_train)
-        target_var = torch.autograd.Variable(target.cuda(), volatile=not is_train)
+        if self.__is_cuda:
+            input = input.cuda()
+            target = target.cuda()
+
+        input_var = torch.autograd.Variable(input, volatile=not is_train)
+        target_var = torch.autograd.Variable(target, volatile=not is_train)
 
         output = self.__model(input_var)
         _, preds = torch.max(output.data, 1)
@@ -45,9 +54,9 @@ class DataProcessor(InitedByConfig):
         start_time = time.time()
 
         for batch in tqdm(train_dataloader):
-            self.process_batch(batch['data'], batch['terget'], is_train=True)
+            self.process_batch(batch['data'], batch['target'], is_train=True)
         for batch in tqdm(validation_dataloader):
-            self.process_batch(batch['data'], batch['terget'], is_train=False)
+            self.process_batch(batch['data'], batch['target'], is_train=False)
 
         cur_metrics = self.get_metrics()
         self.__monitor.update(epoch_idx, cur_metrics)
