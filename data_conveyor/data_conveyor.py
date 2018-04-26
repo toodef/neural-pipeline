@@ -26,9 +26,9 @@ class Dataset:
         def target_to_tensor(target: int):
             tensor = np.zeros((1, self.__classes_num))
             tensor[target] = 1
-            return torchvision.transforms.ToTensor(tensor)
+            return torchvision.transforms.ToTensor()(tensor)
 
-        return {'data': self.__transforms(torchvision.transforms.ToPILImage(cv2.imread(self.__pathes[item]['path']))),
+        return {'data': self.__transforms(torchvision.transforms.ToPILImage()(cv2.imread(self.__pathes[item]['path']))),
                 'target': target_to_tensor(self.__pathes[item]['target'])}
 
     def __len__(self):
