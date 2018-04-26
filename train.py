@@ -43,8 +43,8 @@ def main():
 
     val_loader = torch.utils.data.DataLoader(
         datasets.ImageFolder(valdir, transforms.Compose([
-            transforms.Resize(size=data_size[0]),
-            transforms.CenterCrop(size=(data_size[0], data_size[1])),
+            transforms.Resize(size=(data_size[0], data_size[1])),
+            # transforms.CenterCrop(size=(data_size[0], data_size[1])),
             transforms.ToTensor(),
             normalize,
         ])),
