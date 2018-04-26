@@ -26,12 +26,12 @@ def main():
 
     train_loader = torch.utils.data.DataLoader(
         Dataset('train', config, transforms.Compose([
-            transforms.Resize(size=int(data_size[0] * 1.1)),
-            transforms.RandomCrop(size=(data_size[0], data_size[1])),
+            transforms.Resize(size=(data_size[0], data_size[1])),
+            # transforms.RandomCrop(size=(data_size[0], data_size[1])),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
-        ]), percentage=1),
+        ])),
         batch_size=batch_size, shuffle=True,
         num_workers=threads_num, pin_memory=True)
 
@@ -41,7 +41,7 @@ def main():
             # transforms.CenterCrop(size=(data_size[0], data_size[1])),
             transforms.ToTensor(),
             normalize,
-        ]), percentage=1),
+        ])),
         batch_size=batch_size, shuffle=False,
         num_workers=threads_num, pin_memory=True)
 
