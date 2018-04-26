@@ -19,15 +19,10 @@ class Dataset:
         classes = [int(d) for d in os.listdir(dir)]
         self.__classes_num = len(classes)
         self.__pathes = get_pathes(dir)
-        self.__pathes = self.__pathes[: len(self.__pathes) * 100 // percentage]
+        self.__pathes = self.__pathes[: len(self.__pathes) * percentage // 100]
         self.__transforms = transforms
 
     def __getitem__(self, item):
-        def target_to_tensor(target: int):
-            tensor = np.zeros((1, self.__classes_num))
-            tensor[0][target] = 1
-            return torchvision.transforms.ToTensor()(tensor)
-
         return {'data': self.__transforms(torchvision.transforms.ToPILImage()(cv2.imread(self.__pathes[item]['path']))),
                 'target': self.__pathes[item]['target']}
 
