@@ -1,6 +1,7 @@
 import time
 
 import torch
+from tqdm import tqdm
 
 from data_processor.model import Model
 from data_processor.monitoring import Monitor
@@ -42,9 +43,10 @@ class DataProcessor(InitedByConfig):
 
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
         start_time = time.time()
-        for (input, target) in train_dataloader:
+
+        for (input, target) in tqdm(train_dataloader):
             self.process_batch(input, target, is_train=True)
-        for (input, target) in validation_dataloader:
+        for (input, target) in tqdm(validation_dataloader):
             self.process_batch(input, target, is_train=False)
 
         cur_metrics = self.get_metrics()

@@ -10,7 +10,7 @@ from data_processor import DataProcessor
 
 class TmpImageFolder(datasets.ImageFolder):
     def __len__(self):
-        return super().__len__() / 10
+        return super().__len__() // 10
 
 
 def main():
