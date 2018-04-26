@@ -6,7 +6,7 @@ from tensorboardX import SummaryWriter
 class Monitor:
     def __init__(self, config: {}):
         dir = os.path.join("workdir", "logs")
-        dir = os.path.join(dir, "{}_{}_{:2f}_{}".format(config['network']['architecture'], config['network']['optimizer'], config['network']['learning_rate'], config['network']['data_size'][0]))
+        dir = os.path.join(dir, "{}_{}_{:2f}_{}".format(config['network']['architecture'], config['network']['optimizer'], config['network']['learning_rate'], config['data_conveyor']['data_size'][0]))
         os.makedirs(dir, exist_ok=True)
         self.__writer = SummaryWriter(dir)
 
