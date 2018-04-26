@@ -5,6 +5,7 @@ from multiprocessing import freeze_support
 import torch
 from torchvision import transforms, datasets
 
+from data_conveyor.data_conveyor import Dataset
 from data_processor import DataProcessor
 
 
@@ -26,18 +27,25 @@ def main():
                                      std=[0.229, 0.224, 0.225])
 
     train_loader = torch.utils.data.DataLoader(
-        datasets.ImageFolder(traindir, transforms.Compose([
+        # datasets.ImageFolder(traindir, transforms.Compose([
+        #     transforms.Resize(size=(data_size[0], data_size[1])),
+        #     # transforms.RandomCrop(size=(data_size[0], data_size[1])),
+        #     transforms.RandomHorizontalFlip(),
+        #     transforms.ToTensor(),
+        #     normalize,
+        # ])),
+        Dataset('train', config, transforms.Compose([
             transforms.Resize(size=(data_size[0], data_size[1])),
             # transforms.RandomCrop(size=(data_size[0], data_size[1])),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
-        ])),
+        ]), percentage=10),
         batch_size=batch_size, shuffle=True,
         num_workers=threads_num, pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(
-        datasets.ImageFolder(valdir, transforms.Compose([
+        Dataset('validation', config, transforms.Compose([
             transforms.Resize(size=(data_size[0], data_size[1])),
             # transforms.CenterCrop(size=(data_size[0], data_size[1])),
             transforms.ToTensor(),

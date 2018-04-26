@@ -44,10 +44,10 @@ class DataProcessor(InitedByConfig):
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
         start_time = time.time()
 
-        for (input, target) in tqdm(train_dataloader):
-            self.process_batch(input, target, is_train=True)
-        for (input, target) in tqdm(validation_dataloader):
-            self.process_batch(input, target, is_train=False)
+        for batch in tqdm(train_dataloader):
+            self.process_batch(batch['data'], batch['terget'], is_train=True)
+        for batch in tqdm(validation_dataloader):
+            self.process_batch(batch['data'], batch['terget'], is_train=False)
 
         cur_metrics = self.get_metrics()
         self.__monitor.update(epoch_idx, cur_metrics)
