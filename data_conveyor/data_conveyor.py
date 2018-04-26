@@ -15,7 +15,7 @@ class Dataset:
                         os.listdir(os.path.join(directory, str(cur_class)))]
             return res
 
-        dir = config['data_conveyor']['dataset_path']['folders'][folder]
+        dir = os.path.join(config['workdir_path'], config['data_conveyor']['dataset_path']['folders'][folder])
         classes = [int(d) for d in os.listdir(dir)]
         self.__classes_num = len(classes)
         self.__pathes = get_pathes(dir)
