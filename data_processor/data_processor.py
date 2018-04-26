@@ -53,9 +53,9 @@ class DataProcessor(InitedByConfig):
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
         start_time = time.time()
 
-        for batch in tqdm(train_dataloader):
+        for batch in tqdm(train_dataloader, desc="train", leave=False):
             self.process_batch(batch['data'], batch['target'], is_train=True)
-        for batch in tqdm(validation_dataloader):
+        for batch in tqdm(validation_dataloader, desc="validation", leave=False):
             self.process_batch(batch['data'], batch['target'], is_train=False)
 
         cur_metrics = self.get_metrics()
