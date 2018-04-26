@@ -7,6 +7,7 @@ from torchvision import transforms, datasets
 
 from data_conveyor.data_conveyor import Dataset
 from data_processor import DataProcessor
+from data_processor.state_manager import StateManager
 
 
 def main():
@@ -30,7 +31,7 @@ def main():
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
-        ]), percentage=10),
+        ]), percentage=1),
         batch_size=batch_size, shuffle=True,
         num_workers=threads_num, pin_memory=True)
 
@@ -40,14 +41,20 @@ def main():
             # transforms.CenterCrop(size=(data_size[0], data_size[1])),
             transforms.ToTensor(),
             normalize,
-        ])),
+        ]), percentage=1),
         batch_size=batch_size, shuffle=False,
         num_workers=threads_num, pin_memory=True)
 
     data_processor = DataProcessor(config)
+    state_manager = StateManager(data_processor, config)
 
     for epoch_idx in range(epoch_num):
         data_processor.train_epoch(train_loader, val_loader, epoch_idx)
+        state_manager.save()
+
+    # state_manager.load(config)
+    # data_processor.train_epoch(train_loader, val_loader, 0)
+
     data_processor.close()
 
 

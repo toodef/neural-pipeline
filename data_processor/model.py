@@ -26,19 +26,15 @@ class Model(InitedByConfig):
         return self.__model
 
     def __init_from_config(self):
-        self.__weights_dir = os.path.join(self.__config['workdir_path'], self.__config['network']['weights_dir'])
-        self.__weights_file = os.path.join(self.__weights_dir, "weights.pth")
-
         self.__model = getattr(models, self.__config['network']['architecture'])()
 
         start_mode = self.__config_start_mode()
-        if start_mode == "begin":
-            return
-
-        init_weights_file = None
         if start_mode == "url":
+            self.__weights_dir = os.path.join(self.__config['workdir_path'], self.__config['network']['weights_dir'])
+            self.__weights_file = os.path.join(self.__weights_dir, "weights.pth")
             model_url = model_urls[self.__config['network']['architecture']]
             init_weights_file = os.path.join(self.__weights_dir, model_url.split("/")[-1])
+
             if not os.path.isfile(init_weights_file):
                 if not os.path.exists(self.__weights_dir) or not os.path.isdir(self.__weights_dir):
                     os.makedirs(self.__weights_dir)
@@ -46,10 +42,10 @@ class Model(InitedByConfig):
                 with open(init_weights_file, 'wb') as file:
                     file.write(response.content)
 
-        if start_mode == "last":
-            init_weights_file = self.__weights_file
+            self.load_weights(init_weights_file)
 
-        pretrained_weights = torch.load(init_weights_file)
+    def load_weights(self, weights_file: str):
+        pretrained_weights = torch.load(weights_file)
         pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
         self.__model.load_state_dict(pretrained_weights, strict=True)
 
