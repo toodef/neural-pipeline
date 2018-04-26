@@ -42,7 +42,7 @@ def main():
         num_workers=threads_num, pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(
-        TmpImageFolder(valdir, transforms.Compose([
+        datasets.ImageFolder(valdir, transforms.Compose([
             transforms.Resize(size=data_size[0]),
             transforms.CenterCrop(size=(data_size[0], data_size[1])),
             transforms.ToTensor(),
