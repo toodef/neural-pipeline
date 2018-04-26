@@ -8,11 +8,6 @@ from torchvision import transforms, datasets
 from data_processor import DataProcessor
 
 
-class TmpImageFolder(datasets.ImageFolder):
-    def __len__(self):
-        return super().__len__() // 10
-
-
 def main():
     with open(os.path.join("workdir", "config.json"), 'r') as file:
         config = json.load(file)
@@ -31,7 +26,7 @@ def main():
                                      std=[0.229, 0.224, 0.225])
 
     train_loader = torch.utils.data.DataLoader(
-        TmpImageFolder(traindir, transforms.Compose([
+        datasets.ImageFolder(traindir, transforms.Compose([
             transforms.Resize(size=(data_size[0], data_size[1])),
             # transforms.RandomCrop(size=(data_size[0], data_size[1])),
             transforms.RandomHorizontalFlip(),
