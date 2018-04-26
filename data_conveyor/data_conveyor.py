@@ -1,8 +1,9 @@
+from random import shuffle, randint
+
 import cv2
 import os
 
 import torchvision
-import numpy as np
 
 
 class Dataset:
@@ -19,12 +20,14 @@ class Dataset:
         classes = [int(d) for d in os.listdir(dir)]
         self.__classes_num = len(classes)
         self.__pathes = get_pathes(dir)
-        self.__pathes = self.__pathes[: len(self.__pathes) * percentage // 100]
+        self.__data_num = len(self.__pathes) * percentage // 100
         self.__transforms = transforms
 
     def __getitem__(self, item):
+        cell_size = len(self.__pathes) // self.__data_num
+        item += randint(0, cell_size) + item * cell_size
         return {'data': self.__transforms(torchvision.transforms.ToPILImage()(cv2.imread(self.__pathes[item]['path']))),
                 'target': self.__pathes[item]['target']}
 
     def __len__(self):
-        return len(self.__pathes)
+        return self.__data_num
