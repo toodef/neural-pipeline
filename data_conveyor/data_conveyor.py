@@ -26,8 +26,13 @@ class Dataset:
 
     def __getitem__(self, item):
         item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1
-        return {'data': self.__transforms(torchvision.transforms.ToPILImage()(cv2.blur(cv2.imread(self.__pathes[item]['path']), (5, 5)))),
-                'target': self.__pathes[item]['target']}
+        rand_idx = randint(1, 10)
+        if rand_idx > 7:
+            return {'data': self.__transforms(torchvision.transforms.ToPILImage()(cv2.blur(cv2.imread(self.__pathes[item]['path']), (5, 5)))),
+                    'target': self.__pathes[item]['target']}
+        else:
+            return {'data': self.__transforms(torchvision.transforms.ToPILImage()(cv2.imread(self.__pathes[item]['path']))),
+                    'target': self.__pathes[item]['target']}
 
     def __len__(self):
         return self.__data_num
