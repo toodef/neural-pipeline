@@ -24,7 +24,7 @@ class Monitor:
     def __update_console(self, epoch_idx: int, metrics: {}):
         string = "Epoch: {}".format(epoch_idx + 1)
         for k, v in metrics.items():
-            string += "; {}: {}".format(k, v)
+            string += ("; {}: {:5f}" if type(v) == float else "; {}: {}").format(k, v)
         print(string)
 
     def __update_tensorboard(self, epoch_idx: int, metrics: {}):
