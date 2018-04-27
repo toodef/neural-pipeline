@@ -17,12 +17,18 @@ class Monitor:
         os.makedirs(dir, exist_ok=True)
         self.__writer = SummaryWriter(dir)
 
-    def update(self, epoch: int, metrics: {}):
-        self.__update_tensorboard(epoch, metrics)
+    def update(self, epoch_idx: int, metrics: {}):
+        self.__update_tensorboard(epoch_idx, metrics)
+        self.__update_console(epoch_idx, metrics)
+
+    def __update_console(self, epoch_idx: int, metrics: {}):
+        string = "Epoch: {}".format(epoch_idx + 1)
+        for k, v in metrics.items():
+            string += "; {}: {}".format(k, v)
 
     def __update_tensorboard(self, epoch_idx: int, metrics: {}):
         for k, v in metrics.items():
-            self.__writer.add_scalar('train/{}'.format(k), v, global_step=epoch_idx)
+            self.__writer.add_scalar('train/{}'.format(k), v, global_step=epoch_idx + 1)
 
     def close(self):
         self.__writer.close()

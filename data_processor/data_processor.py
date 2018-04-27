@@ -60,8 +60,6 @@ class DataProcessor(InitedByConfig):
 
         cur_metrics = self.get_metrics()
         self.__monitor.update(epoch_idx, cur_metrics)
-        print("Epoch: {}; loss: {}; val_accuracy: {}; train_accuracy: {}, elapsed {} min"
-              .format(epoch_idx + 1, cur_metrics['loss'], cur_metrics['val_accuracy'], cur_metrics['train_accuracy'], (time.time() - start_time) // 60))
         self.clear_metrics()
 
     def get_metrics(self):
