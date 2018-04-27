@@ -25,6 +25,7 @@ class Monitor:
         string = "Epoch: {}".format(epoch_idx + 1)
         for k, v in metrics.items():
             string += "; {}: {}".format(k, v)
+        print(string)
 
     def __update_tensorboard(self, epoch_idx: int, metrics: {}):
         for k, v in metrics.items():
