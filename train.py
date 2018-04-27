@@ -31,7 +31,7 @@ def main():
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
-        ])),
+        ]), percentage=10),
         batch_size=batch_size, shuffle=True,
         num_workers=threads_num, pin_memory=True)
 
