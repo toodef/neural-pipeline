@@ -1,13 +1,22 @@
+import cv2
 import json
 import os
 from multiprocessing import freeze_support
 
 import torch
-from torchvision import transforms, datasets
+from torchvision import transforms
 
 from data_conveyor.data_conveyor import Dataset
 from data_processor import DataProcessor
 from data_processor.state_manager import StateManager
+
+
+class Blur(object):
+    def __init__(self, params: () = (5, 5)):
+        self.__params = params
+
+    def __call__(self, image):
+        cv2.blur(image, self.__params)
 
 
 def main():
@@ -26,9 +35,10 @@ def main():
 
     train_loader = torch.utils.data.DataLoader(
         Dataset('train', config, transforms.Compose([
-            # transforms.Resize(size=int(data_size[0] * 1.2)),
-            # transforms.RandomCrop(size=(data_size[0], data_size[1])),
-            transforms.Resize(size=(data_size[0], data_size[1])),
+            transforms.Resize(size=int(data_size[0] * 1.2)),
+            transforms.RandomCrop(size=(data_size[0], data_size[1])),
+            # transforms.Resize(size=(data_size[0], data_size[1])),
+            Blur(),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
