@@ -65,12 +65,15 @@ class DataProcessor(InitedByConfig):
         self.clear_metrics()
 
     def get_metrics(self):
+        val_acc = self.__metrics['val_accuracy'] / self.__images_processeed['val']
+        train_acc = self.__metrics['train_accuracy'] / self.__images_processeed['train']
         return {"loss": self.__metrics['loss'] / self.__images_processeed['train'],
-                "val_accuracy": self.__metrics['val_accuracy'] / self.__images_processeed['val'],
-                "train_accuracy": self.__metrics['train_accuracy'] / self.__images_processeed['train']}
+                "val_accuracy": val_acc,
+                "train_accuracy": train_acc,
+                "train_min_val_acc": train_acc - val_acc}
 
     def clear_metrics(self):
-        self.__metrics = {"loss": 0, "val_accuracy": 0, "train_accuracy": 0}
+        self.__metrics = {"loss": 0, "val_accuracy": 0, "train_accuracy": 0, "train_min_val_acc": 0}
         self.__images_processeed = {"val": 0, "train": 0}
 
     def get_state(self):
