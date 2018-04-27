@@ -38,7 +38,7 @@ def main():
             transforms.Resize(size=int(data_size[0] * 1.2)),
             transforms.RandomCrop(size=(data_size[0], data_size[1])),
             # transforms.Resize(size=(data_size[0], data_size[1])),
-            Blur(),
+            # Blur(),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,

@@ -26,7 +26,7 @@ class Dataset:
 
     def __getitem__(self, item):
         item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1
-        return {'data': self.__transforms(torchvision.transforms.ToPILImage()(cv2.imread(self.__pathes[item]['path']))),
+        return {'data': self.__transforms(torchvision.transforms.ToPILImage()(cv2.blur(cv2.imread(self.__pathes[item]['path']), (5, 5)))),
                 'target': self.__pathes[item]['target']}
 
     def __len__(self):
