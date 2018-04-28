@@ -34,7 +34,8 @@ class Dataset:
                 sigma = var ** 0.5
                 gauss = np.random.normal(mean, sigma, (row, col, ch))
                 gauss = gauss.reshape(row, col, ch)
-                noisy = img + gauss
+                gauss = (gauss - np.min(gauss)).astype(np.uint8)
+                noisy = img.astype(np.int32) + gauss
                 return noisy
 
             rand_idx = randint(0, 9)
