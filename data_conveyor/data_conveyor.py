@@ -2,6 +2,7 @@ from random import shuffle, randint
 
 import cv2
 import os
+import numpy as np
 
 import torchvision
 
@@ -25,14 +26,29 @@ class Dataset:
         self.__transforms = transforms
 
     def __getitem__(self, item):
+        def augmentate(img):
+            def noise(img):
+                row, col, ch = img.shape
+                mean = 0
+                var = 0.1
+                sigma = var ** 0.5
+                gauss = np.random.normal(mean, sigma, (row, col, ch))
+                gauss = gauss.reshape(row, col, ch)
+                noisy = img + gauss
+                return noisy
+
+            rand_idx = randint(0, 9)
+            if rand_idx > 4:
+                img = cv2.flip(img, 1)
+                if rand_idx > 5:
+                    img = noise(img)
+                if rand_idx > 6:
+                    img = cv2.blur(img, (5, 5))
+            return img
+
         item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1
-        rand_idx = randint(1, 10)
-        if rand_idx > 7:
-            return {'data': self.__transforms(torchvision.transforms.ToPILImage()(cv2.blur(cv2.imread(self.__pathes[item]['path']), (5, 5)))),
-                    'target': self.__pathes[item]['target']}
-        else:
-            return {'data': self.__transforms(torchvision.transforms.ToPILImage()(cv2.imread(self.__pathes[item]['path']))),
-                    'target': self.__pathes[item]['target']}
+        return {'data': self.__transforms(torchvision.transforms.ToPILImage()(augmentate(cv2.imread(self.__pathes[item]['path'])))),
+                'target': self.__pathes[item]['target']}
 
     def __len__(self):
         return self.__data_num

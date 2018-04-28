@@ -39,7 +39,7 @@ def main():
             transforms.RandomCrop(size=(data_size[0], data_size[1])),
             # transforms.Resize(size=(data_size[0], data_size[1])),
             # Blur(),
-            transforms.RandomHorizontalFlip(),
+            # transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
         ]), percentage=10),
