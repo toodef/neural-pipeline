@@ -35,7 +35,7 @@ class Dataset:
                 gauss = np.random.normal(mean, sigma, (row, col, ch))
                 gauss = gauss.reshape(row, col, ch)
                 gauss = (gauss - np.min(gauss)).astype(np.uint8)
-                noisy = img.astype(np.int32) + gauss
+                noisy = img.astype(np.uint8) + gauss
                 return noisy
 
             rand_idx = randint(0, 9)
