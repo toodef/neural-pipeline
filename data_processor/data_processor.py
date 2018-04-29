@@ -51,8 +51,6 @@ class DataProcessor(InitedByConfig):
         self.__images_processeed['train' if is_train else 'val'] += self.__batch_size
 
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
-        start_time = time.time()
-
         for batch in tqdm(train_dataloader, desc="train", leave=False):
             self.process_batch(batch['data'], batch['target'], is_train=True)
         for batch in tqdm(validation_dataloader, desc="validation", leave=False):

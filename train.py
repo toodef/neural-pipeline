@@ -30,29 +30,13 @@ def main():
 
     data_size = config['data_conveyor']['data_size']
 
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-
     train_loader = torch.utils.data.DataLoader(
-        Dataset('train', config, transforms.Compose([
-            transforms.Resize(size=int(data_size[0] * 1.2)),
-            transforms.RandomCrop(size=(data_size[0], data_size[1])),
-            # transforms.Resize(size=(data_size[0], data_size[1])),
-            # Blur(),
-            # transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            normalize,
-        ]), percentage=10),
+        Dataset('train', config, percentage=10),
         batch_size=batch_size, shuffle=True,
         num_workers=threads_num, pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(
-        Dataset('validation', config, transforms.Compose([
-            transforms.Resize(size=(data_size[0], data_size[1])),
-            # transforms.CenterCrop(size=(data_size[0], data_size[1])),
-            transforms.ToTensor(),
-            normalize,
-        ])),
+        Dataset('validation', config),
         batch_size=batch_size, shuffle=False,
         num_workers=threads_num, pin_memory=True)
 
