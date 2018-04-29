@@ -4,7 +4,6 @@ import os
 from multiprocessing import freeze_support
 
 import torch
-from torchvision import transforms
 
 from data_conveyor.data_conveyor import Dataset
 from data_processor import DataProcessor
@@ -27,8 +26,6 @@ def main():
 
     batch_size = int(config['data_conveyor']['batch_size'])
     threads_num = int(config['data_conveyor']['threads_num'])
-
-    data_size = config['data_conveyor']['data_size']
 
     train_loader = torch.utils.data.DataLoader(
         Dataset('train', config),
