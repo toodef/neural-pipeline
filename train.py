@@ -1,105 +1,58 @@
-import time
-
-from image_conveyor import ImageConveyor, PathLoader
-from image_processor import ImageProcessor
-import os
 import cv2
-import numpy as np
-from random import shuffle
+import json
+import os
+from multiprocessing import freeze_support
 
-train_dir = 'train'
-validation_dir = 'validation'
-image_size = 512
-batch_size = 32
-epoch_every_images_parts = 4
-result_dir = 'result'
-result_name_preffix = 'furniture_segmentation'
+import torch
+from torchvision import transforms
 
-classes = [int(dir) for dir in os.listdir(train_dir)]
-# classes = [1, 2]
+from data_conveyor.data_conveyor import Dataset
+from data_processor import DataProcessor
+from data_processor.state_manager import StateManager
 
 
-def get_pathes(directory):
-    res = []
-    for cur_class in classes:
-        res += [{'path': os.path.join(os.path.join(directory, str(cur_class)), file), 'label_id': cur_class}
-                for file in
-                os.listdir(os.path.join(directory, str(cur_class)))]
-    return res
+class Blur(object):
+    def __init__(self, params: () = (5, 5)):
+        self.__params = params
+
+    def __call__(self, image):
+        cv2.blur(image, self.__params)
 
 
-train_pathes = get_pathes(train_dir)
-shuffle(train_pathes)
-validation_pathes = get_pathes(validation_dir)
+def main():
+    with open(os.path.join("workdir", "config.json"), 'r') as file:
+        config = json.load(file)
 
-epoch_every_train_num = int(epoch_every_images_parts * len(train_pathes) / batch_size)
+    epoch_num = int(config['data_conveyor']['epoch_num'])
 
-img_processor = ImageProcessor(len(classes), len(train_pathes), [image_size, image_size, 3], epoch_every_train_num=epoch_every_train_num)
+    batch_size = int(config['data_conveyor']['batch_size'])
+    threads_num = int(config['data_conveyor']['threads_num'])
 
-# last_train_images = []
+    data_size = config['data_conveyor']['data_size']
 
-start_time = None
+    train_loader = torch.utils.data.DataLoader(
+        Dataset('train', config),
+        batch_size=batch_size, shuffle=True,
+        num_workers=threads_num, pin_memory=True)
 
+    val_loader = torch.utils.data.DataLoader(
+        Dataset('validation', config),
+        batch_size=batch_size, shuffle=False,
+        num_workers=threads_num, pin_memory=True)
 
-def after_load(image: {}):
-    image['object'] = np.multiply(cv2.resize(image['object'], (image_size, image_size), 0, 0, cv2.INTER_LINEAR), 1 / 255)
+    data_processor = DataProcessor(config)
+    state_manager = StateManager(data_processor, config)
 
+    for epoch_idx in range(epoch_num):
+        data_processor.train_epoch(train_loader, val_loader, epoch_idx)
+        state_manager.save()
 
-def on_epoch():
-    if not os.path.exists(result_dir):
-        os.mkdir(result_dir)
-    img_processor.save_state(os.path.join(result_dir, result_name_preffix))
+    # state_manager.load(config)
+    # data_processor.train_epoch(train_loader, val_loader, 0)
 
-    with ImageConveyor(PathLoader().after_load(after_load), validation_pathes, batch_size) as tmp_conveyor:
-        loss_values = []
-        valid_accuracies = []
-        accuracyes = []
-        for images in tmp_conveyor:
-            if len(images) < batch_size:
-                continue
-            accuracyes.append(img_processor.get_accuracy(images))
-            loss_values.append(img_processor.get_loss_value(images))
-            valid_accuracies.append(img_processor.get_accuracy(images))
-
-            for img in images:
-                img['object'] = None
-
-    idxs = [i for i in range(len(train_pathes) - 1)]
-    shuffle(idxs)
-    idxs = idxs[0:batch_size * (len(idxs) // 100)]
-    tmp_train_pathes = [{'path': train_pathes[i]['path'], 'label_id': train_pathes[i]['label_id']} for i in idxs]
-    shuffle(tmp_train_pathes)
-    with ImageConveyor(PathLoader().after_load(after_load), tmp_train_pathes, batch_size) as tmp_conveyor:
-        accuracyes = []
-        for images in tmp_conveyor:
-            if len(images) < batch_size:
-                continue
-            accuracyes.append(img_processor.get_accuracy(images))
-
-            for img in images:
-                img['object'] = None
-
-    epoch = img_processor.get_cur_epoch()
-    valid_acc = np.average(np.array(valid_accuracies))
-    loss = np.average(np.array(loss_values))
-    accuracy = np.average(np.array(accuracyes)) # img_processor.get_accuracy(last_train_images)
-    print(
-        "Epoch: {}, Training accuracy: {:>6.1%}, Validation accuracy {:>6.1%}, validation loss: {:.3f},  Time: {:.2f} min".format(
-            epoch, accuracy, valid_acc, loss, (time.time() - start_time) / 60))
+    data_processor.close()
 
 
-img_processor.set_on_epoch(on_epoch)
-
-
-with ImageConveyor(PathLoader().after_load(after_load), train_pathes, batch_size) as conveyor:
-    conveyor.set_iterations_num(len(train_pathes) * 100)
-    # conveyor.set_processes_num(4)
-    start_time = time.time()
-    for images in conveyor:
-        if len(images) < batch_size:
-            continue
-        # last_train_images = images
-        img_processor.train_batch(images)
-
-        for img in images:
-            img['object'] = None
+if __name__ == "__main__":
+    freeze_support()
+    main()

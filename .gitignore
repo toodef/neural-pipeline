@@ -5,3 +5,4 @@ validation
 train
 *.log
 result
+workdir
