@@ -31,7 +31,7 @@ def main():
     data_size = config['data_conveyor']['data_size']
 
     train_loader = torch.utils.data.DataLoader(
-        Dataset('train', config, percentage=10),
+        Dataset('train', config),
         batch_size=batch_size, shuffle=True,
         num_workers=threads_num, pin_memory=True)
 
