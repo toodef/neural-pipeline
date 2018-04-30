@@ -7,7 +7,7 @@ from data_conveyor.augmentations import augmentations_dict, ToPyTorch
 
 
 class Dataset:
-    def __init__(self, folder: str, config: {}, percentage: int = 100):
+    def __init__(self, step_type: str, config: {}, percentage: int = 100):
         def get_pathes(directory):
             res = []
             for cur_class in classes:
@@ -16,14 +16,15 @@ class Dataset:
                         os.listdir(os.path.join(directory, str(cur_class)))]
             return res
 
-        dir = os.path.join(config['workdir_path'], config['data_conveyor']['dataset_path']['folders'][folder])
+        dir = os.path.join(config['workdir_path'], config['data_conveyor'][step_type]['dataset_path'])
         classes = [int(d) for d in os.listdir(dir)]
         self.__classes_num = len(classes)
         self.__pathes = get_pathes(dir)
         self.__cell_size = 100 / percentage
         self.__data_num = len(self.__pathes) * percentage // 100
 
-        self.__augmentations = [augmentations_dict[aug](config) for aug in config['data_conveyor']['augmentations'].keys()]
+        augmentations_config = config['data_conveyor'][step_type]['augmentations']
+        self.__augmentations = [augmentations_dict[aug](augmentations_config) for aug in augmentations_config.keys()]
         self.__before_output = ToPyTorch()
 
     def __getitem__(self, item):

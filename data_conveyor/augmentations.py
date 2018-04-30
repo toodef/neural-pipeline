@@ -31,7 +31,7 @@ class Augmentation(metaclass=ABCMeta):
         """
 
     def _get_config_path(self, config):
-        return config['data_conveyor']['augmentations'][self.__aug_name]
+        return config[self.__aug_name]
 
 
 class HorizontalFlip(Augmentation):
