@@ -7,7 +7,7 @@ from data_conveyor.augmentations import augmentations_dict, ToPyTorch
 
 
 class Dataset:
-    def __init__(self, step_type: str, config: {}, percentage: int = 100):
+    def __init__(self, step_type: str, config: {}):
         def get_pathes(directory):
             res = []
             for cur_class in classes:
@@ -20,6 +20,7 @@ class Dataset:
         classes = [int(d) for d in os.listdir(dir)]
         self.__classes_num = len(classes)
         self.__pathes = get_pathes(dir)
+        percentage = config['data_conveyor'][step_type]['images_percentage'] if 'images_percentage' in config['data_conveyor'][step_type] else 100
         self.__cell_size = 100 / percentage
         self.__data_num = len(self.__pathes) * percentage // 100
 
