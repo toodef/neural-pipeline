@@ -147,12 +147,24 @@ class RandomCrop(Augmentation):
 
     def process(self, data):
         h, w, c = data.shape
-        dx, dy = randint(0, w - self.__width) if w > self.__width else 0,\
+        dx, dy = randint(0, w - self.__width) if w > self.__width else 0, \
                  randint(0, h - self.__height) if h > self.__height else 0
         y1, y2 = dy, dy + self.__height
         x1, x2 = dx, dx + self.__width
         data = data[y1: y2, x1: x2, :]
         return data
+
+
+class RandomRotate(Augmentation):
+    def __init__(self, config: {}):
+        super().__init__(config, 'rrotate')
+        self.__interval = self._get_config_path(config)['interval']
+
+    def process(self, data):
+        rows, cols = data.shape[:2]
+        angle = randint(self.__interval[0], self.__interval[1])
+        M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
+        return cv2.warpAffine(data, M, (cols, rows))
 
 
 class ToPyTorch:
@@ -162,8 +174,6 @@ class ToPyTorch:
     def __call__(self, data):
         tensor = torch.from_numpy(np.moveaxis(data / (255. if data.dtype == np.uint8 else 1), -1, 0).astype(np.float32))
         return self.__normalize(tensor)
-        # return self.__normalize(transforms.ToTensor()(transforms.ToPILImage()(data)))
-        # return transforms.ToTensor()(transforms.ToPILImage()(data))
 
 
 augmentations_dict = {'hflip': HorizontalFlip,
@@ -173,4 +183,5 @@ augmentations_dict = {'hflip': HorizontalFlip,
                       'blur': Blur,
                       'resize': Resize,
                       'ccrop': CentralCrop,
-                      'rcrop': RandomCrop}
+                      'rcrop': RandomCrop,
+                      'rrotate': RandomRotate}
