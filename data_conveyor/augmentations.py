@@ -33,6 +33,9 @@ class Augmentation(metaclass=ABCMeta):
     def _get_config_path(self, config):
         return config[self.__aug_name]
 
+    def get_percetage(self):
+        return self._percentage
+
 
 class HorizontalFlip(Augmentation):
     def __init__(self, config: {}):
@@ -115,7 +118,6 @@ def resize_by_min_edge(data, size):
 class Resize(Augmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'resize')
-        self._rercentage = 100
         self.__size = self._get_config_path(config)['size']
         self.__resize_fnc = resize_to_defined if type(self.__size) == list and len(
             self.__size) == 2 else resize_by_min_edge

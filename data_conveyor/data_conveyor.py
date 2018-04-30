@@ -23,14 +23,23 @@ class Dataset:
         self.__cell_size = 100 / percentage
         self.__data_num = len(self.__pathes) * percentage // 100
 
-        augmentations_config = config['data_conveyor'][step_type]['augmentations']
-        self.__augmentations = [augmentations_dict[aug](augmentations_config) for aug in augmentations_config.keys()]
+        const_augmentations_config = config['data_conveyor'][step_type]['const_augmentations']
+        self.__const_augmentations = [augmentations_dict[aug](const_augmentations_config) for aug in const_augmentations_config.keys()]
+        if 'augmentations' in config['data_conveyor'][step_type]:
+            augmentations_config = config['data_conveyor'][step_type]['augmentations']
+            self.__augmentations = [augmentations_dict[aug](augmentations_config) for aug in augmentations_config.keys()]
+        else:
+            self.__augmentations = []
         self.__before_output = ToPyTorch()
+        self.__augmentations_percentage = config['data_conveyor'][step_type]['augmentations_percentage'] if 'augmentations_percentage' in config['data_conveyor'][step_type] else None
 
     def __getitem__(self, item):
         def augmentate(image):
-            for aug in self.__augmentations:
+            for aug in self.__const_augmentations:
                 image = aug(image)
+            if self.__augmentations_percentage is not None and randint(1, 100) <= self.__augmentations_percentage:
+                for aug in self.__augmentations:
+                    image = aug(image)
             return self.__before_output(image)
 
         item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1
