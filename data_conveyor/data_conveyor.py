@@ -23,7 +23,7 @@ class Dataset:
         percentage = config['data_conveyor'][step_type]['images_percentage'] if 'images_percentage' in config['data_conveyor'][step_type] else 100
         self.__cell_size = 100 / percentage
         self.__data_num = len(self.__pathes) * percentage // 100
-
+        self.__percentage = percentage
         const_augmentations_config = config['data_conveyor'][step_type]['const_augmentations']
         self.__const_augmentations = [augmentations_dict[aug](const_augmentations_config) for aug in const_augmentations_config.keys()]
         if 'augmentations' in config['data_conveyor'][step_type]:
@@ -43,7 +43,7 @@ class Dataset:
                     image = aug(image)
             return self.__before_output(image)
 
-        item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1
+        item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1 if self.__percentage < 100 else item
         return {'data': augmentate(cv2.imread(self.__pathes[item]['path'])),
                 'target': self.__pathes[item]['target']}
 
