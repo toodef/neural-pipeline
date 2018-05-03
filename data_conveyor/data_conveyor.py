@@ -3,15 +3,22 @@ from random import randint
 import cv2
 import os
 
+import numpy as np
+
 from data_conveyor.augmentations import augmentations_dict, ToPyTorch
 
 
 class Dataset:
     def __init__(self, step_type: str, config: {}):
         def get_pathes(directory):
+            def make_target(target):
+                res = np.zeros(classes_num)
+                res[target - 1] = 1
+                return target
             res = []
+            classes_num = len(classes)
             for cur_class in classes:
-                res += [{'path': os.path.join(os.path.join(directory, str(cur_class)), file), 'target': int(cur_class)}
+                res += [{'path': os.path.join(os.path.join(directory, str(cur_class)), file), 'target': make_target(int(cur_class))}
                         for file in
                         os.listdir(os.path.join(directory, str(cur_class)))]
             return res

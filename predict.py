@@ -1,3 +1,5 @@
+from random import randint
+
 import cv2
 import json
 import os
@@ -29,8 +31,10 @@ def main():
 
     data_processor = state_manager.load(config)
 
-    dir = os.path.join(config['workdir_path'], config['data_conveyor']['test']['dataset_path'])
+    dir = os.path.join(config['workdir_path'], 'test')
     images = [{'path': os.path.join(dir, im), 'id': int(im.split('.')[0])} for im in os.listdir(dir)]
+
+    indices = [i['id'] for i in images]
 
     augmentations_config = config['data_conveyor']['test']['const_augmentations']
     resize = Resize(augmentations_config)
@@ -45,6 +49,11 @@ def main():
             [_, preds], _ = data_processor.predict(data)
             res.write("{},{}\n".format(im['id'], int(preds)))
             res.flush()
+
+        for i in range(1, 12800):
+            if i not in indices:
+                res.write("{},{}\n".format(i, randint(1, 128)))
+                res.flush()
 
     data_processor.close()
 
