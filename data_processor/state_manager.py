@@ -25,9 +25,13 @@ class StateManager:
         with ZipFile(result_file, 'r') as zipfile:
             zipfile.extractall(self.__dir)
 
-        self.__data_processor.load_state(config, weights_file, state_file)
+        config['network']['start_from'] = weights_file
+        self.__data_processor = DataProcessor(config)
+        self.__data_processor.load_state(state_file)
+        # self.__data_processor.load_weights(state_file)
         rm_file(weights_file)
         rm_file(state_file)
+        return self.__data_processor
 
     def save(self):
         def rm_file(file: str):
@@ -47,9 +51,8 @@ class StateManager:
         rm_file(weights_file)
         rm_file(state_file)
 
-        data_processor_state = self.__data_processor.get_state()
-        torch.save(data_processor_state['weights'], weights_file)
-        torch.save(data_processor_state['optimizer'], state_file)
+        self.__data_processor.save_state(state_file)
+        self.__data_processor.save_weights(weights_file)
 
         rename_file(result_file)
         with ZipFile(result_file, 'w') as zipfile:

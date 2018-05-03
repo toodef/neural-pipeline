@@ -29,6 +29,9 @@ class Model(InitedByConfig):
         self.__model = getattr(models, self.__config['network']['architecture'])()
 
         start_mode = self.__config_start_mode()
+        if start_mode == 'begin':
+            return
+
         if start_mode == "url":
             self.__weights_dir = os.path.join(self.__config['workdir_path'], self.__config['network']['weights_dir'])
             self.__weights_file = os.path.join(self.__weights_dir, "weights.pth")
@@ -41,13 +44,24 @@ class Model(InitedByConfig):
                 response = requests.get(model_url)
                 with open(init_weights_file, 'wb') as file:
                     file.write(response.content)
+        else:
+            init_weights_file = start_mode
 
-            self.load_weights(init_weights_file)
+        self.load_weights(init_weights_file)
 
     def load_weights(self, weights_file: str):
         pretrained_weights = torch.load(weights_file)
-        pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
-        self.__model.load_state_dict(pretrained_weights, strict=True)
+        # pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
+        from collections import OrderedDict
+        new_state_dict = OrderedDict()
+        for k, v in pretrained_weights.items():
+            name = k[7:]  # remove `module.`
+            new_state_dict[name] = v
+
+        self.__model.load_state_dict(new_state_dict)
+
+    def save_weights(self, weights_path):
+        torch.save(self.__model.state_dict(), weights_path)
 
     def __config_start_mode(self):
         return self.__config['network']['start_from']

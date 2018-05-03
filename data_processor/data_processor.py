@@ -75,14 +75,20 @@ class DataProcessor(InitedByConfig):
     def get_state(self):
         return {'weights': self.__model.state_dict(), 'optimizer': self.__optimizer.state_dict()}
 
-    def load_state(self, config: {}, weights_path: str, optimizer_state: str=None):
-        model = Model(config)
-        model.load_weights(weights_path)
-        self.__model = torch.nn.DataParallel(model.model())
-
+    def load_state(self, optimizer_state: str):
         state = torch.load(optimizer_state)
         state = {k: v for k, v in state.items() if k in self.__optimizer.state_dict()}
-        self.__optimizer.load_state_dict(state, strict=True)
+        self.__optimizer.load_state_dict(state)
+
+    def load_weights(self, path):
+        self.__model.load_weights(path)
+
+    def save_weights(self, path):
+        torch.save(self.__model.state_dict(), path)
+        # self.__model.save_weights(path)
+
+    def save_state(self, path):
+        torch.save(self.__optimizer.state_dict(), path)
 
     def close(self):
         self.__monitor.close()
