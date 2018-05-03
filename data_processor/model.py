@@ -44,21 +44,26 @@ class Model(InitedByConfig):
                 response = requests.get(model_url)
                 with open(init_weights_file, 'wb') as file:
                     file.write(response.content)
+            self.load_weights(init_weights_file, True)
         else:
-            init_weights_file = start_mode
+            self.load_weights(start_mode)
 
-        self.load_weights(init_weights_file)
-
-    def load_weights(self, weights_file: str):
+    def load_weights(self, weights_file: str, url=False):
         pretrained_weights = torch.load(weights_file)
-        # pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
-        from collections import OrderedDict
-        new_state_dict = OrderedDict()
-        for k, v in pretrained_weights.items():
-            name = k[7:]  # remove `module.`
-            new_state_dict[name] = v
+        # # pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
+        # from collections import OrderedDict
+        # new_state_dict = OrderedDict()
+        # for k, v in pretrained_weights.items():
+        #     name = k[7:]  # remove `module.`
+        #     new_state_dict[name] = v
 
-        self.__model.load_state_dict(new_state_dict)
+        if not url:
+            self.__model = torch.nn.DataParallel(self.__model)
+            pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
+            self.__model.load_state_dict(pretrained_weights)
+        else:
+            self.__model.load_state_dict(pretrained_weights)
+            self.__model = torch.nn.DataParallel(self.__model)
 
     def save_weights(self, weights_path):
         torch.save(self.__model.state_dict(), weights_path)

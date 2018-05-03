@@ -11,7 +11,7 @@ from utils.config import InitedByConfig
 class DataProcessor(InitedByConfig):
     def __init__(self, config: {}):
         self.__is_cuda = True
-        self.__model = torch.nn.DataParallel(Model(config).model())
+        self.__model = Model(config).model()
         if self.__is_cuda:
             self.__model = self.__model.cuda()
         self.__learning_rate = float(config['network']['learning_rate'])
@@ -23,6 +23,11 @@ class DataProcessor(InitedByConfig):
         self.clear_metrics()
         self.__batch_size = int(config['data_conveyor']['batch_size'])
 
+    def predict(self, input, is_train=False):
+        input_var = torch.autograd.Variable(input, volatile=not is_train)
+        output = self.__model(input_var)
+        return torch.max(output.data, 1), output
+
     def process_batch(self, input, target, is_train):
         self.__model.train(is_train)
 
@@ -31,11 +36,10 @@ class DataProcessor(InitedByConfig):
             input = input.cuda()
             target = target.cuda()
 
-        input_var = torch.autograd.Variable(input, volatile=not is_train)
+        inputs_num = input.size(0)
         target_var = torch.autograd.Variable(target, volatile=not is_train)
 
-        output = self.__model(input_var)
-        _, preds = torch.max(output.data, 1)
+        [_, preds], output = self.predict(input, is_train)
 
         if is_train:
             loss = self.__criterion(output, target_var)
@@ -43,7 +47,7 @@ class DataProcessor(InitedByConfig):
             loss.backward()
             self.__optimizer.step()
 
-            self.__metrics['loss'] += loss.data[0] * input_var.size(0)
+            self.__metrics['loss'] += loss.data[0] * inputs_num
             self.__metrics['train_accuracy'] += torch.sum(preds == target_var.data)
         else:
             self.__metrics['val_accuracy'] += torch.sum(preds == target_var.data)

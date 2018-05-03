@@ -16,9 +16,11 @@ class Dataset:
                         os.listdir(os.path.join(directory, str(cur_class)))]
             return res
 
+        # if step_type == 'test':
+        #     self.__pathes =
+        # else:
         dir = os.path.join(config['workdir_path'], config['data_conveyor'][step_type]['dataset_path'])
         classes = [int(d) for d in os.listdir(dir)]
-        self.__classes_num = len(classes)
         self.__pathes = get_pathes(dir)
         percentage = config['data_conveyor'][step_type]['images_percentage'] if 'images_percentage' in config['data_conveyor'][step_type] else 100
         self.__cell_size = 100 / percentage
@@ -44,8 +46,12 @@ class Dataset:
             return self.__before_output(image)
 
         item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1 if self.__percentage < 100 else item
-        return {'data': augmentate(cv2.imread(self.__pathes[item]['path'])),
-                'target': self.__pathes[item]['target']}
+
+        if 'target' in self.__pathes[item]:
+            return {'data': augmentate(cv2.imread(self.__pathes[item]['path'])),
+                    'target': self.__pathes[item]['target']}
+        else:
+            return augmentate(cv2.imread(self.__pathes[item]['path']))
 
     def __len__(self):
         return self.__data_num
