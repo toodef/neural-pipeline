@@ -50,6 +50,8 @@ class DataProcessor(InitedByConfig):
             self.__metrics['loss'] += loss.data[0] * inputs_num
             self.__metrics['train_accuracy'] += torch.sum(preds == target_var.data)
         else:
+            loss = self.__criterion(output, target_var)
+            self.__metrics['val_loss'] += loss.data[0] * inputs_num
             self.__metrics['val_accuracy'] += torch.sum(preds == target_var.data)
 
         self.__images_processeed['train' if is_train else 'val'] += self.__batch_size
@@ -68,12 +70,13 @@ class DataProcessor(InitedByConfig):
         val_acc = self.__metrics['val_accuracy'] / self.__images_processeed['val']
         train_acc = self.__metrics['train_accuracy'] / self.__images_processeed['train']
         return {"loss": self.__metrics['loss'] / self.__images_processeed['train'],
+                "val_loss": self.__metrics['val_loss'] / self.__images_processeed['train'],
                 "val_accuracy": val_acc,
                 "train_accuracy": train_acc,
                 "train_min_val_acc": train_acc - val_acc}
 
     def clear_metrics(self):
-        self.__metrics = {"loss": 0, "val_accuracy": 0, "train_accuracy": 0, "train_min_val_acc": 0}
+        self.__metrics = {"loss": 0, "val_loss": 0, "val_accuracy": 0, "train_accuracy": 0, "train_min_val_acc": 0}
         self.__images_processeed = {"val": 0, "train": 0}
 
     def get_state(self):
