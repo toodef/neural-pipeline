@@ -47,7 +47,7 @@ def main():
         for im in tqdm(images, desc="predict", leave=False):
             data = to_pytorch(ccrop(resize(cv2.imread(im['path'])))).unsqueeze_(0)
             [_, preds], _ = data_processor.predict(data)
-            res.write("{},{}\n".format(im['id'], int(preds)))
+            res.write("{},{}\n".format(im['id'], int(preds) + 1))
             res.flush()
 
         for i in range(1, 12800):

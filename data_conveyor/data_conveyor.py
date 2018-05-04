@@ -1,10 +1,8 @@
-import torch
 from random import randint
 
 import cv2
 import os
 
-import numpy as np
 
 from data_conveyor.augmentations import augmentations_dict, ToPyTorch
 
@@ -14,7 +12,7 @@ class Dataset:
         def get_pathes(directory):
             res = []
             for cur_class in classes:
-                res += [{'path': os.path.join(os.path.join(directory, str(cur_class)), file), 'target': int(cur_class)}
+                res += [{'path': os.path.join(os.path.join(directory, str(cur_class)), file), 'target': int(cur_class) - 1}
                         for file in
                         os.listdir(os.path.join(directory, str(cur_class)))]
             return res
