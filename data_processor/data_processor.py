@@ -24,6 +24,9 @@ class DataProcessor(InitedByConfig):
         self.__batch_size = int(config['data_conveyor']['batch_size'])
 
     def predict(self, input, is_train=False):
+        if self.__is_cuda:
+            input = input.cuda()
+
         input_var = torch.autograd.Variable(input, volatile=not is_train)
         output = self.__model(input_var)
         return torch.max(output.data, 1), output
@@ -33,7 +36,6 @@ class DataProcessor(InitedByConfig):
 
         # target = target.cuda(async=True)
         if self.__is_cuda:
-            input = input.cuda()
             target = target.cuda()
 
         inputs_num = input.size(0)
