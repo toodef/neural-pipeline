@@ -1,3 +1,4 @@
+import torch
 from random import randint
 
 import cv2
@@ -11,21 +12,13 @@ from data_conveyor.augmentations import augmentations_dict, ToPyTorch
 class Dataset:
     def __init__(self, step_type: str, config: {}):
         def get_pathes(directory):
-            def make_target(target):
-                res = np.zeros(classes_num)
-                res[target - 1] = 1
-                return target
             res = []
-            classes_num = len(classes)
             for cur_class in classes:
-                res += [{'path': os.path.join(os.path.join(directory, str(cur_class)), file), 'target': make_target(int(cur_class))}
+                res += [{'path': os.path.join(os.path.join(directory, str(cur_class)), file), 'target': int(cur_class)}
                         for file in
                         os.listdir(os.path.join(directory, str(cur_class)))]
             return res
 
-        # if step_type == 'test':
-        #     self.__pathes =
-        # else:
         dir = os.path.join(config['workdir_path'], config['data_conveyor'][step_type]['dataset_path'])
         classes = [int(d) for d in os.listdir(dir)]
         self.__pathes = get_pathes(dir)
