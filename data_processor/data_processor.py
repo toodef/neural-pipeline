@@ -53,11 +53,11 @@ class DataProcessor(InitedByConfig):
         if is_train:
             loss = self.__criterion(output, target_var)
             loss.backward()
-            torch.nn.utils.clip_grad_norm(self.__model.parameters(), 1.)
-            self.__optimizer.step()
-
             self.__metrics['loss'] += loss.data[0] * inputs_num
             self.__metrics['train_accuracy'] += torch.sum(preds == target_var.data)
+
+            torch.nn.utils.clip_grad_norm(self.__model.parameters(), 127.)
+            self.__optimizer.step()
         else:
             loss = self.__criterion(output, target_var)
             self.__metrics['val_loss'] += loss.data[0] * inputs_num
