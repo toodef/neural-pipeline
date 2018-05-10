@@ -53,6 +53,7 @@ class DataProcessor(InitedByConfig):
         if is_train:
             loss = self.__criterion(output, target_var)
             loss.backward()
+            torch.nn.utils.clip_grad_norm(self.__model.parameters(), 1.)
             self.__optimizer.step()
 
             self.__metrics['loss'] += loss.data[0] * inputs_num
