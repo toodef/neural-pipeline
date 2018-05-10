@@ -25,7 +25,12 @@ class DataProcessor(InitedByConfig):
 
     def predict(self, input, is_train=False):
         if self.__is_cuda:
-            input = input.cuda()
+            input = input.cuda(async=True)
+
+        if is_train:
+            self.__model.train()
+        else:
+            self.__model.eval()
 
         input_var = torch.autograd.Variable(input, volatile=not is_train)
         output = self.__model(input_var)
@@ -34,18 +39,19 @@ class DataProcessor(InitedByConfig):
     def process_batch(self, input, target, is_train):
         self.__model.train(is_train)
 
-        # target = target.cuda(async=True)
         if self.__is_cuda:
-            target = target.cuda()
+            target = target.cuda(async=True)
 
         inputs_num = input.size(0)
         target_var = torch.autograd.Variable(target, volatile=not is_train)
+
+        if is_train:
+            self.__optimizer.zero_grad()
 
         [_, preds], output = self.predict(input, is_train)
 
         if is_train:
             loss = self.__criterion(output, target_var)
-            self.__optimizer.zero_grad()
             loss.backward()
             self.__optimizer.step()
 
