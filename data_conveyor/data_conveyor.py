@@ -24,24 +24,29 @@ class Dataset:
         self.__cell_size = 100 / percentage
         self.__data_num = len(self.__pathes) * percentage // 100
         self.__percentage = percentage
-        const_augmentations_config = config['data_conveyor'][step_type]['const_augmentations']
-        self.__const_augmentations = [augmentations_dict[aug](const_augmentations_config) for aug in const_augmentations_config.keys()]
+
+        before_augmentations_config = config['data_conveyor'][step_type]['before_augmentations']
+        self.__before_augmentations = [augmentations_dict[aug](before_augmentations_config) for aug in before_augmentations_config.keys()]
         if 'augmentations' in config['data_conveyor'][step_type]:
             augmentations_config = config['data_conveyor'][step_type]['augmentations']
             self.__augmentations = [augmentations_dict[aug](augmentations_config) for aug in augmentations_config.keys()]
         else:
             self.__augmentations = []
-        self.__before_output = ToPyTorch()
+        after_augmentations_config = config['data_conveyor'][step_type]['after_augmentations']
+        self.__after_augmentations = [augmentations_dict[aug](after_augmentations_config) for aug in after_augmentations_config.keys()]
+
         self.__augmentations_percentage = config['data_conveyor'][step_type]['augmentations_percentage'] if 'augmentations_percentage' in config['data_conveyor'][step_type] else None
 
     def __getitem__(self, item):
         def augmentate(image):
-            for aug in self.__const_augmentations:
+            for aug in self.__before_augmentations:
                 image = aug(image)
             if self.__augmentations_percentage is not None and randint(1, 100) <= self.__augmentations_percentage:
                 for aug in self.__augmentations:
                     image = aug(image)
-            return self.__before_output(image)
+            for aug in self.__after_augmentations:
+                image = aug(image)
+            return image
 
         item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1 if self.__percentage < 100 else item
 

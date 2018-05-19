@@ -169,13 +169,21 @@ class RandomRotate(Augmentation):
         return cv2.warpAffine(data, M, (cols, rows))
 
 
-class ToPyTorch:
-    def __init__(self):
+class Normalize(Augmentation):
+    def __init__(self, config: {}):
+        super().__init__(config, 'normalize')
         self.__normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-    def __call__(self, data):
-        tensor = torch.from_numpy(np.moveaxis(data / (255. if data.dtype == np.uint8 else 1), -1, 0).astype(np.float32))
-        return self.__normalize(tensor)
+    def process(self, data):
+        return self.__normalize(data)
+
+
+class ToPyTorch(Augmentation):
+    def __init__(self, config: {}):
+        super().__init__(config, 'to_pytorch')
+
+    def process(self, data):
+        return torch.from_numpy(np.moveaxis(data / (255. if data.dtype == np.uint8 else 1), -1, 0).astype(np.float32))
 
 
 augmentations_dict = {'hflip': HorizontalFlip,
@@ -186,4 +194,6 @@ augmentations_dict = {'hflip': HorizontalFlip,
                       'resize': Resize,
                       'ccrop': CentralCrop,
                       'rcrop': RandomCrop,
-                      'rrotate': RandomRotate}
+                      'rrotate': RandomRotate,
+                      'to_pytorch': ToPyTorch,
+                      'normalize': Normalize}
