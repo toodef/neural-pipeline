@@ -121,6 +121,7 @@ class Resize(Augmentation):
         self.__size = self._get_config_path(config)['size']
         self.__resize_fnc = resize_to_defined if type(self.__size) == list and len(
             self.__size) == 2 else resize_by_min_edge
+        self._percentage = 100
 
     def process(self, data):
         return self.__resize_fnc(data, self.__size)
@@ -173,6 +174,7 @@ class Normalize(Augmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'normalize')
         self.__normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        self._percentage = 100
 
     def process(self, data):
         return self.__normalize(data)
@@ -181,9 +183,13 @@ class Normalize(Augmentation):
 class ToPyTorch(Augmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'to_pytorch')
+        self._percentage = 100
 
     def process(self, data):
-        return torch.from_numpy(np.moveaxis(data / (255. if data.dtype == np.uint8 else 1), -1, 0).astype(np.float32))
+        if data.dtype == np.uint8:
+            return torch.from_numpy(np.moveaxis(data / 255., -1, 0).astype(np.float32))
+        else:
+            return torch.from_numpy(np.moveaxis(data, -1, 0).astype(np.float32))
 
 
 augmentations_dict = {'hflip': HorizontalFlip,
