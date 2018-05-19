@@ -5,13 +5,9 @@ import json
 import os
 from multiprocessing import freeze_support
 
-import torch
-import numpy as np
 from tqdm import tqdm
 
 from data_conveyor.augmentations import Resize, CentralCrop, ToPyTorch
-from data_conveyor.data_conveyor import Dataset
-from data_processor import DataProcessor
 from data_processor.state_manager import StateManager
 
 

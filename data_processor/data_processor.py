@@ -25,7 +25,7 @@ class DataProcessor(InitedByConfig):
 
     def predict(self, input, is_train=False):
         if self.__is_cuda:
-            input = input.cuda(async=True)
+            input = input.cuda(async=is_train)
 
         if is_train:
             self.__model.train()
