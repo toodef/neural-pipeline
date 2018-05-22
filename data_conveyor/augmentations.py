@@ -167,7 +167,8 @@ class RandomRotate(Augmentation):
         rows, cols = data.shape[:2]
         angle = randint(self.__interval[0], self.__interval[1])
         M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
-        return cv2.warpAffine(data, M, (cols, rows))
+        img = cv2.warpAffine(data, M, (cols, rows))
+        return img
 
 
 class Normalize(Augmentation):
@@ -188,8 +189,8 @@ class ToPyTorch(Augmentation):
     def process(self, data):
         if data.dtype == np.uint8:
             return torch.from_numpy(np.moveaxis(data / 255., -1, 0).astype(np.float32))
-        else:
-            return torch.from_numpy(np.moveaxis(data, -1, 0).astype(np.float32))
+
+        return torch.from_numpy(np.moveaxis(data, -1, 0).astype(np.float32))
 
 
 augmentations_dict = {'hflip': HorizontalFlip,
