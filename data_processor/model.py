@@ -13,7 +13,7 @@ model_urls = {
     'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
     'vgg19': 'https://download.pytorch.org/models/vgg19-dcbb9e9d.pth',
-    'densenet121': 'https://download.pytorch.org/models/densenet201-c1103571.pth'
+    'densenet201': 'https://download.pytorch.org/models/densenet201-c1103571.pth'
 }
 
 
