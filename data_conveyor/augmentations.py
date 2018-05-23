@@ -166,9 +166,33 @@ class RandomRotate(Augmentation):
     def process(self, data):
         rows, cols = data.shape[:2]
         angle = randint(self.__interval[0], self.__interval[1])
+
+        if angle == 0:
+            return data
+
         M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
         img = cv2.warpAffine(data, M, (cols, rows))
-        return img
+        offset = abs(int(rows // (2 + 1 / np.tan(np.deg2rad(angle)))))
+        return resize_to_defined(img[offset: rows - offset, offset: cols - offset], [rows, cols])
+
+
+class RandomBrightness(Augmentation):
+    def __init__(self, config: {}):
+        super().__init__(config, 'rbrightness')
+
+    def process(self, data):
+        brightness = randint(20, 50)
+        data[data < 255 - brightness] += brightness
+        return data
+
+
+class RandomContrast(Augmentation):
+    def __init__(self, config: {}):
+        super().__init__(config, 'rcontrast')
+
+    def process(self, data):
+        contrast = randint(50, 100) / 100
+        return (data * contrast).astype(np.uint8)
 
 
 class Normalize(Augmentation):
@@ -203,4 +227,6 @@ augmentations_dict = {'hflip': HorizontalFlip,
                       'rcrop': RandomCrop,
                       'rrotate': RandomRotate,
                       'to_pytorch': ToPyTorch,
-                      'normalize': Normalize}
+                      'normalize': Normalize,
+                      'rbrightness': RandomBrightness,
+                      'rcontrast': RandomContrast}
