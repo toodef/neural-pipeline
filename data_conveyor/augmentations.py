@@ -100,7 +100,7 @@ class Blur(Augmentation):
         super().__init__(config, 'blur')
 
     def process(self, data):
-        return cv2.blur(data, (5, 5))
+        return cv2.blur(data, (2, 2))
 
 
 def resize_to_defined(data, size):
