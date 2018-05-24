@@ -29,7 +29,6 @@ class Model(InitedByConfig):
 
     def __init_from_config(self):
         self.__model = getattr(models, self.__config['network']['architecture'])()
-        self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, 128)
 
         start_mode = self.__config_start_mode()
         if start_mode == 'begin':
@@ -61,11 +60,13 @@ class Model(InitedByConfig):
         #     new_state_dict[name] = v
 
         if not url:
+            self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, 128)
             self.__model = torch.nn.DataParallel(self.__model)
             pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
             self.__model.load_state_dict(pretrained_weights)
         else:
             self.__model.load_state_dict(pretrained_weights)
+            self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, 128)
             self.__model = torch.nn.DataParallel(self.__model)
 
     def save_weights(self, weights_path):
