@@ -74,11 +74,11 @@ class DataProcessor(InitedByConfig):
 
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
         if epoch_idx == 1:
-            self.__learning_rate = 0.00003
+            self.__learning_rate /= 10
             self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate)
 
         if epoch_idx > 1 and self.__decrease_lr_every_epoch % epoch_idx == 0:
-            self.__learning_rate /= 10
+            self.__learning_rate /= 2
             self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate)
 
         for batch in tqdm(train_dataloader, desc="train", leave=False):
