@@ -17,8 +17,8 @@ class DataProcessor(InitedByConfig):
             self.__model = self.__model.cuda()
         self.__learning_rate = float(config['network']['learning_rate'])
 
-        self.__optimizer_fnc = partial(getattr(torch.optim, config['network']['optimizer']), params=self.__model.parameters(), weight_decay=1.e-4)
-        self.__optimizer = self.__optimizer_fnc(lr=self.__learning_rate)
+        self.__optimizer_fnc = getattr(torch.optim, config['network']['optimizer'])
+        self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate)
         self.__decrease_lr_every_epoch = config['network']['decrease_lr_every_epoch']
 
         self.__criterion = torch.nn.CrossEntropyLoss()
@@ -75,11 +75,11 @@ class DataProcessor(InitedByConfig):
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
         if epoch_idx == 1:
             self.__learning_rate = 0.00003
-            self.__optimizer = self.__optimizer_fnc(lr=self.__learning_rate)
+            self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate)
 
         if epoch_idx > 1 and self.__decrease_lr_every_epoch % epoch_idx == 0:
             self.__learning_rate /= 10
-            self.__optimizer = self.__optimizer_fnc(lr=self.__learning_rate)
+            self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate)
 
         for batch in tqdm(train_dataloader, desc="train", leave=False):
             self.process_batch(batch['data'], batch['target'], is_train=True)
