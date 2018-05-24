@@ -50,6 +50,8 @@ class Model(InitedByConfig):
         else:
             self.load_weights(start_mode)
 
+        self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, 128)
+
     def load_weights(self, weights_file: str, url=False):
         pretrained_weights = torch.load(weights_file)
         # # pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
