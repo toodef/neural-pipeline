@@ -29,6 +29,7 @@ class Model(InitedByConfig):
 
     def __init_from_config(self):
         self.__model = getattr(models, self.__config['network']['architecture'])()
+        self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, 128)
 
         start_mode = self.__config_start_mode()
         if start_mode == 'begin':
@@ -49,8 +50,6 @@ class Model(InitedByConfig):
             self.load_weights(init_weights_file, True)
         else:
             self.load_weights(start_mode)
-
-        self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, 128)
 
     def load_weights(self, weights_file: str, url=False):
         pretrained_weights = torch.load(weights_file)
