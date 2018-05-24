@@ -25,6 +25,17 @@ class Dataset:
         self.__data_num = len(self.__pathes) * percentage // 100
         self.__percentage = percentage
 
+        self.load_augmentations(config, step_type)
+
+        self.__augmentations_percentage = config['data_conveyor'][step_type]['augmentations_percentage'] if 'augmentations_percentage' in config['data_conveyor'][step_type] else None
+
+    def load_augmentations(self, config: {}, step_type: str):
+        """
+
+        :param config:
+        :param step_type:
+        :return:
+        """
         before_augmentations_config = config['data_conveyor'][step_type]['before_augmentations']
         self.__before_augmentations = [augmentations_dict[aug](before_augmentations_config) for aug in before_augmentations_config.keys()]
         if 'augmentations' in config['data_conveyor'][step_type]:
@@ -34,8 +45,6 @@ class Dataset:
             self.__augmentations = []
         after_augmentations_config = config['data_conveyor'][step_type]['after_augmentations']
         self.__after_augmentations = [augmentations_dict[aug](after_augmentations_config) for aug in after_augmentations_config.keys()]
-
-        self.__augmentations_percentage = config['data_conveyor'][step_type]['augmentations_percentage'] if 'augmentations_percentage' in config['data_conveyor'][step_type] else None
 
     def __getitem__(self, item):
         def augmentate(image):
