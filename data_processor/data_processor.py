@@ -25,7 +25,7 @@ class DataProcessor(InitedByConfig):
 
         def value(self, cur_loss, min_loss) -> float:
             print(cur_loss, min_loss)
-            if cur_loss < min_loss:
+            if min_loss is not None or cur_loss < min_loss:
                 print("Clear steps num")
                 self.__cur_step = 0
 
@@ -108,11 +108,12 @@ class DataProcessor(InitedByConfig):
             self.process_batch(batch['data'], batch['target'], is_train=False)
 
         cur_metrics = self.get_metrics()
-        self.__monitor.update(epoch_idx, cur_metrics)
-        self.clear_metrics()
 
         self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4,
                                                 lr=self.__learning_rate.value(cur_metrics['val_loss'], self.__monitor.get_metrics_min_val('val_loss')))
+
+        self.__monitor.update(epoch_idx, cur_metrics)
+        self.clear_metrics()
 
     def get_metrics(self):
         val_acc = self.__metrics['val_accuracy'] / self.__images_processeed['val']
