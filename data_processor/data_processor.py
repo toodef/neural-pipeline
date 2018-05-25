@@ -16,7 +16,8 @@ class DataProcessor(InitedByConfig):
             self.__decrease_coefficient = float(config['network']['learning_rate']['decrease_coefficient'])
 
             if 'first_epoch_decrease_coeff' in config['network']['learning_rate']:
-                self.__first_epoch_decrease_coeff = float(config['network']['learning_rate']['first_epoch_decrease_coeff'])
+                self.__first_epoch_decrease_coeff = float(
+                    config['network']['learning_rate']['first_epoch_decrease_coeff'])
             else:
                 self.__first_epoch_decrease_coeff = None
 
@@ -31,6 +32,7 @@ class DataProcessor(InitedByConfig):
 
             if self.__cur_step == 1 and self.__first_epoch_decrease_coeff is not None:
                 self.__value /= self.__first_epoch_decrease_coeff
+                self.__first_epoch_decrease_coeff = None
                 print('Decrease lr cause 1 step to', self.__value)
             elif self.__cur_step > 0 and (self.__cur_step % self.__skip_steps_number) == 0:
                 self.__value /= self.__decrease_coefficient
@@ -48,7 +50,8 @@ class DataProcessor(InitedByConfig):
         self.__learning_rate = self.LearningRate(config)
 
         self.__optimizer_fnc = getattr(torch.optim, config['network']['optimizer'])
-        self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate.value(0, 0))
+        self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4,
+                                                lr=self.__learning_rate.value(0, 0))
 
         self.__criterion = torch.nn.CrossEntropyLoss()
         if self.__is_cuda:
@@ -110,7 +113,9 @@ class DataProcessor(InitedByConfig):
         cur_metrics = self.get_metrics()
 
         self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4,
-                                                lr=self.__learning_rate.value(cur_metrics['val_loss'], self.__monitor.get_metrics_min_val('val_loss')))
+                                                lr=self.__learning_rate.value(cur_metrics['val_loss'],
+                                                                              self.__monitor.get_metrics_min_val(
+                                                                                  'val_loss')))
 
         self.__monitor.update(epoch_idx, cur_metrics)
         self.clear_metrics()
@@ -151,9 +156,9 @@ class DataProcessor(InitedByConfig):
 
     def _required_params(self):
         return {
-                "network": {
-                  "optimiser": ["Adam", "SGD"],
-                  "learning_rate": "Learning rate value",
-                },
-                "workdir_path": "workdir"
-              }
+            "network": {
+                "optimiser": ["Adam", "SGD"],
+                "learning_rate": "Learning rate value",
+            },
+            "workdir_path": "workdir"
+        }
