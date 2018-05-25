@@ -13,19 +13,29 @@ class DataProcessor(InitedByConfig):
     class LearningRate:
         def __init__(self, config: {}):
             self.__value = float(config['network']['learning_rate']['start_value'])
-            self.__decrease_every_epoch = config['network']['learning_rate']['decrease_every_epoch']
-            self.__decrease_coefficient = config['network']['learning_rate']['decrease_coefficient']
+            self.__decrease_coefficient = float(config['network']['learning_rate']['decrease_coefficient'])
 
             if 'first_epoch_decrease_coeff' in config['network']['learning_rate']:
-                self.__first_epoch_decrease_coeff = config['network']['learning_rate']['first_epoch_decrease_coeff']
+                self.__first_epoch_decrease_coeff = float(config['network']['learning_rate']['first_epoch_decrease_coeff'])
             else:
                 self.__first_epoch_decrease_coeff = None
 
-        def value(self, epoch_idx) -> float:
-            if epoch_idx == 1 and self.__first_epoch_decrease_coeff is not None:
+            self.__skip_steps_number = config['network']['learning_rate']['skip_steps_number']
+            self.__cur_step = 0
+
+        def value(self, cur_loss, min_loss) -> float:
+            if cur_loss < min_loss:
+                self.__cur_step = 0
+
+            if self.__cur_step == 1 and self.__first_epoch_decrease_coeff is not None:
                 self.__value /= self.__first_epoch_decrease_coeff
-            elif epoch_idx > 0 and epoch_idx % self.__decrease_every_epoch == 0:
+                print('Decrease lr cause 1 step to', self.__value)
+            elif self.__cur_step > 0 and (self.__cur_step % self.__skip_steps_number) == 0:
                 self.__value /= self.__decrease_coefficient
+                print('Decrease lr to', self.__value)
+
+            self.__cur_step += 1
+
             return self.__value
 
     def __init__(self, config: {}):
@@ -36,7 +46,7 @@ class DataProcessor(InitedByConfig):
         self.__learning_rate = self.LearningRate(config)
 
         self.__optimizer_fnc = getattr(torch.optim, config['network']['optimizer'])
-        self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate)
+        self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate.value(0, 0))
 
         self.__criterion = torch.nn.CrossEntropyLoss()
         if self.__is_cuda:
@@ -90,8 +100,6 @@ class DataProcessor(InitedByConfig):
         self.__images_processeed['train' if is_train else 'val'] += self.__batch_size
 
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
-        self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate.value(epoch_idx))
-
         for batch in tqdm(train_dataloader, desc="train", leave=False):
             self.process_batch(batch['data'], batch['target'], is_train=True)
         for batch in tqdm(validation_dataloader, desc="validation", leave=False):
@@ -100,6 +108,9 @@ class DataProcessor(InitedByConfig):
         cur_metrics = self.get_metrics()
         self.__monitor.update(epoch_idx, cur_metrics)
         self.clear_metrics()
+
+        self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4,
+                                                lr=self.__learning_rate.value(cur_metrics['val_loss'], self.__monitor.get_metrics_min_val('val_loss')))
 
     def get_metrics(self):
         val_acc = self.__metrics['val_accuracy'] / self.__images_processeed['val']

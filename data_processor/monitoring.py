@@ -17,7 +17,25 @@ class Monitor:
         os.makedirs(dir, exist_ok=True)
         self.__writer = SummaryWriter(dir)
 
+        self.__metrics_storage = {}
+        self.__metrics_min_values = {}
+        self.__metrics_max_values = {}
+
     def update(self, epoch_idx: int, metrics: {}):
+        for k, v in metrics.items():
+            if k not in self.__metrics_storage:
+                self.__metrics_storage[k] = []
+            if k not in self.__metrics_min_values:
+                self.__metrics_min_values[k] = v
+            if k not in self.__metrics_max_values:
+                self.__metrics_max_values[k] = v
+
+            self.__metrics_storage[k].append(v)
+            if self.__metrics_min_values[k] >= v:
+                self.__metrics_min_values[k] = v
+            if self.__metrics_max_values[k] <= v:
+                self.__metrics_max_values[k] = v
+
         self.__update_tensorboard(epoch_idx, metrics)
         self.__update_console(epoch_idx, metrics)
 
@@ -33,3 +51,19 @@ class Monitor:
 
     def close(self):
         self.__writer.close()
+
+    def get_metric_history(self, metric_name: str, num_last_items: int = None):
+        if num_last_items is not None:
+            return self.__metrics_storage[metric_name][num_last_items:]
+        else:
+            return self.__metrics_storage[metric_name]
+
+    def get_metrics_min_val(self, metric_name: str):
+        if metric_name not in self.__metrics_min_values:
+            return None
+        return self.__metrics_min_values[metric_name]
+
+    def get_metrics_max_val(self, metric_name: str):
+        if metric_name not in self.__metrics_max_values:
+            return None
+        return self.__metrics_max_values[metric_name]
