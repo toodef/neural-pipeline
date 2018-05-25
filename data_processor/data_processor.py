@@ -10,16 +10,33 @@ from utils.config import InitedByConfig
 
 
 class DataProcessor(InitedByConfig):
+    class LearningRate:
+        def __init__(self, config: {}):
+            self.__value = float(config['network']['learning_rate']['start_value'])
+            self.__decrease_every_epoch = config['network']['learning_rate']['decrease_every_epoch']
+            self.__decrease_coefficient = config['network']['learning_rate']['decrease_coefficient']
+
+            if 'first_epoch_decrease_coeff' in config['network']['learning_rate']:
+                self.__first_epoch_decrease_coeff = config['network']['learning_rate']['first_epoch_decrease_coeff']
+            else:
+                self.__first_epoch_decrease_coeff = None
+
+        def value(self, epoch_idx) -> float:
+            if epoch_idx == 1 and self.__first_epoch_decrease_coeff is not None:
+                self.__value /= self.__first_epoch_decrease_coeff
+            elif epoch_idx > 0 and epoch_idx % self.__decrease_every_epoch == 0:
+                self.__value /= self.__decrease_coefficient
+            return self.__value
+
     def __init__(self, config: {}):
         self.__is_cuda = True
         self.__model = Model(config).model()
         if self.__is_cuda:
             self.__model = self.__model.cuda()
-        self.__learning_rate = float(config['network']['learning_rate'])
+        self.__learning_rate = self.LearningRate(config)
 
         self.__optimizer_fnc = getattr(torch.optim, config['network']['optimizer'])
         self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate)
-        self.__decrease_lr_every_epoch = config['network']['decrease_lr_every_epoch']
 
         self.__criterion = torch.nn.CrossEntropyLoss()
         if self.__is_cuda:
@@ -73,13 +90,7 @@ class DataProcessor(InitedByConfig):
         self.__images_processeed['train' if is_train else 'val'] += self.__batch_size
 
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
-        if epoch_idx == 1:
-            self.__learning_rate /= 10
-            self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate)
-
-        if epoch_idx > 1 and self.__decrease_lr_every_epoch % epoch_idx == 0:
-            self.__learning_rate /= 2
-            self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate)
+        self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4, lr=self.__learning_rate.value(epoch_idx))
 
         for batch in tqdm(train_dataloader, desc="train", leave=False):
             self.process_batch(batch['data'], batch['target'], is_train=True)
