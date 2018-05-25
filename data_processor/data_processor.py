@@ -25,6 +25,7 @@ class DataProcessor(InitedByConfig):
 
         def value(self, cur_loss, min_loss) -> float:
             if cur_loss < min_loss:
+                print("Clear steps num")
                 self.__cur_step = 0
 
             if self.__cur_step == 1 and self.__first_epoch_decrease_coeff is not None:
