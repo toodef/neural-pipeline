@@ -25,7 +25,7 @@ class DataProcessor(InitedByConfig):
 
         def value(self, cur_loss, min_loss) -> float:
             print(cur_loss, min_loss)
-            if min_loss is not None or cur_loss < min_loss:
+            if min_loss is not None and cur_loss < min_loss:
                 print("Clear steps num")
                 self.__cur_step = 0
 
