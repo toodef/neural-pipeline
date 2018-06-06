@@ -51,3 +51,51 @@ class InitedByConfig(metaclass=ABCMeta):
         Method, that return required parameters in config for inherit class
         :return: required parameters as dict with same structure as config dict
         """
+
+
+default_config = {
+    "data_processor": {
+        "architecture": "densenet201",
+        "optimizer": "Adam",
+        "learning_rate": {"start_value": 0.001,
+                          "skip_steps_number": 2,
+                          "decrease_coefficient": 10,
+                          "first_epoch_decrease_coeff": 10},
+        "start_from": "url"
+    },
+    "data_conveyor": {
+        "data_size": [224, 224, 3],
+        "batch_size": 1,
+        "threads_num": 1,
+        "epoch_num": 1,
+        "train": {
+            "dataset_path": "train",
+            "before_augmentations": {"resize": {"percentage": 100, "size": 224},
+                                     "ccrop": {"percentage": 100, "size": 224}},
+            "augmentations": {"hflip": {"percentage": 0},
+                              "rrotate": {"percentage": 0, "interval": [-10, 10]},
+                              "rbrightness": {"percentage": 0},
+                              "rcontrast": {"percentage": 0},
+                              "gauss_noise": {"percentage": 0},
+                              "snp_noise": {"percentage": 0},
+                              "blur": {"percentage": 100}},
+            "after_augmentations": {"to_pytorch": {"percentage": 100}, "normalize": {"percentage": 100}},
+            "augmentations_percentage": 100,
+            "images_percentage": 1
+        },
+        "validation": {
+            "dataset_path": "validation",
+            "before_augmentations": {"resize": {"percentage": 100, "size": [224, 224]}},
+            "after_augmentations": {"to_pytorch": {"percentage": 100}, "normalize": {"percentage": 100}},
+            "images_percentage": 1
+        },
+        "test": {
+            "dataset_path": "test",
+            "before_augmentations": {"resize": {"percentage": 100, "size": 224},
+                                    "ccrop": {"percentage": 100, "size": 224}},
+            "images_percentage": 100
+        }
+
+    },
+    "workdir_path": "workdir"
+}

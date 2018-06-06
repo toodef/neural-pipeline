@@ -53,8 +53,10 @@ class DataProcessor(InitedByConfig):
         self.__criterion = torch.nn.CrossEntropyLoss()
         if self.__is_cuda:
             self.__criterion = self.__criterion.cuda()
+
         self.__monitor = Monitor(config)
         self.clear_metrics()
+
         self.__batch_size = int(config['data_conveyor']['batch_size'])
 
         self.__epoch_num = 0

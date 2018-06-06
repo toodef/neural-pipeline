@@ -16,6 +16,8 @@ model_urls = {
     'densenet201': 'https://download.pytorch.org/models/densenet201-c1103571.pth'
 }
 
+start_modes = ['begin', 'url', 'continue']
+
 
 class Model(InitedByConfig):
     def __init__(self, config: {}):
@@ -31,10 +33,10 @@ class Model(InitedByConfig):
         self.__model = getattr(models, self.__config['network']['architecture'])()
 
         start_mode = self.__config_start_mode()
-        if start_mode == 'begin':
+        if start_mode == start_modes[0]:
             return
 
-        if start_mode == "url":
+        if start_mode == start_modes[1]:
             self.__weights_dir = os.path.join(self.__config['workdir_path'], self.__config['network']['weights_dir'])
             self.__weights_file = os.path.join(self.__weights_dir, "weights.pth")
             model_url = model_urls[self.__config['network']['architecture']]
