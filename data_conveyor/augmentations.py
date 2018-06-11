@@ -57,18 +57,18 @@ class GaussNoise(Augmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'gauss_noise')
 
+        self.__mean = self._get_config_path(config)['mean']
+        self.__var = self._get_config_path(config)['var']
+        self.__interval = self._get_config_path(config)['interval']
+
     def process(self, data):
         row, col, ch = data.shape
-        mean = 0
-        var = 0.001
-        interval = 50
-        sigma = var ** 0.5
-        gauss = np.random.normal(mean, sigma, (row, col, ch))
-        # gauss = gauss.reshape(row, col, ch)
+        sigma = self.__var ** 0.5
+        gauss = np.random.normal(self.__mean, sigma, (row, col, ch))
         gauss = (gauss - np.min(gauss))
-        gauss = gauss / np.max(gauss) * interval
-        noisy = data
-        mask = data < 255 - interval
+        gauss = gauss / np.max(gauss) * self.__interval
+        noisy = data.copy()
+        mask = data < 255 - self.__interval
         noisy[mask] = data[mask] + gauss[mask]
         return noisy.astype(np.uint8)
 
@@ -77,18 +77,19 @@ class SNPNoise(Augmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'snp_noise')
 
+        self.__s_vs_p = self._get_config_path(config)['s_vs_p']
+        self.__amount = self._get_config_path(config)['amount']
+
     def process(self, data):
-        s_vs_p = 0.5
-        amount = 0.04
-        out = np.copy(data)
+        out = data.copy()
         # Salt mode
-        num_salt = np.ceil(amount * data.size * s_vs_p)
+        num_salt = np.ceil(self.__amount * data.size * self.__s_vs_p)
         coords = [np.random.randint(0, i - 1, int(num_salt))
                   for i in data.shape]
         out[coords] = 255
 
         # Pepper mode
-        num_pepper = np.ceil(amount * data.size * (1. - s_vs_p))
+        num_pepper = np.ceil(self.__amount * data.size * (1. - self.__s_vs_p))
         coords = [np.random.randint(0, i - 1, int(num_pepper))
                   for i in data.shape]
         out[coords] = 0
@@ -99,8 +100,10 @@ class Blur(Augmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'blur')
 
+        self.__ksize = self._get_config_path(config)['ksize']
+
     def process(self, data):
-        return cv2.blur(data, (2, 2))
+        return cv2.blur(data.copy(), self.__ksize).astype(np.uint8)
 
 
 def resize_to_defined(data, size):
@@ -180,10 +183,13 @@ class RandomBrightness(Augmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'rbrightness')
 
+        self.__interval = self._get_config_path(config)['interval']
+
     def process(self, data):
-        brightness = randint(20, 50)
-        data[data < 255 - brightness] += brightness
-        return data
+        brightness = randint(self.__interval[0], self.__interval[1])
+        new_data = data.copy()
+        new_data[new_data < 255 - brightness] += brightness
+        return new_data
 
 
 class RandomContrast(Augmentation):

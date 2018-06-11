@@ -1,7 +1,6 @@
 import json
 import os
 
-from PySide2.QtCore import Signal, Slot, QObject
 from PySide2.QtWidgets import QAction, QVBoxLayout, QHBoxLayout
 
 from data_conveyor.augmentations import augmentations_dict
@@ -9,6 +8,7 @@ from data_processor.model import model_urls, start_modes
 from neuro_studio.PySide2Wrapper.PySide2Wrapper import MainWindow, ComboBox, OpenFile, LineEdit, Button, SaveFile
 
 from neuro_studio.PySide2Wrapper.PySide2Wrapper import Application
+from neuro_studio.augmentations import augmentations_ui
 from utils.config import default_config
 
 
@@ -84,49 +84,73 @@ class DataProcessorUi:
 
 
 class AugmentationsUi:
+    class AugmentationUi:
+        def __init__(self, parent, aug_names: [], is_first=False):
+            self.__combo = ComboBox().add_items(aug_names)
+            self.__aug_names = aug_names
+
+            add_btn = Button('+', is_tool_button=True)
+            settings_btn = Button('s', is_tool_button=True).set_on_click_callback(self.__configure)
+            layout = QHBoxLayout()
+
+            if not is_first:
+                del_btn = Button('-', is_tool_button=True)
+                layout.addLayout(del_btn.get_layout())
+                del_btn.set_on_click_callback(layout.deleteLater)
+                del_btn.set_on_click_callback(del_btn.get_instance().deleteLater)
+                del_btn.set_on_click_callback(settings_btn.get_instance().deleteLater)
+                del_btn.set_on_click_callback(add_btn.get_instance().deleteLater)
+                del_btn.set_on_click_callback(self.__combo.get_instance().deleteLater)
+                del_btn.set_on_click_callback(lambda: parent.del_augmentation(self))
+
+            layout.addLayout(self.__combo.get_layout())
+            layout.addLayout(add_btn.get_layout())
+            layout.addLayout(settings_btn.get_layout())
+            parent.get_layout().addLayout(layout)
+            add_btn.set_on_click_callback(parent.add_augmentation)
+
+        def get_value(self):
+            return self.__combo.get_value()
+
+        def set_value(self, val):
+            self.__combo.set_value(val)
+
+        def __configure(self):
+            augmentations_ui[self.__aug_names[self.__combo.get_value()]]().show()
+
     def __init__(self, layout):
         self.__layout = layout
-        self.__combos = []
+        self.__augs = []
         self.__augs_names = ['- None -'] + [k for k in augmentations_dict.keys()]
         self.add_augmentation(is_first=True)
 
+    def get_layout(self):
+        return self.__layout
+
     def add_augmentation(self, is_first=False):
-        if not is_first and self.__combos[-1].get_value() == 0:
+        if not is_first and self.__augs[-1].get_value() == 0:
             return
 
-        self.__combos.append(ComboBox().add_items(self.__augs_names))
-        add_btn = Button('+')
-        layout = QHBoxLayout()
+        self.__augs.append(self.AugmentationUi(self, self.__augs_names, is_first))
 
-        if not is_first:
-            del_btn = Button('-')
-            layout.addLayout(del_btn.get_layout())
-            del_btn.set_on_click_callback(layout.deleteLater)
-            del_btn.set_on_click_callback(del_btn.get_instance().deleteLater)
-            del_btn.set_on_click_callback(add_btn.get_instance().deleteLater)
-            del_btn.set_on_click_callback(lambda: self.__del__combo(len(self.__combos) - 1))
-
-        layout.addLayout(self.__combos[-1].get_layout())
-        layout.addLayout(add_btn.get_layout())
-        self.__layout.addLayout(layout)
-        add_btn.set_on_click_callback(self.add_augmentation)
-
-    def __del__combo(self, index: int):
-        self.__combos[index].get_instance().deleteLater()
-        del self.__combos[index]
+    def del_augmentation(self, augmentation):
+        del self.__augs[self.__augs.index(augmentation)]
 
     def get_augmentations(self):
-        return [augmentations_dict.keys()[c.get_value() - 1] for c in self.__combos if c.get_value() > 0]
+        return [augmentations_dict.keys()[a.get_value() - 1] for a in self.__augs if a.get_value() > 0]
 
     def init_by_config(self, config: {}):
+        i = 0
         for k, v in config.items():
-            self.add_augmentation()
-            self.__combos[-1].set_value(self.__augs_names.index(k))
+            if i > 0:
+                self.add_augmentation(i == 0)
+            self.__augs[-1].set_value(self.__augs_names.index(k))
+            i += 1
 
     def flush_to_config(self, config: {}):
-        for combo in self.__combos:
-            if combo.get_value() > 0:
-                config[self.__augs_names[combo.get_value() - 1]] = "None"
+        for aug in self.__augs:
+            if aug.get_value() > 0:
+                config[self.__augs_names[aug.get_value() - 1]] = "None"
 
 
 class DataConveyorStepUi:
