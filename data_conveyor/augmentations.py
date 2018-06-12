@@ -36,13 +36,35 @@ class Augmentation(metaclass=ABCMeta):
     def get_percetage(self):
         return self._percentage
 
+    def get_name(self):
+        return self.__aug_name
+
+    @abstractmethod
+    def _get_config(self) -> {}:
+        """
+        Internal method for getting config
+        :return: internal config dict
+        """
+
+    def get_config(self) -> {}:
+        """
+        Get current config
+        :return: config dict
+        """
+        internal_config = {"percentage": self.get_percetage()}
+        internal_config.update(self._get_config())
+        return {self.get_name(): internal_config}
+
 
 class HorizontalFlip(Augmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'hflip')
 
     def process(self, data):
-        return cv2.flip(data, 1)
+        return cv2.flip(data.copy(), 1)
+
+    def _get_config(self) -> {}:
+        return {}
 
 
 class VerticalFlip(Augmentation):
@@ -50,7 +72,10 @@ class VerticalFlip(Augmentation):
         super().__init__(config, 'vflip')
 
     def process(self, data):
-        return cv2.flip(data, 0)
+        return cv2.flip(data.copy(), 0)
+
+    def _get_config(self) -> {}:
+        return {}
 
 
 class GaussNoise(Augmentation):
@@ -71,6 +96,9 @@ class GaussNoise(Augmentation):
         mask = data < 255 - self.__interval
         noisy[mask] = data[mask] + gauss[mask]
         return noisy.astype(np.uint8)
+
+    def _get_config(self) -> {}:
+        return {'mean': self.__mean, 'var': self.__var, 'interval': self.__interval}
 
 
 class SNPNoise(Augmentation):
@@ -95,6 +123,9 @@ class SNPNoise(Augmentation):
         out[coords] = 0
         return out
 
+    def _get_config(self) -> {}:
+        return {'s_vs_p': self.__s_vs_p, 'amount': self.__amount}
+
 
 class Blur(Augmentation):
     def __init__(self, config: {}):
@@ -104,6 +135,9 @@ class Blur(Augmentation):
 
     def process(self, data):
         return cv2.blur(data.copy(), self.__ksize).astype(np.uint8)
+
+    def _get_config(self) -> {}:
+        return {'ksize': self.__ksize}
 
 
 def resize_to_defined(data, size):
@@ -129,12 +163,15 @@ class Resize(Augmentation):
     def process(self, data):
         return self.__resize_fnc(data, self.__size)
 
+    def _get_config(self) -> {}:
+        return {'size': self.__size}
+
 
 class CentralCrop(Augmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'ccrop')
-        size = self._get_config_path(config)['size']
-        self.__width, self.__height = size if type(size) == list and len(size) == 2 else [size, size]
+        self.__size = self._get_config_path(config)['size']
+        self.__width, self.__height = self.__size if type(self.__size) == list and len(self.__size) == 2 else [self.__size, self.__size]
 
     def process(self, data):
         h, w, c = data.shape
@@ -144,12 +181,15 @@ class CentralCrop(Augmentation):
         data = data[y1: y2, x1: x2, :]
         return data
 
+    def _get_config(self) -> {}:
+        return {'size': self.__size}
+
 
 class RandomCrop(Augmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'rcrop')
-        size = self._get_config_path(config)['size']
-        self.__width, self.__height = size if type(size) == list and len(size) == 2 else [size, size]
+        self.__size = self._get_config_path(config)['size']
+        self.__width, self.__height = self.__size if type(self.__size) == list and len(self.__size) == 2 else [self.__size, self.__size]
 
     def process(self, data):
         h, w, c = data.shape
@@ -159,6 +199,9 @@ class RandomCrop(Augmentation):
         x1, x2 = dx, dx + self.__width
         data = data[y1: y2, x1: x2, :]
         return data
+
+    def _get_config(self) -> {}:
+        return {'size': self.__size}
 
 
 class RandomRotate(Augmentation):
@@ -178,6 +221,9 @@ class RandomRotate(Augmentation):
         offset = abs(int(rows // (2 + 1 / np.tan(np.deg2rad(angle)))))
         return resize_to_defined(img[offset: rows - offset, offset: cols - offset], [rows, cols])
 
+    def _get_config(self) -> {}:
+        return {'interval': self.__interval}
+
 
 class RandomBrightness(Augmentation):
     def __init__(self, config: {}):
@@ -191,14 +237,21 @@ class RandomBrightness(Augmentation):
         new_data[new_data < 255 - brightness] += brightness
         return new_data
 
+    def _get_config(self) -> {}:
+        return {'interval': self.__interval}
+
 
 class RandomContrast(Augmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'rcontrast')
+        self.__interval = self._get_config_path(config)['interval']
 
     def process(self, data):
-        contrast = randint(50, 100) / 100
+        contrast = randint(self.__interval[0], self.__interval[1]) / 100
         return (data * contrast).astype(np.uint8)
+
+    def _get_config(self) -> {}:
+        return {'interval': self.__interval}
 
 
 class Normalize(Augmentation):
@@ -209,6 +262,9 @@ class Normalize(Augmentation):
 
     def process(self, data):
         return self.__normalize(data)
+
+    def _get_config(self) -> {}:
+        return {}
 
 
 class ToPyTorch(Augmentation):
@@ -221,6 +277,9 @@ class ToPyTorch(Augmentation):
             return torch.from_numpy(np.moveaxis(data / 255., -1, 0).astype(np.float32))
 
         return torch.from_numpy(np.moveaxis(data, -1, 0).astype(np.float32))
+
+    def _get_config(self) -> {}:
+        return {}
 
 
 augmentations_dict = {'hflip': HorizontalFlip,

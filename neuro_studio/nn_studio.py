@@ -88,69 +88,109 @@ class AugmentationsUi:
         def __init__(self, parent, aug_names: [], is_first=False):
             self.__combo = ComboBox().add_items(aug_names)
             self.__aug_names = aug_names
+            self.__augmentation_instance = None
 
-            add_btn = Button('+', is_tool_button=True)
-            settings_btn = Button('s', is_tool_button=True).set_on_click_callback(self.__configure)
-            layout = QHBoxLayout()
+            self.__add_btn = Button('+', is_tool_button=True)
+            self.__settings_btn = Button('s', is_tool_button=True).set_on_click_callback(self.__configure) \
+                .set_on_click_callback(lambda: parent.augmentations_changed())
+            self.__layout = QHBoxLayout()
 
+            self.__del_btn = None
             if not is_first:
-                del_btn = Button('-', is_tool_button=True)
-                layout.addLayout(del_btn.get_layout())
-                del_btn.set_on_click_callback(layout.deleteLater)
-                del_btn.set_on_click_callback(del_btn.get_instance().deleteLater)
-                del_btn.set_on_click_callback(settings_btn.get_instance().deleteLater)
-                del_btn.set_on_click_callback(add_btn.get_instance().deleteLater)
-                del_btn.set_on_click_callback(self.__combo.get_instance().deleteLater)
-                del_btn.set_on_click_callback(lambda: parent.del_augmentation(self))
+                self.__del_btn = Button('-', is_tool_button=True)
+                self.__layout.addLayout(self.__del_btn.get_layout())
+                self.__del_btn.set_on_click_callback(self.delete)
+                self.__del_btn.set_on_click_callback(lambda: parent.del_augmentation(self))
 
-            layout.addLayout(self.__combo.get_layout())
-            layout.addLayout(add_btn.get_layout())
-            layout.addLayout(settings_btn.get_layout())
-            parent.get_layout().addLayout(layout)
-            add_btn.set_on_click_callback(parent.add_augmentation)
+            self.__layout.addLayout(self.__combo.get_layout())
+            self.__layout.addLayout(self.__add_btn.get_layout())
+            self.__layout.addLayout(self.__settings_btn.get_layout())
+            parent.get_layout().addLayout(self.__layout)
+            self.__add_btn.set_on_click_callback(parent.add_augmentation)
+
+            self.__previous_augmentations = []
+
+        def delete(self):
+            self.__layout.deleteLater()
+            if self.__del_btn is not None:
+                self.__del_btn.get_instance().deleteLater()
+            self.__settings_btn.get_instance().deleteLater()
+            self.__add_btn.get_instance().deleteLater()
+            self.__combo.get_instance().deleteLater()
+
+        def set_previous_augmentations(self, previous_augmentations):
+            self.__previous_augmentations = previous_augmentations
 
         def get_value(self):
-            return self.__combo.get_value()
+            return self.__augmentation_instance
 
         def set_value(self, val):
-            self.__combo.set_value(val)
+            self.__augmentation_instance = val
+            self.__combo.set_value(self.__aug_names.index(val.get_name()))
 
         def __configure(self):
-            augmentations_ui[self.__aug_names[self.__combo.get_value()]]().show()
+            ui = augmentations_ui[self.__aug_names[self.__combo.get_value()]](self.__previous_augmentations)
+            if self.__augmentation_instance is not None:
+                ui.init_by_config(self.__augmentation_instance.get_config())
+            self.__augmentation_instance = ui.show()
 
     def __init__(self, layout):
         self.__layout = layout
         self.__augs = []
         self.__augs_names = ['- None -'] + [k for k in augmentations_dict.keys()]
+
+        self.__augmentations_changed_callbacks = []
         self.add_augmentation(is_first=True)
+
+    def set_previous_augmentations(self, previous_augmentations):
+        for a in self.__augs:
+            a.set_previous_augmentations(previous_augmentations)
+
+    def add_augmenatations_changed_callback(self, callback: callable):
+        self.__augmentations_changed_callbacks.append(callback)
 
     def get_layout(self):
         return self.__layout
 
+    def augmentations_changed(self):
+        for call in self.__augmentations_changed_callbacks:
+            call()
+
     def add_augmentation(self, is_first=False):
-        if not is_first and self.__augs[-1].get_value() == 0:
+        if not is_first and self.__augs[-1].get_value() is None:
             return
 
         self.__augs.append(self.AugmentationUi(self, self.__augs_names, is_first))
+        self.augmentations_changed()
 
     def del_augmentation(self, augmentation):
         del self.__augs[self.__augs.index(augmentation)]
 
     def get_augmentations(self):
-        return [augmentations_dict.keys()[a.get_value() - 1] for a in self.__augs if a.get_value() > 0]
+        return [a.get_value() for a in self.__augs]
 
     def init_by_config(self, config: {}):
+        if len(self.__augs) > 0:
+            for a in self.__augs:
+                a.delete()
+            self.__augs = []
+            # for a in self.__augs:
+            #     self.del_augmentation(a)
+            # self.add_augmentation(is_first=True)
+
         i = 0
         for k, v in config.items():
-            if i > 0:
-                self.add_augmentation(i == 0)
-            self.__augs[-1].set_value(self.__augs_names.index(k))
+            self.add_augmentation(i == 0)
+            self.__augs[-1].set_value(augmentations_dict[k]({k: v}))
             i += 1
+
+        self.augmentations_changed()
 
     def flush_to_config(self, config: {}):
         for aug in self.__augs:
-            if aug.get_value() > 0:
-                config[self.__augs_names[aug.get_value() - 1]] = "None"
+            a = aug.get_value()
+            if a is not None:  # TODO: sometimes None is happens, why?
+                config.update(aug.get_value().get_config())
 
 
 class DataConveyorStepUi:
@@ -196,6 +236,8 @@ class DataConveyorStepUi:
         layout = QVBoxLayout()
         self.__window.get_current_layout().addLayout(layout)
         augs = AugmentationsUi(layout)
+        before_augs.add_augmenatations_changed_callback(
+            lambda: augs.set_previous_augmentations(before_augs.get_augmentations()))
         self.__window.cancel()
         self.__window.start_group_box('After augmentations')
         layout = QVBoxLayout()
@@ -217,6 +259,8 @@ class DataConveyorStepUi:
             self.__before_augs.init_by_config(cur_config['before_augmentations'])
         if 'augmentations' in cur_config:
             self.__augs.init_by_config(cur_config['augmentations'])
+            if 'before_augmentations' in cur_config:
+                self.__augs.set_previous_augmentations(self.__before_augs.get_augmentations())
         if 'after_augmentations' in cur_config:
             self.__after_augs.init_by_config(cur_config['after_augmentations'])
 
@@ -224,13 +268,14 @@ class DataConveyorStepUi:
         config['data_conveyor'][self.__step_name] = {}
         config['data_conveyor'][self.__step_name]['dataset_path'] = self.__dataset_path.get_value()
         config['data_conveyor'][self.__step_name]['augmentations_percentage'] = int(self.__aug_percentage.get_value())
+        config['data_conveyor'][self.__step_name]['images_percentage'] = int(self.__data_percentage.get_value())
 
         config['data_conveyor'][self.__step_name]['before_augmentations'] = {}
         config['data_conveyor'][self.__step_name]['augmentations'] = {}
         config['data_conveyor'][self.__step_name]['after_augmentations'] = {}
         self.__before_augs.flush_to_config(config['data_conveyor'][self.__step_name]['before_augmentations'])
-        self.__before_augs.flush_to_config(config['data_conveyor'][self.__step_name]['augmentations'])
-        self.__before_augs.flush_to_config(config['data_conveyor'][self.__step_name]['after_augmentations'])
+        self.__augs.flush_to_config(config['data_conveyor'][self.__step_name]['augmentations'])
+        self.__after_augs.flush_to_config(config['data_conveyor'][self.__step_name]['after_augmentations'])
 
 
 class DataConveyorUi:
@@ -355,6 +400,6 @@ if __name__ == "__main__":
     studio = NeuralStudio()
     resolution = app.screen_resolution()
     studio.resize(resolution[0] // 2, resolution[1] // 2)
-    studio.move(resolution[0] // 4, resolution[1] // 4)
+    studio.move(100, 100)
     studio.show()
     app.run()
