@@ -1,50 +1,37 @@
 from random import randint
 
 import cv2
-import os
 
 
-from data_conveyor.augmentations import augmentations_dict, ToPyTorch
+from data_conveyor.augmentations import augmentations_dict
 
 
 class Dataset:
-    def __init__(self, step_type: str, config: {}):
-        def get_pathes(directory):
-            res = []
-            for cur_class in classes:
-                res += [{'path': os.path.join(os.path.join(directory, str(cur_class)), file), 'target': int(cur_class) - 1}
-                        for file in
-                        os.listdir(os.path.join(directory, str(cur_class)))]
-            return res
-
-        dir = os.path.join(config['workdir_path'], config['data_conveyor'][step_type]['dataset_path'])
-        classes = [int(d) for d in os.listdir(dir)]
-        self.__pathes = get_pathes(dir)
-        percentage = config['data_conveyor'][step_type]['images_percentage'] if 'images_percentage' in config['data_conveyor'][step_type] else 100
+    def __init__(self, config: {}, pathes: []):
+        self.__pathes = pathes
+        percentage = config['images_percentage'] if 'images_percentage' in config else 100
         self.__cell_size = 100 / percentage
         self.__data_num = len(self.__pathes) * percentage // 100
         self.__percentage = percentage
 
-        self.load_augmentations(config, step_type)
+        self.load_augmentations(config)
 
-        self.__augmentations_percentage = config['data_conveyor'][step_type]['augmentations_percentage'] if 'augmentations_percentage' in config['data_conveyor'][step_type] else None
+        self.__augmentations_percentage = config['augmentations_percentage'] if 'augmentations_percentage' in config else None
 
-    def load_augmentations(self, config: {}, step_type: str):
+    def load_augmentations(self, config: []):
         """
-
-        :param config:
-        :param step_type:
+        Load augmentations by config
+        :param config: list of augmentations config
         :return:
         """
-        before_augmentations_config = config['data_conveyor'][step_type]['before_augmentations']
-        self.__before_augmentations = [augmentations_dict[aug](before_augmentations_config) for aug in before_augmentations_config.keys()]
-        if 'augmentations' in config['data_conveyor'][step_type]:
-            augmentations_config = config['data_conveyor'][step_type]['augmentations']
-            self.__augmentations = [augmentations_dict[aug](augmentations_config) for aug in augmentations_config.keys()]
+        before_augmentations_config = config['before_augmentations']
+        self.__before_augmentations = [augmentations_dict[next(iter(aug))](aug) for aug in before_augmentations_config]
+        if 'augmentations' in config:
+            self.__augmentations = [augmentations_dict[next(iter(aug))](aug) for aug in config['augmentations']]
         else:
             self.__augmentations = []
-        after_augmentations_config = config['data_conveyor'][step_type]['after_augmentations']
-        self.__after_augmentations = [augmentations_dict[aug](after_augmentations_config) for aug in after_augmentations_config.keys()]
+        after_augmentations_config = config['after_augmentations']
+        self.__after_augmentations = [augmentations_dict[next(iter(aug))](aug) for aug in after_augmentations_config]
 
     def __getitem__(self, item):
         def augmentate(image):

@@ -5,7 +5,8 @@ from PySide2.QtWidgets import QAction, QVBoxLayout, QHBoxLayout
 
 from data_conveyor.augmentations import augmentations_dict
 from data_processor.model import model_urls, start_modes
-from neuro_studio.PySide2Wrapper.PySide2Wrapper import MainWindow, ComboBox, OpenFile, LineEdit, Button, SaveFile
+from neuro_studio.PySide2Wrapper.PySide2Wrapper import MainWindow, ComboBox, OpenFile, LineEdit, Button, SaveFile, \
+    TabWidget, CheckBox, ListWidget
 
 from neuro_studio.PySide2Wrapper.PySide2Wrapper import Application
 from neuro_studio.augmentations import augmentations_ui
@@ -174,14 +175,11 @@ class AugmentationsUi:
             for a in self.__augs:
                 a.delete()
             self.__augs = []
-            # for a in self.__augs:
-            #     self.del_augmentation(a)
-            # self.add_augmentation(is_first=True)
 
         i = 0
-        for k, v in config.items():
+        for aug in config:
             self.add_augmentation(i == 0)
-            self.__augs[-1].set_value(augmentations_dict[k]({k: v}))
+            self.__augs[-1].set_value(augmentations_dict[next(iter(aug))](aug))
             i += 1
 
         self.augmentations_changed()
@@ -190,7 +188,7 @@ class AugmentationsUi:
         for aug in self.__augs:
             a = aug.get_value()
             if a is not None:  # TODO: sometimes None is happens, why?
-                config.update(aug.get_value().get_config())
+                config.append(aug.get_value().get_config())
 
 
 class DataConveyorStepUi:
@@ -198,13 +196,11 @@ class DataConveyorStepUi:
         self.__window = window
         self.__step_name = step_name.lower()
 
-        window.start_group_box(step_name)
         self.__dataset_path = window.add_widget(OpenFile("Dataset file").set_files_types('*.json'))
         self.__before_augs, self.__augs, self.__after_augs = self.__init_augs()
         window.start_horizontal()
         self.__aug_percentage = window.add_widget(LineEdit().add_label("Augmentations percentage", 'left'))
         self.__data_percentage = window.add_widget(LineEdit().add_label("Data percentage", 'left'))
-        window.cancel()
         window.cancel()
 
     def get_dataset_path(self):
@@ -236,8 +232,7 @@ class DataConveyorStepUi:
         layout = QVBoxLayout()
         self.__window.get_current_layout().addLayout(layout)
         augs = AugmentationsUi(layout)
-        before_augs.add_augmenatations_changed_callback(
-            lambda: augs.set_previous_augmentations(before_augs.get_augmentations()))
+        before_augs.add_augmenatations_changed_callback(lambda: augs.set_previous_augmentations(before_augs.get_augmentations()))
         self.__window.cancel()
         self.__window.start_group_box('After augmentations')
         layout = QVBoxLayout()
@@ -270,9 +265,9 @@ class DataConveyorStepUi:
         config['data_conveyor'][self.__step_name]['augmentations_percentage'] = int(self.__aug_percentage.get_value())
         config['data_conveyor'][self.__step_name]['images_percentage'] = int(self.__data_percentage.get_value())
 
-        config['data_conveyor'][self.__step_name]['before_augmentations'] = {}
-        config['data_conveyor'][self.__step_name]['augmentations'] = {}
-        config['data_conveyor'][self.__step_name]['after_augmentations'] = {}
+        config['data_conveyor'][self.__step_name]['before_augmentations'] = []
+        config['data_conveyor'][self.__step_name]['augmentations'] = []
+        config['data_conveyor'][self.__step_name]['after_augmentations'] = []
         self.__before_augs.flush_to_config(config['data_conveyor'][self.__step_name]['before_augmentations'])
         self.__augs.flush_to_config(config['data_conveyor'][self.__step_name]['augmentations'])
         self.__after_augs.flush_to_config(config['data_conveyor'][self.__step_name]['after_augmentations'])
@@ -294,7 +289,16 @@ class DataConveyorUi:
         self.__dc_threads_num = window.add_widget(LineEdit().add_label('Threads number', 'top'))
         self.__dc_epoch_num = window.add_widget(LineEdit().add_label('Epochs number', 'top'))
         window.cancel()
+
+        window.start_horizontal()
+        self.__use_folds = window.add_widget(CheckBox("Train by folds"))
+        self.__folds_number = window.add_widget(LineEdit().add_label("Folds number", 'left'))
         window.cancel()
+        self.__dataset_path = window.add_widget(OpenFile("Dataset path"))
+        window.cancel()
+
+        self.__folds_number.add_enabled_dependency(self.__use_folds)
+        self.__dataset_path.add_enabled_dependency(self.__use_folds)
 
     def init_by_config(self, config: {}):
         cur_config = config['data_conveyor']
@@ -304,6 +308,10 @@ class DataConveyorUi:
         self.__dc_batch_size.set_value(str(cur_config['batch_size']))
         self.__dc_threads_num.set_value(str(cur_config['threads_num']))
         self.__dc_epoch_num.set_value(str(cur_config['epoch_num']))
+        self.__use_folds.set_value(bool(cur_config['train_by_folds']))
+        if self.__use_folds.get_value():
+            self.__folds_number.set_value(str(cur_config['folds_number']))
+            self.__dataset_path.set_value(str(cur_config['dataset_path']))
 
     def flush_to_config(self, config: {}):
         config['data_conveyor']['data_size'] = [int(self.__dc_data_size_x.get_value()),
@@ -312,6 +320,11 @@ class DataConveyorUi:
         config['data_conveyor']['batch_size'] = int(self.__dc_batch_size.get_value())
         config['data_conveyor']['threads_num'] = int(self.__dc_threads_num.get_value())
         config['data_conveyor']['epoch_num'] = int(self.__dc_epoch_num.get_value())
+
+        config['data_conveyor']['train_by_folds'] = bool(self.__use_folds.get_value())
+        if self.__use_folds.get_value():
+            config['data_conveyor']['folds_number'] = int(self.__folds_number.get_value())
+            config['data_conveyor']['dataset_path'] = str(self.__dataset_path.get_value())
 
 
 class NeuralStudio(MainWindow):
@@ -331,20 +344,29 @@ class NeuralStudio(MainWindow):
 
         self.start_horizontal()
 
-        self.start_vertical()
+        self.__chunks = self.add_widget(ListWidget())
+        self.__chunks.add_items(["config"])
+
         self.__data_processor = DataProcessorUi(self)
         self.__data_processor.init_by_config(config)
-        self.__data_conveyor = DataConveyorUi(self)
-        self.__data_conveyor.init_by_config(config)
-        self.cancel()
 
         self.start_vertical()
+        self.__data_conveyor = DataConveyorUi(self)
+        self.__data_conveyor.init_by_config(config)
+
+        self.insert_tab_space()
+        self.add_tab("Train")
         self.__dc_train_step = DataConveyorStepUi('Train', self)
         self.__dc_train_step.init_by_config(config)
+        self.cancel()
+        self.add_tab("Validation")
         self.__dc_validation_step = DataConveyorStepUi('Validation', self)
         self.__dc_validation_step.init_by_config(config)
+        self.cancel()
+        self.add_tab("Test")
         self.__dc_test_step = DataConveyorStepUi('Test', self)
         self.__dc_test_step.init_by_config(config)
+        self.cancel()
         self.cancel()
 
         self.cancel()
@@ -390,7 +412,7 @@ class NeuralStudio(MainWindow):
         self.__dc_test_step.flush_to_config(config)
 
         with open(self.__project_path, 'w') as outfile:
-            json.dump(config, outfile, indent='\t')
+            json.dump(config, outfile, indent=2)
 
         self.set_title_prefix(self.__project_name)
 
@@ -399,7 +421,7 @@ if __name__ == "__main__":
     app = Application()
     studio = NeuralStudio()
     resolution = app.screen_resolution()
-    studio.resize(resolution[0] // 2, resolution[1] // 2)
+    studio.resize(0, 0)
     studio.move(100, 100)
     studio.show()
     app.run()

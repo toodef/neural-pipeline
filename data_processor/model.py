@@ -20,37 +20,43 @@ start_modes = ['begin', 'url', 'continue']
 
 
 class Model(InitedByConfig):
+    class ModelException(Exception):
+        def __init__(self, message):
+            super(Model.ModelException, self).__init__(message)
+            self.__message = message
+
+        def __str__(self):
+            return self.__message
+
     def __init__(self, config: {}):
         super().__init__()
         self.__model = None
         self.__config = config
+        self.__model = getattr(models, self.__config['architecture'])()
+
         self.__init_from_config()
 
     def model(self):
         return self.__model
 
     def __init_from_config(self):
-        self.__model = getattr(models, self.__config['network']['architecture'])()
-
         start_mode = self.__config_start_mode()
         if start_mode == start_modes[0]:
             return
 
-        if start_mode == start_modes[1]:
-            self.__weights_dir = os.path.join(self.__config['workdir_path'], self.__config['network']['weights_dir'])
-            self.__weights_file = os.path.join(self.__weights_dir, "weights.pth")
-            model_url = model_urls[self.__config['network']['architecture']]
-            init_weights_file = os.path.join(self.__weights_dir, model_url.split("/")[-1])
+        self.__weights_dir = os.path.join(self.__config['workdir_path'], 'weights')
+        self.__weights_file = os.path.join(self.__weights_dir, "weights.pth")
 
-            if not os.path.isfile(init_weights_file):
-                if not os.path.exists(self.__weights_dir) or not os.path.isdir(self.__weights_dir):
-                    os.makedirs(self.__weights_dir)
-                response = requests.get(model_url)
-                with open(init_weights_file, 'wb') as file:
-                    file.write(response.content)
-            self.load_weights(init_weights_file, True)
-        else:
-            self.load_weights(start_mode)
+    def __load_weights_by_url(self):
+        model_url = model_urls[self.__config['architecture']]
+        init_weights_file = os.path.join(self.__weights_dir, model_url.split("/")[-1])
+
+        if not os.path.isfile(init_weights_file):
+            if not os.path.exists(self.__weights_dir) or not os.path.isdir(self.__weights_dir):
+                os.makedirs(self.__weights_dir)
+            response = requests.get(model_url)
+            with open(init_weights_file, 'wb') as file:
+                file.write(response.content)
 
     def load_weights(self, weights_file: str, url=False):
         pretrained_weights = torch.load(weights_file)
@@ -67,6 +73,7 @@ class Model(InitedByConfig):
             pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
             self.__model.load_state_dict(pretrained_weights)
         else:
+            self.__load_weights_by_url()
             self.__model.load_state_dict(pretrained_weights)
             self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, 128)
             self.__model = torch.nn.DataParallel(self.__model)
@@ -78,7 +85,7 @@ class Model(InitedByConfig):
         return self.__config['network']['start_from']
 
     def _required_params(self):
-        return {"network": {
+        return {"data_processor": {
             "architecture": ["resnet34"],
             "weights_dir": ["weights"],
             "start_from": ["begin", "url"]

@@ -1,39 +1,32 @@
-import json
 import os
 from zipfile import ZipFile
 
-import torch
-
-from data_processor import DataProcessor
-
 
 class StateManager:
-    def __init__(self, data_processor: DataProcessor, config: {}, preffix: str = None):
-        self.__data_processor = data_processor
-        self.__dir = os.path.join(config['workdir_path'], config['network']['weights_dir'])
+    def __init__(self, directory: str, preffix: str = None):
+        self.__dir = directory
         self.__preffix = preffix
 
-    def load(self, config: {}):
-        def rm_file(file: str):
-            if os.path.exists(file) and os.path.isfile(file):
-                os.remove(file)
+        self.__files = {}
 
-        weights_file = os.path.join(self.__dir, "weights.pth")
-        state_file = os.path.join(self.__dir, "state.pth")
-        result_file = os.path.join(self.__dir, self.__preffix + "_" if self.__preffix is not None else "" + "state.zip")
+    def unpack(self) -> None:
+        self.__files['weights_file'] = os.path.join(self.__dir, "weights.pth")
+        self.__files['state_file'] = os.path.join(self.__dir, "state.pth")
+        result_file = self.__construct_result_file()
 
         with ZipFile(result_file, 'r') as zipfile:
             zipfile.extractall(self.__dir)
 
-        config['network']['start_from'] = weights_file
-        self.__data_processor = DataProcessor(config)
-        self.__data_processor.load_state(state_file)
-        # self.__data_processor.load_weights(state_file)
-        rm_file(weights_file)
-        rm_file(state_file)
-        return self.__data_processor
+    def clear_files(self):
+        def rm_file(file: str):
+            if os.path.exists(file) and os.path.isfile(file):
+                os.remove(file)
 
-    def save(self):
+        rm_file(self.__files['weights_file'])
+        rm_file(self.__files['state_file'])
+        self.__files = {}
+
+    def pack(self):
         def rm_file(file: str):
             if os.path.exists(file) and os.path.isfile(file):
                 os.remove(file)
@@ -46,13 +39,10 @@ class StateManager:
 
         weights_file = os.path.join(self.__dir, "weights.pth")
         state_file = os.path.join(self.__dir, "state.pth")
-        result_file = os.path.join(self.__dir, self.__preffix + "_" if self.__preffix is not None else "" + "state.zip")
+        result_file = self.__construct_result_file()
 
         rm_file(weights_file)
         rm_file(state_file)
-
-        self.__data_processor.save_state(state_file)
-        self.__data_processor.save_weights(weights_file)
 
         rename_file(result_file)
         with ZipFile(result_file, 'w') as zipfile:
@@ -61,3 +51,9 @@ class StateManager:
 
         rm_file(weights_file)
         rm_file(state_file)
+
+    def get_files(self):
+        return self.__files
+
+    def __construct_result_file(self):
+        return os.path.join(self.__dir, self.__preffix + "_" if self.__preffix is not None else "" + "state.zip")
