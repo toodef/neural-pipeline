@@ -1,3 +1,6 @@
+import json
+from random import randint
+
 import cv2
 
 from data_conveyor.augmentations import augmentations_dict, Augmentation
@@ -6,10 +9,14 @@ from neuro_studio.PySide2Wrapper.PySide2Wrapper import ImageLayout, CheckBox, Li
 
 
 class AbstractAugmentationUi(ModalWindow, metaclass=ABCMeta):
-    def __init__(self, aug_name, previous_augmentations: [] = None):
+    def __init__(self, aug_name, dataset_path: str, previous_augmentations: [] = None):
         super().__init__(aug_name)
 
-        path = r"C:\workspace\projects\nn\furniture_segmentation\workdir\train\17\180869.jpg"
+        with open(dataset_path, 'r') as dataset:
+            dataset_conf = json.load(dataset)
+
+        self.__pathes = [p['path'] for p in dataset_conf]
+        path = self.__pathes[randint(0, len(self.__pathes) - 1)]
 
         self._image = cv2.imread(path)
         if previous_augmentations is not None:
