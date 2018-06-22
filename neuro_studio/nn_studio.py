@@ -1,12 +1,12 @@
 import json
 import os
 
-from PySide2.QtWidgets import QAction, QVBoxLayout, QHBoxLayout
+from PySide2.QtGui import QKeySequence
+from PySide2.QtWidgets import QAction
 
 from data_conveyor.augmentations import augmentations_dict
 from data_processor.model import model_urls, start_modes
-from neuro_studio.PySide2Wrapper.PySide2Wrapper import MainWindow, ComboBox, OpenFile, LineEdit, Button, SaveFile, \
-    TabWidget, CheckBox, ListWidget
+from neuro_studio.PySide2Wrapper.PySide2Wrapper import MainWindow, ComboBox, OpenFile, LineEdit, Button, SaveFile, CheckBox, ListWidget, Widget, DynamicView, DockWidget
 
 from neuro_studio.PySide2Wrapper.PySide2Wrapper import Application
 from neuro_studio.augmentations import augmentations_ui
@@ -23,24 +23,24 @@ class ParamException(Exception):
 
 
 class DataProcessorUi:
-    def __init__(self, window: MainWindow):
+    def __init__(self, parent: Widget):
         self.__optimizers = ['Adam', 'SGD']
 
-        window.start_group_box("Data Processor")
-        self.__architecture = window.add_widget(
+        parent.start_group_box("Data Processor")
+        self.__architecture = parent.add_widget(
             ComboBox().add_label('Architecture', 'top').add_items(model_urls.keys()))
-        self.__optimizer = window.add_widget(ComboBox().add_label('Optimizer', 'top').add_items(self.__optimizers))
+        self.__optimizer = parent.add_widget(ComboBox().add_label('Optimizer', 'top').add_items(self.__optimizers))
 
-        window.start_group_box('Learning rate')
-        self.__lr_start_value = window.add_widget(LineEdit().add_label('Start value: ', 'left'))
-        self.__lr_skip_steps_num = window.add_widget(LineEdit().add_label('Skip steps number: ', 'left'))
-        self.__lr_decrease_coefficient = window.add_widget(LineEdit().add_label('Decrease coefficient: ', 'left'))
-        self.__lr_first_epoch_decrease_coeff = window.add_widget(
+        parent.start_group_box('Learning rate')
+        self.__lr_start_value = parent.add_widget(LineEdit().add_label('Start value: ', 'left'))
+        self.__lr_skip_steps_num = parent.add_widget(LineEdit().add_label('Skip steps number: ', 'left'))
+        self.__lr_decrease_coefficient = parent.add_widget(LineEdit().add_label('Decrease coefficient: ', 'left'))
+        self.__lr_first_epoch_decrease_coeff = parent.add_widget(
             LineEdit().add_label('First epoch decrease coeff: ', 'left'))
-        window.cancel()
+        parent.cancel()
 
-        self.__start_from = window.add_widget(ComboBox().add_label('Start from', 'top').add_items(start_modes))
-        window.cancel()
+        self.__start_from = parent.add_widget(ComboBox().add_label('Start from', 'top').add_items(start_modes))
+        parent.cancel()
 
         self.__models = [k for k in model_urls.keys()]
 
@@ -84,35 +84,34 @@ class DataProcessorUi:
             raise ParamException('Please set learning rate first epoch decrease coefficient')
 
 
-class AugmentationsUi:
-    class AugmentationUi:
+class AugmentationsUi(Widget):
+    class AugmentationUi(Widget):
         def __init__(self, parent, aug_names: [], is_first=False):
-            self.__combo = ComboBox().add_items(aug_names)
+            super().__init__()
+            self.start_horizontal()
+            self.__combo = self.add_widget(ComboBox().add_items(aug_names).set_value_changed_callback(self.__value_chanved), need_stretch=False)
             self.__aug_names = aug_names
             self.__augmentation_instance = None
 
-            self.__add_btn = Button('+', is_tool_button=True)
-            self.__settings_btn = Button('s', is_tool_button=True).set_on_click_callback(self.__configure) \
-                .set_on_click_callback(lambda: parent.augmentations_changed())
-            self.__layout = QHBoxLayout()
+            self.__add_btn = self.add_widget(Button('+', is_tool_button=True), need_stretch=False)
+            self.__settings_btn = self.add_widget(Button('s', is_tool_button=True).set_on_click_callback(self.__configure).set_on_click_callback(lambda: parent.augmentations_changed()), need_stretch=False)
 
             self.__del_btn = None
             if not is_first:
-                self.__del_btn = Button('-', is_tool_button=True)
-                self.__layout.addLayout(self.__del_btn.get_layout())
+                self.__del_btn = self.add_widget(Button('-', is_tool_button=True), need_stretch=False)
                 self.__del_btn.set_on_click_callback(self.delete)
                 self.__del_btn.set_on_click_callback(lambda: parent.del_augmentation(self))
 
-            self.__layout.addLayout(self.__combo.get_layout())
-            self.__layout.addLayout(self.__add_btn.get_layout())
-            self.__layout.addLayout(self.__settings_btn.get_layout())
-            parent.get_layout().addLayout(self.__layout)
+            self.cancel()
             self.__add_btn.set_on_click_callback(parent.add_augmentation)
 
             self.__previous_augmentations = []
 
+        def __value_chanved(self, val):
+            self.__augmentation_instance = val
+
         def delete(self):
-            self.__layout.deleteLater()
+            self._layout.deleteLater()
             if self.__del_btn is not None:
                 self.__del_btn.get_instance().deleteLater()
             self.__settings_btn.get_instance().deleteLater()
@@ -135,8 +134,8 @@ class AugmentationsUi:
                 ui.init_by_config(self.__augmentation_instance.get_config())
             self.__augmentation_instance = ui.show()
 
-    def __init__(self, layout):
-        self.__layout = layout
+    def __init__(self):
+        super().__init__()
         self.__augs = []
         self.__augs_names = ['- None -'] + [k for k in augmentations_dict.keys()]
 
@@ -150,18 +149,17 @@ class AugmentationsUi:
     def add_augmenatations_changed_callback(self, callback: callable):
         self.__augmentations_changed_callbacks.append(callback)
 
-    def get_layout(self):
-        return self.__layout
-
     def augmentations_changed(self):
         for call in self.__augmentations_changed_callbacks:
             call()
 
     def add_augmentation(self, is_first=False):
-        if not is_first and self.__augs[-1].get_value() is None:
+        if (len(self.__augs) > 1 and self.__augs[-1].get_value() is None) or (len(self.__augs) == 1 and self.__augs[0].get_value() is None):
             return
 
-        self.__augs.append(self.AugmentationUi(self, self.__augs_names, is_first))
+        new_aug = self.AugmentationUi(self, self.__augs_names, is_first)
+        self.__augs.append(new_aug)
+        self.add_widget(new_aug)
         self.augmentations_changed()
 
     def del_augmentation(self, augmentation):
@@ -191,17 +189,17 @@ class AugmentationsUi:
                 config.append(aug.get_value().get_config())
 
 
-class DataConveyorStepUi:
-    def __init__(self, step_name: str, window: MainWindow):
-        self.__window = window
+class DataConveyorStepUi(Widget):
+    def __init__(self, step_name: str):
+        super().__init__()
         self.__step_name = step_name.lower()
 
-        self.__dataset_path = window.add_widget(OpenFile("Dataset file").set_files_types('*.json'))
+        self.__dataset_path = self.add_widget(OpenFile("Dataset file").set_files_types('*.json'))
         self.__before_augs, self.__augs, self.__after_augs = self.__init_augs()
-        window.start_horizontal()
-        self.__aug_percentage = window.add_widget(LineEdit().add_label("Augmentations percentage", 'left'))
-        self.__data_percentage = window.add_widget(LineEdit().add_label("Data percentage", 'left'))
-        window.cancel()
+        self.start_horizontal()
+        self.__aug_percentage = self.add_widget(LineEdit().add_label("Augmentations percentage", 'left'))
+        self.__data_percentage = self.add_widget(LineEdit().add_label("Data percentage", 'left'))
+        self.cancel()
 
     def get_dataset_path(self):
         return self.__dataset_path.get_value()
@@ -222,24 +220,22 @@ class DataConveyorStepUi:
         return self.__after_augs
 
     def __init_augs(self):
-        self.__window.start_horizontal()
-        self.__window.start_group_box('Before augmentations')
-        layout = QVBoxLayout()
-        self.__window.get_current_layout().addLayout(layout)
-        before_augs = AugmentationsUi(layout)
-        self.__window.cancel()
-        self.__window.start_group_box('Augmentations')
-        layout = QVBoxLayout()
-        self.__window.get_current_layout().addLayout(layout)
-        augs = AugmentationsUi(layout)
+        self.start_horizontal()
+
+        self.start_group_box('Before augmentations')
+        before_augs = self.add_widget(AugmentationsUi())
+        self.cancel()
+
+        self.start_group_box('Augmentations')
+        augs = self.add_widget(AugmentationsUi())
         before_augs.add_augmenatations_changed_callback(lambda: augs.set_previous_augmentations(before_augs.get_augmentations()))
-        self.__window.cancel()
-        self.__window.start_group_box('After augmentations')
-        layout = QVBoxLayout()
-        self.__window.get_current_layout().addLayout(layout)
-        after_augs = AugmentationsUi(layout)
-        self.__window.cancel()
-        self.__window.cancel()
+        self.cancel()
+
+        self.start_group_box('After augmentations')
+        after_augs = self.add_widget(AugmentationsUi())
+        self.cancel()
+
+        self.cancel()
 
         return before_augs, augs, after_augs
 
@@ -274,28 +270,28 @@ class DataConveyorStepUi:
 
 
 class DataConveyorUi:
-    def __init__(self, window: MainWindow):
-        window.start_group_box('Data Conveyor')
-        window.start_horizontal()
-        window.insert_text_label('Data size:')
-        self.__dc_data_size_x = window.add_widget(LineEdit())
-        window.insert_text_label('X')
-        self.__dc_data_size_y = window.add_widget(LineEdit())
-        window.insert_text_label('X')
-        self.__dc_data_size_c = window.add_widget(LineEdit())
-        window.cancel()
-        window.start_horizontal()
-        self.__dc_batch_size = window.add_widget(LineEdit().add_label('Batch size', 'top'))
-        self.__dc_threads_num = window.add_widget(LineEdit().add_label('Threads number', 'top'))
-        self.__dc_epoch_num = window.add_widget(LineEdit().add_label('Epochs number', 'top'))
-        window.cancel()
+    def __init__(self, parent: Widget):
+        parent.start_group_box('Data Conveyor')
+        parent.start_horizontal()
+        parent.insert_text_label('Data size:')
+        self.__dc_data_size_x = parent.add_widget(LineEdit())
+        parent.insert_text_label('X')
+        self.__dc_data_size_y = parent.add_widget(LineEdit())
+        parent.insert_text_label('X')
+        self.__dc_data_size_c = parent.add_widget(LineEdit())
+        parent.cancel()
+        parent.start_horizontal()
+        self.__dc_batch_size = parent.add_widget(LineEdit().add_label('Batch size', 'top'))
+        self.__dc_threads_num = parent.add_widget(LineEdit().add_label('Threads number', 'top'))
+        self.__dc_epoch_num = parent.add_widget(LineEdit().add_label('Epochs number', 'top'))
+        parent.cancel()
 
-        window.start_horizontal()
-        self.__use_folds = window.add_widget(CheckBox("Train by folds"))
-        self.__folds_number = window.add_widget(LineEdit().add_label("Folds number", 'left'))
-        window.cancel()
-        self.__dataset_path = window.add_widget(OpenFile("Dataset path"))
-        window.cancel()
+        parent.start_horizontal()
+        self.__use_folds = parent.add_widget(CheckBox("Train by folds"))
+        self.__folds_number = parent.add_widget(LineEdit().add_label("Folds number", 'left'))
+        parent.cancel()
+        self.__dataset_path = parent.add_widget(OpenFile("Dataset path"))
+        parent.cancel()
 
         self.__folds_number.add_enabled_dependency(self.__use_folds)
         self.__dataset_path.add_enabled_dependency(self.__use_folds)
@@ -328,48 +324,113 @@ class DataConveyorUi:
 
 
 class NeuralStudio(MainWindow):
+    class Config(Widget):
+        def __init__(self, config):
+            super().__init__()
+            self.start_horizontal()
+            self.__data_processor = DataProcessorUi(self)
+            self.__data_processor.init_by_config(config)
+
+            self.start_vertical()
+            self.__data_conveyor = DataConveyorUi(self)
+            self.__data_conveyor.init_by_config(config)
+
+            self.insert_tab_space()
+            self.add_tab("Train")
+            self.__dc_train_step = self.add_widget(DataConveyorStepUi('Train'))
+            self.__dc_train_step.init_by_config(config)
+            self.cancel()
+            self.add_tab("Validation")
+            self.__dc_validation_step = self.add_widget(DataConveyorStepUi('Validation'))
+            self.__dc_validation_step.init_by_config(config)
+            self.cancel()
+            self.add_tab("Test")
+            self.__dc_test_step = self.add_widget(DataConveyorStepUi('Test'))
+            self.__dc_test_step.init_by_config(config)
+            self.cancel()
+            self.cancel()
+            self.cancel()
+
+        def init_by_config(self, config: {}):
+            self.__data_conveyor.init_by_config(config)
+            self.__data_processor.init_by_config(config)
+            self.__dc_train_step.init_by_config(config)
+            self.__dc_validation_step.init_by_config(config)
+            self.__dc_test_step.init_by_config(config)
+
+        def flush_to_config(self, config: {}):
+            self.__data_conveyor.flush_to_config(config)
+            self.__data_processor.flush_to_config(config)
+            self.__dc_train_step.flush_to_config(config)
+            self.__dc_validation_step.flush_to_config(config)
+            self.__dc_test_step.flush_to_config(config)
+
+    class ConfigsList(DockWidget):
+        def __init__(self, parent):
+            super().__init__("Configs", parent.get_instance())
+
+            self.start_horizontal()
+            add_btn = self.add_widget(Button("+", is_tool_button=True), need_stretch=False)
+            del_btn = self.add_widget(Button("-", is_tool_button=True), need_stretch=False)
+            self.cancel()
+            self.__list_view = self.add_widget(ListWidget(), need_stretch=False)
+            add_btn.set_on_click_callback(lambda: parent.add_config())
+            del_btn.set_on_click_callback(lambda: parent.del_config(self.__list_view.get_current_idx()))
+            self.__list_view.set_item_renamed_callback(lambda idx, new_name: parent.rename_config(idx, new_name))
+
+            self.resize(300, 0)
+
+        def get_instance(self):
+            return self.__list_view
+
     def __init__(self):
         super().__init__("Neural Studio")
 
         self.__menu_bar = self.get_instance().menuBar()
         self.__file_menu = self.__menu_bar.addMenu('File')
         self.__open_project_act = QAction("Open project", self.__file_menu)
+        self.__open_project_act.setShortcut(QKeySequence("Ctrl+O"))
         self.__open_project_act.triggered.connect(self.__open_project)
         self.__save_project_act = QAction("Save project", self.__file_menu)
+        self.__save_project_act.setShortcut(QKeySequence("Ctrl+S"))
         self.__save_project_act.triggered.connect(self.__save_project)
         self.__file_menu.addAction(self.__open_project_act)
         self.__file_menu.addAction(self.__save_project_act)
 
         config = default_config
 
+        self.__configs = [{"name": "config", "instance": self.Config(config)}]
+
         self.start_horizontal()
-
-        self.__chunks = self.add_widget(ListWidget())
-        self.__chunks.add_items(["config"])
-
-        self.__data_processor = DataProcessorUi(self)
-        self.__data_processor.init_by_config(config)
-
-        self.start_vertical()
-        self.__data_conveyor = DataConveyorUi(self)
-        self.__data_conveyor.init_by_config(config)
-
-        self.insert_tab_space()
-        self.add_tab("Train")
-        self.__dc_train_step = DataConveyorStepUi('Train', self)
-        self.__dc_train_step.init_by_config(config)
-        self.cancel()
-        self.add_tab("Validation")
-        self.__dc_validation_step = DataConveyorStepUi('Validation', self)
-        self.__dc_validation_step.init_by_config(config)
-        self.cancel()
-        self.add_tab("Test")
-        self.__dc_test_step = DataConveyorStepUi('Test', self)
-        self.__dc_test_step.init_by_config(config)
-        self.cancel()
+        self.__chunks_items = self.add_widget(self.ConfigsList(self))
+        self.__cur_view = self.add_widget(DynamicView())
         self.cancel()
 
-        self.cancel()
+        for c in self.__configs:
+            self.__cur_view.add_item(c['instance'])
+
+        self.__chunks_items.get_instance().add_items([c['name'] for c in self.__configs])
+        self.__chunks_items.get_instance().set_value_changed_callback(self.__cur_config_changed)
+
+    def del_config(self, idx):
+        if idx is None:
+            return
+        self.__chunks_items.get_instance().remove_item(idx)
+        self.__cur_view.remove_item(idx)
+        del self.__configs[idx]
+
+    def add_config(self, name='config', config=default_config):
+        self.__configs.append({"name": name, "instance": self.Config(config)})
+        self.__chunks_items.get_instance().add_item(self.__configs[-1]['name'])
+        self.__cur_view.add_item(self.__configs[-1]['instance'])
+
+    def rename_config(self, idx, new_name):
+        if idx is not None:
+            self.__configs[idx]['name'] = new_name
+
+    def __cur_config_changed(self, idx):
+        if idx is not None:
+            self.__cur_view.set_index(idx)
 
     def __change_project_path(self, title: str, is_open=True):
         if is_open:
@@ -377,7 +438,7 @@ class NeuralStudio(MainWindow):
         else:
             res = SaveFile(title).set_files_types('*.ns').call()
 
-        if len(res) < 1:
+        if res is None or len(res) < 1:
             return False
 
         self.__project_path = os.path.abspath(res)
@@ -392,11 +453,14 @@ class NeuralStudio(MainWindow):
         with open(self.__project_path, 'r') as file:
             config = json.load(file)
 
-        self.__data_conveyor.init_by_config(config)
-        self.__data_processor.init_by_config(config)
-        self.__dc_train_step.init_by_config(config)
-        self.__dc_validation_step.init_by_config(config)
-        self.__dc_test_step.init_by_config(config)
+        self.__cur_view.clear()
+        self.__configs = []
+        self.__chunks_items.get_instance().clear()
+
+        for i, c in enumerate(config):
+            with open(os.path.join(os.path.dirname(self.__project_path), "workdir", str(i), 'config.json'), 'r') as file:
+                config = json.load(file)
+            self.add_config(name=c['name'], config=config)
 
         self.set_title_prefix(self.__project_name)
 
@@ -404,15 +468,19 @@ class NeuralStudio(MainWindow):
         if not self.__change_project_path('Save project', is_open=False):
             return
 
-        config = {'data_processor': {}, 'data_conveyor': {}}
-        self.__data_conveyor.flush_to_config(config)
-        self.__data_processor.flush_to_config(config)
-        self.__dc_train_step.flush_to_config(config)
-        self.__dc_validation_step.flush_to_config(config)
-        self.__dc_test_step.flush_to_config(config)
-
+        config = [{"name": c['name'], "id": i} for i, c in enumerate(self.__configs)]
         with open(self.__project_path, 'w') as outfile:
             json.dump(config, outfile, indent=2)
+
+        for idx, c in enumerate(self.__configs):
+            config = {'data_processor': {}, 'data_conveyor': {}}
+            c['instance'].flush_to_config(config)
+
+            cur_path = os.path.join(os.path.dirname(self.__project_path), 'workdir', str(idx))
+            if not os.path.exists(cur_path) or not os.path.isdir(cur_path):
+                os.makedirs(cur_path)
+            with open(os.path.join(cur_path, 'config.json'), 'w') as outfile:
+                json.dump(config, outfile, indent=2)
 
         self.set_title_prefix(self.__project_name)
 
