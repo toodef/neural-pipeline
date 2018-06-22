@@ -6,7 +6,8 @@ from PySide2.QtWidgets import QAction
 
 from data_conveyor.augmentations import augmentations_dict
 from data_processor.model import model_urls, start_modes
-from neuro_studio.PySide2Wrapper.PySide2Wrapper import MainWindow, ComboBox, OpenFile, LineEdit, Button, SaveFile, CheckBox, ListWidget, Widget, DynamicView, DockWidget
+from neuro_studio.PySide2Wrapper.PySide2Wrapper import MainWindow, ComboBox, OpenFile, LineEdit, Button, SaveFile, CheckBox, \
+    ListWidget, Widget, DynamicView, DockWidget, MessageWindow
 
 from neuro_studio.PySide2Wrapper.PySide2Wrapper import Application
 from neuro_studio.augmentations import augmentations_ui
@@ -85,11 +86,18 @@ class DataProcessorUi:
 
 
 class AugmentationsUi(Widget):
+    class AugmentationNotConfiguredException(Exception):
+        def __init__(self, aug_name: str):
+            self.__aug_name = aug_name
+
+        def get_name(self):
+            return self.__aug_name
+
     class AugmentationUi(Widget):
         def __init__(self, parent, aug_names: [], is_first=False):
             super().__init__()
             self.start_horizontal()
-            self.__combo = self.add_widget(ComboBox().add_items(aug_names).set_value_changed_callback(self.__value_chanved), need_stretch=False)
+            self.__combo = self.add_widget(ComboBox().add_items(aug_names), need_stretch=False)
             self.__aug_names = aug_names
             self.__augmentation_instance = None
 
@@ -107,9 +115,6 @@ class AugmentationsUi(Widget):
 
             self.__previous_augmentations = []
 
-        def __value_chanved(self, val):
-            self.__augmentation_instance = val
-
         def delete(self):
             self._layout.deleteLater()
             if self.__del_btn is not None:
@@ -124,6 +129,9 @@ class AugmentationsUi(Widget):
         def get_value(self):
             return self.__augmentation_instance
 
+        def get_name(self):
+            return self.__aug_names[self.__combo.get_value()]
+
         def set_value(self, val):
             self.__augmentation_instance = val
             self.__combo.set_value(self.__aug_names.index(val.get_name()))
@@ -135,9 +143,10 @@ class AugmentationsUi(Widget):
             self.__augmentation_instance = ui.show()
 
     def __init__(self):
+        self.__default_name = '- None -'
         super().__init__()
         self.__augs = []
-        self.__augs_names = ['- None -'] + [k for k in augmentations_dict.keys()]
+        self.__augs_names = [self.__default_name] + [k for k in augmentations_dict.keys()]
 
         self.__augmentations_changed_callbacks = []
         self.add_augmentation(is_first=True)
@@ -174,19 +183,20 @@ class AugmentationsUi(Widget):
                 a.delete()
             self.__augs = []
 
-        i = 0
-        for aug in config:
+        for i, aug in enumerate(config):
             self.add_augmentation(i == 0)
             self.__augs[-1].set_value(augmentations_dict[next(iter(aug))](aug))
-            i += 1
 
         self.augmentations_changed()
 
     def flush_to_config(self, config: {}):
         for aug in self.__augs:
+            if aug.get_name() == self.__default_name:
+                continue
             a = aug.get_value()
-            if a is not None:  # TODO: sometimes None is happens, why?
-                config.append(aug.get_value().get_config())
+            if a is None:
+                raise AugmentationsUi.AugmentationNotConfiguredException(a.get_name())
+            config.append(aug.get_value().get_config())
 
 
 class DataConveyorStepUi(Widget):
@@ -264,9 +274,16 @@ class DataConveyorStepUi(Widget):
         config['data_conveyor'][self.__step_name]['before_augmentations'] = []
         config['data_conveyor'][self.__step_name]['augmentations'] = []
         config['data_conveyor'][self.__step_name]['after_augmentations'] = []
-        self.__before_augs.flush_to_config(config['data_conveyor'][self.__step_name]['before_augmentations'])
-        self.__augs.flush_to_config(config['data_conveyor'][self.__step_name]['augmentations'])
-        self.__after_augs.flush_to_config(config['data_conveyor'][self.__step_name]['after_augmentations'])
+
+        try:
+            class_name = "Before augmentations"
+            self.__before_augs.flush_to_config(config['data_conveyor'][self.__step_name]['before_augmentations'])
+            class_name = "Augmentations"
+            self.__augs.flush_to_config(config['data_conveyor'][self.__step_name]['augmentations'])
+            class_name = "After augmentations"
+            self.__after_augs.flush_to_config(config['data_conveyor'][self.__step_name]['after_augmentations'])
+        except AugmentationsUi.AugmentationNotConfiguredException as err:
+            MessageWindow("Neural Studio", "Augmentation\n{}\nin\n{}.{}\nnot configured".format(err.get_name(), self.__step_name, class_name), self)
 
 
 class DataConveyorUi:
