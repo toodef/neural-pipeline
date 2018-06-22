@@ -207,7 +207,7 @@ class AugmentationsUi(Widget):
                 continue
             a = aug.get_value()
             if a is None:
-                raise AugmentationsUi.AugmentationNotConfiguredException(a.get_name())
+                raise AugmentationsUi.AugmentationNotConfiguredException(aug.get_name())
             config.append(aug.get_value().get_config())
 
 
@@ -292,6 +292,7 @@ class DataConveyorStepUi(Widget):
         config['data_conveyor'][self.__step_name]['augmentations'] = []
         config['data_conveyor'][self.__step_name]['after_augmentations'] = []
 
+        class_name = None
         try:
             class_name = "Before augmentations"
             self.__before_augs.flush_to_config(config['data_conveyor'][self.__step_name]['before_augmentations'])
@@ -300,7 +301,9 @@ class DataConveyorStepUi(Widget):
             class_name = "After augmentations"
             self.__after_augs.flush_to_config(config['data_conveyor'][self.__step_name]['after_augmentations'])
         except AugmentationsUi.AugmentationNotConfiguredException as err:
-            MessageWindow("Neural Studio", "Augmentation\n{}\nin\n{}.{}\nnot configured".format(err.get_name(), self.__step_name, class_name), self)
+            msg = "Augmentation\n{}\nin\n{}.{}\nnot configured".format(err.get_name(), self.__step_name, class_name)
+            MessageWindow("Neural Studio", msg).show()
+            raise Exception(msg)
 
 
 class DataConveyorUi:
