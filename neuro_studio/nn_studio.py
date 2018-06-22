@@ -96,6 +96,8 @@ class AugmentationsUi(Widget):
     class AugmentationUi(Widget):
         def __init__(self, parent, aug_names: [], is_first=False):
             super().__init__()
+            self.__dataset_path = None
+
             self.start_horizontal()
             self.__combo = self.add_widget(ComboBox().add_items(aug_names), need_stretch=False)
             self.__aug_names = aug_names
@@ -114,6 +116,9 @@ class AugmentationsUi(Widget):
             self.__add_btn.set_on_click_callback(parent.add_augmentation)
 
             self.__previous_augmentations = []
+
+        def set_dataset_path(self, datatset_path):
+            self.__dataset_path = datatset_path
 
         def delete(self):
             self._layout.deleteLater()
@@ -137,19 +142,26 @@ class AugmentationsUi(Widget):
             self.__combo.set_value(self.__aug_names.index(val.get_name()))
 
         def __configure(self):
-            ui = augmentations_ui[self.__aug_names[self.__combo.get_value()]](self.__previous_augmentations)
+            ui = augmentations_ui[self.__aug_names[self.__combo.get_value()]](self.__dataset_path, self.__previous_augmentations)
             if self.__augmentation_instance is not None:
                 ui.init_by_config(self.__augmentation_instance.get_config())
             self.__augmentation_instance = ui.show()
 
     def __init__(self):
-        self.__default_name = '- None -'
         super().__init__()
+        self.__dataset_path = None
+        self.__default_name = '- None -'
         self.__augs = []
         self.__augs_names = [self.__default_name] + [k for k in augmentations_dict.keys()]
 
         self.__augmentations_changed_callbacks = []
         self.add_augmentation(is_first=True)
+
+    def set_dataset_path(self, dataset_path: str):
+        self.__dataset_path = dataset_path
+
+        for aug in self.__augs:
+            aug.set_dataset_path(self.__dataset_path)
 
     def set_previous_augmentations(self, previous_augmentations):
         for a in self.__augs:
@@ -204,12 +216,17 @@ class DataConveyorStepUi(Widget):
         super().__init__()
         self.__step_name = step_name.lower()
 
-        self.__dataset_path = self.add_widget(OpenFile("Dataset file").set_files_types('*.json'))
+        self.__dataset_path = self.add_widget(OpenFile("Dataset file").set_files_types('*.json').set_value_changed_callback(self.__dataset_path_changed))
         self.__before_augs, self.__augs, self.__after_augs = self.__init_augs()
         self.start_horizontal()
         self.__aug_percentage = self.add_widget(LineEdit().add_label("Augmentations percentage", 'left'))
         self.__data_percentage = self.add_widget(LineEdit().add_label("Data percentage", 'left'))
         self.cancel()
+
+    def __dataset_path_changed(self, path):
+        self.__before_augs.set_dataset_path(path)
+        self.__augs.set_dataset_path(path)
+        self.__after_augs.set_dataset_path(path)
 
     def get_dataset_path(self):
         return self.__dataset_path.get_value()
