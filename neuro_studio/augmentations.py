@@ -20,14 +20,24 @@ class AbstractAugmentationUi(ModalWindow, metaclass=ABCMeta):
 
         self.__previous_augs = previous_augmentations
 
+        def read_next():
+            self.__cur_img_idx += 1
+            self.__read_image(self.__cur_img_idx, True)
+
+        def read_prev():
+            self.__cur_img_idx -= 1
+            self.__read_image(self.__cur_img_idx, True)
+
         self.start_horizontal()
         self.add_widget(Button("Update", is_tool_button=True).set_on_click_callback(self.update))
-        self.add_widget(Button("Next", is_tool_button=True).set_on_click_callback(self.__next_image))
+        self.add_widget(Button("Previous", is_tool_button=True).set_on_click_callback(read_prev))
+        self.add_widget(Button("Next", is_tool_button=True).set_on_click_callback(read_next))
         self.cancel()
         self._percentage = self.add_widget(LineEdit().add_label("Percentage", 'left'))
         self._image_layout = self.add_widget(ImageLayout())
 
-        self.__next_image(with_augmentations=False)
+        self.__cur_img_idx = 0
+        self.__read_image(0, with_augmentations=False)
 
     def update(self, with_augmentations=True):
         if with_augmentations:
@@ -40,8 +50,8 @@ class AbstractAugmentationUi(ModalWindow, metaclass=ABCMeta):
         self._image_layout.set_image_from_data(cv2.cvtColor(img, cv2.COLOR_BGR2RGB), img.shape[1], img.shape[0],
                                                img.shape[1] * img.shape[2])
 
-    def __next_image(self, with_augmentations=True):
-        path = self.__pathes[randint(0, len(self.__pathes) - 1)]
+    def __read_image(self, image_id: int, with_augmentations=True):
+        path = self.__pathes[image_id]
 
         self._image = cv2.imread(path)
         if self.__previous_augs is not None:
