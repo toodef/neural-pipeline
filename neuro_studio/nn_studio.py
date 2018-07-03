@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 from PySide2.QtGui import QKeySequence
 from PySide2.QtWidgets import QAction
@@ -266,9 +267,9 @@ class DataConveyorStepUi(Widget):
 
         return before_augs, augs, after_augs
 
-    def init_by_config(self, config):
+    def init_by_config(self, config: {}, project_path: str):
         cur_config = config['data_conveyor'][self.__step_name]
-        self.__dataset_path.set_value(cur_config['dataset_path'])
+        self.__dataset_path.set_value(os.path.join(project_path, cur_config['dataset_path']))
         if 'augmentations_percentage' in cur_config:
             self.__aug_percentage.set_value(str(cur_config['augmentations_percentage']))
         self.__data_percentage.set_value(str(cur_config['images_percentage']))
@@ -282,9 +283,9 @@ class DataConveyorStepUi(Widget):
         if 'after_augmentations' in cur_config:
             self.__after_augs.init_by_config(cur_config['after_augmentations'])
 
-    def flush_to_config(self, config: {}):
+    def flush_to_config(self, config: {}, project_path: str):
         config['data_conveyor'][self.__step_name] = {}
-        config['data_conveyor'][self.__step_name]['dataset_path'] = self.__dataset_path.get_value()
+        config['data_conveyor'][self.__step_name]['dataset_path'] = os.path.relpath(self.__dataset_path.get_value(), project_path)
         config['data_conveyor'][self.__step_name]['augmentations_percentage'] = int(self.__aug_percentage.get_value())
         config['data_conveyor'][self.__step_name]['images_percentage'] = int(self.__data_percentage.get_value())
 
@@ -362,45 +363,42 @@ class DataConveyorUi:
 
 class NeuralStudio(MainWindow):
     class Config(Widget):
-        def __init__(self, config):
+        def __init__(self, config, project_path):
             super().__init__()
             self.start_horizontal()
             self.__data_processor = DataProcessorUi(self)
-            self.__data_processor.init_by_config(config)
 
             self.start_vertical()
             self.__data_conveyor = DataConveyorUi(self)
-            self.__data_conveyor.init_by_config(config)
 
             self.insert_tab_space()
             self.add_tab("Train")
             self.__dc_train_step = self.add_widget(DataConveyorStepUi('Train'))
-            self.__dc_train_step.init_by_config(config)
             self.cancel()
             self.add_tab("Validation")
             self.__dc_validation_step = self.add_widget(DataConveyorStepUi('Validation'))
-            self.__dc_validation_step.init_by_config(config)
             self.cancel()
             self.add_tab("Test")
             self.__dc_test_step = self.add_widget(DataConveyorStepUi('Test'))
-            self.__dc_test_step.init_by_config(config)
             self.cancel()
             self.cancel()
             self.cancel()
 
-        def init_by_config(self, config: {}):
+            self.init_by_config(config, project_path)
+
+        def init_by_config(self, config: {}, project_path: str):
             self.__data_conveyor.init_by_config(config)
             self.__data_processor.init_by_config(config)
-            self.__dc_train_step.init_by_config(config)
-            self.__dc_validation_step.init_by_config(config)
-            self.__dc_test_step.init_by_config(config)
+            self.__dc_train_step.init_by_config(config, project_path)
+            self.__dc_validation_step.init_by_config(config, project_path)
+            self.__dc_test_step.init_by_config(config, project_path)
 
-        def flush_to_config(self, config: {}):
+        def flush_to_config(self, config: {}, project_path: str):
             self.__data_conveyor.flush_to_config(config)
             self.__data_processor.flush_to_config(config)
-            self.__dc_train_step.flush_to_config(config)
-            self.__dc_validation_step.flush_to_config(config)
-            self.__dc_test_step.flush_to_config(config)
+            self.__dc_train_step.flush_to_config(config, project_path)
+            self.__dc_validation_step.flush_to_config(config, project_path)
+            self.__dc_test_step.flush_to_config(config, project_path)
 
     class ConfigsList(DockWidget):
         def __init__(self, parent):
@@ -414,8 +412,6 @@ class NeuralStudio(MainWindow):
             add_btn.set_on_click_callback(lambda: parent.add_config())
             del_btn.set_on_click_callback(lambda: parent.del_config(self.__list_view.get_current_idx()))
             self.__list_view.set_item_renamed_callback(lambda idx, new_name: parent.rename_config(idx, new_name))
-
-            self.resize(300, 0)
 
         def get_instance(self):
             return self.__list_view
@@ -436,7 +432,8 @@ class NeuralStudio(MainWindow):
 
         config = default_config
 
-        self.__configs = [{"name": "config", "instance": self.Config(config)}]
+        self.__project_path = os.path.abspath(Path.home())
+        self.__configs = [{"name": "config", "instance": self.Config(config, self.__project_path)}]
 
         self.start_horizontal()
         self.__chunks_items = self.add_widget(self.ConfigsList(self))
@@ -457,7 +454,7 @@ class NeuralStudio(MainWindow):
         del self.__configs[idx]
 
     def add_config(self, name='config', config=default_config):
-        self.__configs.append({"name": name, "instance": self.Config(config)})
+        self.__configs.append({"name": name, "instance": self.Config(config, self.__project_path)})
         self.__chunks_items.get_instance().add_item(self.__configs[-1]['name'])
         self.__cur_view.add_item(self.__configs[-1]['instance'])
 
@@ -478,8 +475,9 @@ class NeuralStudio(MainWindow):
         if res is None or len(res) < 1:
             return False
 
-        self.__project_path = os.path.abspath(res)
-        self.__project_name = os.path.basename(self.__project_path)
+        res = os.path.abspath(res)
+        self.__project_path = os.path.dirname(res)
+        self.__project_name = os.path.basename(res)
 
         return True
 
@@ -487,7 +485,7 @@ class NeuralStudio(MainWindow):
         if not self.__change_project_path('Open project'):
             return
 
-        with open(self.__project_path, 'r') as file:
+        with open(os.path.join(self.__project_path, self.__project_name), 'r') as file:
             config = json.load(file)
 
         self.__cur_view.clear()
@@ -495,7 +493,7 @@ class NeuralStudio(MainWindow):
         self.__chunks_items.get_instance().clear()
 
         for i, c in enumerate(config):
-            with open(os.path.join(os.path.dirname(self.__project_path), "workdir", str(i), 'config.json'), 'r') as file:
+            with open(os.path.join(self.__project_path, "workdir", str(i), 'config.json'), 'r') as file:
                 config = json.load(file)
             self.add_config(name=c['name'], config=config)
 
@@ -506,14 +504,14 @@ class NeuralStudio(MainWindow):
             return
 
         config = [{"name": c['name'], "id": i} for i, c in enumerate(self.__configs)]
-        with open(self.__project_path, 'w') as outfile:
+        with open(os.path.join(self.__project_path, self.__project_name), 'w') as outfile:
             json.dump(config, outfile, indent=2)
 
         for idx, c in enumerate(self.__configs):
             config = {'data_processor': {}, 'data_conveyor': {}}
-            c['instance'].flush_to_config(config)
+            c['instance'].flush_to_config(config, self.__project_path)
 
-            cur_path = os.path.join(os.path.dirname(self.__project_path), 'workdir', str(idx))
+            cur_path = os.path.join(self.__project_path, 'workdir', str(idx))
             if not os.path.exists(cur_path) or not os.path.isdir(cur_path):
                 os.makedirs(cur_path)
             with open(os.path.join(cur_path, 'config.json'), 'w') as outfile:
@@ -526,7 +524,7 @@ if __name__ == "__main__":
     app = Application()
     studio = NeuralStudio()
     resolution = app.screen_resolution()
-    studio.resize(0, 0)
+    studio.resize(1000, 0)
     studio.move(100, 100)
     studio.show()
     app.run()
