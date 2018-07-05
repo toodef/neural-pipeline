@@ -98,6 +98,7 @@ class AugmentationsUi(Widget):
         def __init__(self, parent, aug_names: [], is_first=False):
             super().__init__()
             self.__dataset_path = None
+            self.__project_dir_path = None
 
             self.start_horizontal()
             self.__combo = self.add_widget(ComboBox().add_items(aug_names), need_stretch=False)
@@ -121,6 +122,9 @@ class AugmentationsUi(Widget):
         def set_dataset_path(self, datatset_path):
             self.__dataset_path = datatset_path
 
+        def set_project_dir_path(self, project_dir_path):
+            self.__project_dir_path = project_dir_path
+
         def delete(self):
             self._layout.deleteLater()
             if self.__del_btn is not None:
@@ -143,7 +147,7 @@ class AugmentationsUi(Widget):
             self.__combo.set_value(self.__aug_names.index(val.get_name()))
 
         def __configure(self):
-            ui = augmentations_ui[self.__aug_names[self.__combo.get_value()]](self.__dataset_path, self.__previous_augmentations)
+            ui = augmentations_ui[self.__aug_names[self.__combo.get_value()]](self.__dataset_path, self.__project_dir_path, self.__previous_augmentations)
             if self.__augmentation_instance is not None:
                 ui.init_by_config(self.__augmentation_instance.get_config())
             self.__augmentation_instance = ui.show()
@@ -151,6 +155,8 @@ class AugmentationsUi(Widget):
     def __init__(self):
         super().__init__()
         self.__dataset_path = None
+        self.__project_dir_path = None
+
         self.__default_name = '- None -'
         self.__augs = []
         self.__augs_names = [self.__default_name] + [k for k in augmentations_dict.keys()]
@@ -163,6 +169,12 @@ class AugmentationsUi(Widget):
 
         for aug in self.__augs:
             aug.set_dataset_path(self.__dataset_path)
+
+    def set_project_dir_path(self, project_dir_path):
+        self.__project_dir_path = project_dir_path
+
+        for aug in self.__augs:
+            aug.set_project_dir_path(self.__project_dir_path)
 
     def set_previous_augmentations(self, previous_augmentations):
         for a in self.__augs:
@@ -228,6 +240,11 @@ class DataConveyorStepUi(Widget):
         self.__before_augs.set_dataset_path(path)
         self.__augs.set_dataset_path(path)
         self.__after_augs.set_dataset_path(path)
+
+    def set_project_dir_path(self, project_dir_path):
+        self.__before_augs.set_project_dir_path(project_dir_path)
+        self.__augs.set_project_dir_path(project_dir_path)
+        self.__after_augs.set_project_dir_path(project_dir_path)
 
     def get_dataset_path(self):
         return self.__dataset_path.get_value()
@@ -384,6 +401,7 @@ class NeuralStudio(MainWindow):
             self.cancel()
             self.cancel()
 
+            self.set_project_dir_path(project_path)
             self.init_by_config(config, project_path)
 
         def init_by_config(self, config: {}, project_path: str):
@@ -399,6 +417,11 @@ class NeuralStudio(MainWindow):
             self.__dc_train_step.flush_to_config(config, project_path)
             self.__dc_validation_step.flush_to_config(config, project_path)
             self.__dc_test_step.flush_to_config(config, project_path)
+
+        def set_project_dir_path(self, project_dir_path):
+            self.__dc_train_step.set_project_dir_path(project_dir_path)
+            self.__dc_validation_step.set_project_dir_path(project_dir_path)
+            self.__dc_test_step.set_project_dir_path(project_dir_path)
 
     class ConfigsList(DockWidget):
         def __init__(self, parent):
@@ -478,6 +501,9 @@ class NeuralStudio(MainWindow):
         res = os.path.abspath(res)
         self.__project_path = os.path.dirname(res)
         self.__project_name = os.path.basename(res)
+
+        for config in self.__configs:
+            config['instance'].set_project_dir_path(self.__project_path)
 
         return True
 

@@ -1,4 +1,5 @@
 import json
+import os
 from random import randint, shuffle
 
 import cv2
@@ -9,13 +10,13 @@ from neuro_studio.PySide2Wrapper.PySide2Wrapper import ImageLayout, CheckBox, Li
 
 
 class AbstractAugmentationUi(ModalWindow, metaclass=ABCMeta):
-    def __init__(self, aug_name, dataset_path: str, previous_augmentations: [] = None):
+    def __init__(self, aug_name, dataset_path: str, project_dir_path: str, previous_augmentations: [] = None):
         super().__init__(aug_name)
 
         with open(dataset_path, 'r') as dataset:
             dataset_conf = json.load(dataset)
 
-        self.__pathes = [p['path'] for p in dataset_conf['data']]
+        self.__pathes = [os.path.join(project_dir_path, p['path']) for p in dataset_conf['data']]
         shuffle(self.__pathes)
 
         self.__previous_augs = previous_augmentations
@@ -87,8 +88,8 @@ class AbstractAugmentationUi(ModalWindow, metaclass=ABCMeta):
 
 
 class ResizeUi(AbstractAugmentationUi):
-    def __init__(self, dataset_path: str, previous_augmentations: [] = None):
-        super().__init__("Resize", dataset_path, previous_augmentations)
+    def __init__(self, dataset_path: str, project_dir_path: str, previous_augmentations: [] = None):
+        super().__init__("Resize", dataset_path, project_dir_path, previous_augmentations)
 
         self.__check = self.add_widget(CheckBox("By minimum edge").set_value(True))
 
@@ -116,8 +117,8 @@ class ResizeUi(AbstractAugmentationUi):
 
 
 class HorizontalFlipUi(AbstractAugmentationUi):
-    def __init__(self, dataset_path: str, previous_augmentations: [] = None):
-        super().__init__("Horizontal Flip", dataset_path, previous_augmentations)
+    def __init__(self, dataset_path: str, project_dir_path: str, previous_augmentations: [] = None):
+        super().__init__("Horizontal Flip", dataset_path, project_dir_path, previous_augmentations)
 
     def _init_by_config(self, config: {}):
         pass
@@ -127,8 +128,8 @@ class HorizontalFlipUi(AbstractAugmentationUi):
 
 
 class VerticalFlipUi(AbstractAugmentationUi):
-    def __init__(self, dataset_path: str, previous_augmentations: [] = None):
-        super().__init__("Vertical Flip", dataset_path, previous_augmentations)
+    def __init__(self, dataset_path: str, project_dir_path: str, previous_augmentations: [] = None):
+        super().__init__("Vertical Flip", dataset_path, project_dir_path, previous_augmentations)
 
     def _init_by_config(self, config: {}):
         pass
@@ -138,8 +139,8 @@ class VerticalFlipUi(AbstractAugmentationUi):
 
 
 class GaussNoiseUi(AbstractAugmentationUi):
-    def __init__(self, dataset_path: str, previous_augmentations: [] = None):
-        super().__init__("Gauss Noise", dataset_path, previous_augmentations)
+    def __init__(self, dataset_path: str, project_dir_path: str, previous_augmentations: [] = None):
+        super().__init__("Gauss Noise", dataset_path, project_dir_path, previous_augmentations)
 
         self.start_horizontal()
         self.__mean = self.add_widget(LineEdit().add_label("Mean", 'left').set_value_changed_callback(self.update))
@@ -161,8 +162,8 @@ class GaussNoiseUi(AbstractAugmentationUi):
 
 
 class SNPNoiseUi(AbstractAugmentationUi):
-    def __init__(self, dataset_path: str, previous_augmentations: [] = None):
-        super().__init__("Salt&Paper Noisedataset_path, ", previous_augmentations)
+    def __init__(self, dataset_path: str, project_dir_path: str, previous_augmentations: [] = None):
+        super().__init__("Salt&Paper Noise", dataset_path, project_dir_path, previous_augmentations)
 
         self.start_horizontal()
         self.__s_vs_p = self.add_widget(
@@ -181,8 +182,8 @@ class SNPNoiseUi(AbstractAugmentationUi):
 
 
 class BlurUi(AbstractAugmentationUi):
-    def __init__(self, dataset_path: str, previous_augmentations: [] = None):
-        super().__init__("Blur", dataset_path, previous_augmentations)
+    def __init__(self, dataset_path: str, project_dir_path: str, previous_augmentations: [] = None):
+        super().__init__("Blur", dataset_path, project_dir_path, previous_augmentations)
 
         self.start_horizontal()
         self.insert_text_label("Kernel size: ")
@@ -202,8 +203,8 @@ class BlurUi(AbstractAugmentationUi):
 
 
 class RandomRotateUi(AbstractAugmentationUi):
-    def __init__(self, dataset_path: str, previous_augmentations: [] = None):
-        super().__init__("Random Rotate", dataset_path, previous_augmentations)
+    def __init__(self, dataset_path: str, project_dir_path: str, previous_augmentations: [] = None):
+        super().__init__("Random Rotate", dataset_path, project_dir_path, previous_augmentations)
 
         self.start_horizontal()
         self.insert_text_label("Interval, [deg]: ")
@@ -222,8 +223,8 @@ class RandomRotateUi(AbstractAugmentationUi):
 
 
 class CentralCropUi(AbstractAugmentationUi):
-    def __init__(self, dataset_path: str, previous_augmentations: [] = None):
-        super().__init__("Central Crop", dataset_path, previous_augmentations)
+    def __init__(self, dataset_path: str, project_dir_path: str, previous_augmentations: [] = None):
+        super().__init__("Central Crop", dataset_path, project_dir_path, previous_augmentations)
 
         self.__check = self.add_widget(CheckBox("Quad").set_value(True))
 
@@ -252,8 +253,8 @@ class CentralCropUi(AbstractAugmentationUi):
 
 
 class RandomCropUi(AbstractAugmentationUi):
-    def __init__(self, dataset_path: str, previous_augmentations: [] = None):
-        super().__init__("Random Crop", dataset_path, previous_augmentations)
+    def __init__(self, dataset_path: str, project_dir_path: str, previous_augmentations: [] = None):
+        super().__init__("Random Crop", dataset_path, project_dir_path, previous_augmentations)
 
         self.__check = self.add_widget(CheckBox("Quad").set_value(True))
 
@@ -282,8 +283,8 @@ class RandomCropUi(AbstractAugmentationUi):
 
 
 class RandomBrightnessUi(AbstractAugmentationUi):
-    def __init__(self, dataset_path: str, previous_augmentations: [] = None):
-        super().__init__("Random Brightness", dataset_path, previous_augmentations)
+    def __init__(self, dataset_path: str, project_dir_path: str, previous_augmentations: [] = None):
+        super().__init__("Random Brightness", dataset_path, project_dir_path, previous_augmentations)
 
         self.start_horizontal()
         self.insert_text_label("Interval:")
@@ -302,8 +303,8 @@ class RandomBrightnessUi(AbstractAugmentationUi):
 
 
 class RandomContrastUi(AbstractAugmentationUi):
-    def __init__(self, dataset_path: str, previous_augmentations: [] = None):
-        super().__init__("Random Contrast", dataset_path, previous_augmentations)
+    def __init__(self, dataset_path: str, project_dir_path: str, previous_augmentations: [] = None):
+        super().__init__("Random Contrast", dataset_path, project_dir_path, previous_augmentations)
 
         self.start_horizontal()
         self.insert_text_label("Interval:")
