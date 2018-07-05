@@ -31,8 +31,8 @@ class AbstractAugmentationUi(ModalWindow, metaclass=ABCMeta):
 
         self.start_horizontal()
         self.add_widget(Button("Update", is_tool_button=True).set_on_click_callback(self.update))
-        self.add_widget(Button("Previous", is_tool_button=True).set_on_click_callback(read_prev))
-        self.add_widget(Button("Next", is_tool_button=True).set_on_click_callback(read_next))
+        self.add_widget(Button("<--", is_tool_button=True).set_on_click_callback(read_prev))
+        self.add_widget(Button("-->", is_tool_button=True).set_on_click_callback(read_next))
         self.cancel()
         self._percentage = self.add_widget(LineEdit().add_label("Percentage", 'left'))
         self._image_layout = self.add_widget(ImageLayout())

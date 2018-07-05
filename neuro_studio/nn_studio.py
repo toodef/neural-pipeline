@@ -106,7 +106,8 @@ class AugmentationsUi(Widget):
             self.__augmentation_instance = None
 
             self.__add_btn = self.add_widget(Button('+', is_tool_button=True), need_stretch=False)
-            self.__settings_btn = self.add_widget(Button('s', is_tool_button=True).set_on_click_callback(self.__configure).set_on_click_callback(lambda: parent.augmentations_changed()), need_stretch=False)
+            self.__settings_btn = self.add_widget(Button('s', is_tool_button=True).set_on_click_callback(self.__configure).set_on_click_callback(lambda: parent.augmentations_changed()),
+                                                  need_stretch=False)
 
             self.__del_btn = None
             if not is_first:
@@ -287,6 +288,7 @@ class DataConveyorStepUi(Widget):
     def init_by_config(self, config: {}, project_path: str):
         cur_config = config['data_conveyor'][self.__step_name]
         self.__dataset_path.set_value(os.path.join(project_path, cur_config['dataset_path']))
+
         if 'augmentations_percentage' in cur_config:
             self.__aug_percentage.set_value(str(cur_config['augmentations_percentage']))
         self.__data_percentage.set_value(str(cur_config['images_percentage']))
@@ -299,6 +301,9 @@ class DataConveyorStepUi(Widget):
                 self.__augs.set_previous_augmentations(self.__before_augs.get_augmentations())
         if 'after_augmentations' in cur_config:
             self.__after_augs.init_by_config(cur_config['after_augmentations'])
+
+        self.__dataset_path_changed(self.__dataset_path.get_value())
+        self.set_project_dir_path(project_path)
 
     def flush_to_config(self, config: {}, project_path: str):
         config['data_conveyor'][self.__step_name] = {}
@@ -411,6 +416,8 @@ class NeuralStudio(MainWindow):
             self.__dc_validation_step.init_by_config(config, project_path)
             self.__dc_test_step.init_by_config(config, project_path)
 
+            self.set_project_dir_path(project_path)
+
         def flush_to_config(self, config: {}, project_path: str):
             self.__data_conveyor.flush_to_config(config)
             self.__data_processor.flush_to_config(config)
@@ -453,10 +460,10 @@ class NeuralStudio(MainWindow):
         self.__file_menu.addAction(self.__open_project_act)
         self.__file_menu.addAction(self.__save_project_act)
 
-        config = default_config
+        self.__last_config_id = 0
 
         self.__project_path = os.path.abspath(Path.home())
-        self.__configs = [{"name": "config", "instance": self.Config(config, self.__project_path)}]
+        self.__configs = [{"name": "config", "instance": self.Config(default_config, self.__project_path), 'id': 0}]
 
         self.start_horizontal()
         self.__chunks_items = self.add_widget(self.ConfigsList(self))
@@ -476,10 +483,19 @@ class NeuralStudio(MainWindow):
         self.__cur_view.remove_item(idx)
         del self.__configs[idx]
 
-    def add_config(self, name='config', config=default_config):
-        self.__configs.append({"name": name, "instance": self.Config(config, self.__project_path)})
+    def add_config(self, name='config', config=default_config, id=None):
+        if id is None:
+            self.__configs.append({"name": name, "instance": self.Config(config, self.__project_path), 'id': self.__last_config_id})
+        else:
+            self.__configs.append({"name": name, "instance": self.Config(config, self.__project_path), 'id': id})
+
+            if id > self.__last_config_id:
+                self.__last_config_id = id
+
         self.__chunks_items.get_instance().add_item(self.__configs[-1]['name'])
         self.__cur_view.add_item(self.__configs[-1]['instance'])
+
+        self.__last_config_id += 1
 
     def rename_config(self, idx, new_name):
         if idx is not None:
@@ -502,48 +518,52 @@ class NeuralStudio(MainWindow):
         self.__project_path = os.path.dirname(res)
         self.__project_name = os.path.basename(res)
 
+        return True
+
+    def __project_path_changed(self):
+        self.set_title_prefix(self.__project_name)
+
         for config in self.__configs:
             config['instance'].set_project_dir_path(self.__project_path)
-
-        return True
 
     def __open_project(self):
         if not self.__change_project_path('Open project'):
             return
 
         with open(os.path.join(self.__project_path, self.__project_name), 'r') as file:
-            config = json.load(file)
+            project_config = json.load(file)
 
         self.__cur_view.clear()
         self.__configs = []
         self.__chunks_items.get_instance().clear()
 
-        for i, c in enumerate(config):
-            with open(os.path.join(self.__project_path, "workdir", str(i), 'config.json'), 'r') as file:
+        for c in project_config:
+            config_id = c['id']
+            with open(os.path.join(self.__project_path, "workdir", str(config_id), 'config.json'), 'r') as file:
                 config = json.load(file)
-            self.add_config(name=c['name'], config=config)
+            self.add_config(name=c['name'], config=config, id=config_id)
 
-        self.set_title_prefix(self.__project_name)
+        self.__project_path_changed()
 
     def __save_project(self):
         if not self.__change_project_path('Save project', is_open=False):
             return
 
-        config = [{"name": c['name'], "id": i} for i, c in enumerate(self.__configs)]
+        project_config = [{"name": c['name'], "id": c['id']} for c in self.__configs]
         with open(os.path.join(self.__project_path, self.__project_name), 'w') as outfile:
-            json.dump(config, outfile, indent=2)
+            json.dump(project_config, outfile, indent=2)
 
-        for idx, c in enumerate(self.__configs):
+        for c in self.__configs:
             config = {'data_processor': {}, 'data_conveyor': {}}
             c['instance'].flush_to_config(config, self.__project_path)
 
-            cur_path = os.path.join(self.__project_path, 'workdir', str(idx))
+            cur_path = os.path.join(self.__project_path, 'workdir', str(c['id']))
             if not os.path.exists(cur_path) or not os.path.isdir(cur_path):
                 os.makedirs(cur_path)
             with open(os.path.join(cur_path, 'config.json'), 'w') as outfile:
                 json.dump(config, outfile, indent=2)
 
-        self.set_title_prefix(self.__project_name)
+        self.__project_path_changed()
 
 
 if __name__ == "__main__":
