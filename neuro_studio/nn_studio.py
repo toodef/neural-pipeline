@@ -106,8 +106,10 @@ class AugmentationsUi(Widget):
             self.__augmentation_instance = None
 
             self.__add_btn = self.add_widget(Button('+', is_tool_button=True), need_stretch=False)
-            self.__settings_btn = self.add_widget(Button('s', is_tool_button=True).set_on_click_callback(self.__configure).set_on_click_callback(lambda: parent.augmentations_changed()),
-                                                  need_stretch=False)
+            self.__settings_btn = self.add_widget(
+                Button('s', is_tool_button=True).set_on_click_callback(self.__configure).set_on_click_callback(
+                    lambda: parent.augmentations_changed()),
+                need_stretch=False)
 
             self.__del_btn = None
             if not is_first:
@@ -148,7 +150,8 @@ class AugmentationsUi(Widget):
             self.__combo.set_value(self.__aug_names.index(val.get_name()))
 
         def __configure(self):
-            ui = augmentations_ui[self.__aug_names[self.__combo.get_value()]](self.__dataset_path, self.__project_dir_path, self.__previous_augmentations)
+            ui = augmentations_ui[self.__aug_names[self.__combo.get_value()]](self.__dataset_path, self.__project_dir_path,
+                                                                              self.__previous_augmentations)
             if self.__augmentation_instance is not None:
                 ui.init_by_config(self.__augmentation_instance.get_config())
             self.__augmentation_instance = ui.show()
@@ -189,7 +192,8 @@ class AugmentationsUi(Widget):
             call()
 
     def add_augmentation(self, is_first=False):
-        if (len(self.__augs) > 1 and self.__augs[-1].get_value() is None) or (len(self.__augs) == 1 and self.__augs[0].get_value() is None):
+        if (len(self.__augs) > 1 and self.__augs[-1].get_value() is None) or (
+                len(self.__augs) == 1 and self.__augs[0].get_value() is None):
             return
 
         new_aug = self.AugmentationUi(self, self.__augs_names, is_first)
@@ -230,7 +234,8 @@ class DataConveyorStepUi(Widget):
         super().__init__()
         self.__step_name = step_name.lower()
 
-        self.__dataset_path = self.add_widget(OpenFile("Dataset file").set_files_types('*.json').set_value_changed_callback(self.__dataset_path_changed))
+        self.__dataset_path = self.add_widget(
+            OpenFile("Dataset file").set_files_types('*.json').set_value_changed_callback(self.__dataset_path_changed))
         self.__before_augs, self.__augs, self.__after_augs = self.__init_augs()
         self.start_horizontal()
         self.__aug_percentage = self.add_widget(LineEdit().add_label("Augmentations percentage", 'left'))
@@ -457,8 +462,13 @@ class NeuralStudio(MainWindow):
         self.__save_project_act = QAction("Save project", self.__file_menu)
         self.__save_project_act.setShortcut(QKeySequence("Ctrl+S"))
         self.__save_project_act.triggered.connect(self.__save_project)
+        self.__clear_trash_act = QAction("Clear trash", self.__file_menu)
+        self.__clear_trash_act.triggered.connect(self.__clear_trash)
+        self.__clear_trash_act.setEnabled(False)
         self.__file_menu.addAction(self.__open_project_act)
         self.__file_menu.addAction(self.__save_project_act)
+        self.__file_menu.addSeparator()
+        self.__file_menu.addAction(self.__clear_trash_act)
 
         self.__last_config_id = 0
 
@@ -475,6 +485,8 @@ class NeuralStudio(MainWindow):
 
         self.__chunks_items.get_instance().add_items([c['name'] for c in self.__configs])
         self.__chunks_items.get_instance().set_value_changed_callback(self.__cur_config_changed)
+
+        self.__project_config = None
 
     def del_config(self, idx):
         if idx is None:
@@ -531,19 +543,20 @@ class NeuralStudio(MainWindow):
             return
 
         with open(os.path.join(self.__project_path, self.__project_name), 'r') as file:
-            project_config = json.load(file)
+            self.__project_config = json.load(file)
 
         self.__cur_view.clear()
         self.__configs = []
         self.__chunks_items.get_instance().clear()
 
-        for c in project_config:
+        for c in self.__project_config:
             config_id = c['id']
             with open(os.path.join(self.__project_path, "workdir", str(config_id), 'config.json'), 'r') as file:
                 config = json.load(file)
             self.add_config(name=c['name'], config=config, id=config_id)
 
         self.__project_path_changed()
+        self.__clear_trash_act.setEnabled(True)
 
     def __save_project(self):
         if not self.__change_project_path('Save project', is_open=False):
@@ -564,6 +577,9 @@ class NeuralStudio(MainWindow):
                 json.dump(config, outfile, indent=2)
 
         self.__project_path_changed()
+
+    def __clear_trash(self):
+        MessageWindow("Clear trash", "Not implemented", self.get_instance()).show()
 
 
 if __name__ == "__main__":
