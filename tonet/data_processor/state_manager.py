@@ -1,23 +1,25 @@
 import os
 from zipfile import ZipFile
 
+from tonet.tonet.utils.file_structure_manager import FileStructManager
+
 
 class StateManager:
-    def __init__(self, directory: str, preffix: str = None):
-        self.__dir = directory
+    def __init__(self, file_struct_manager: FileStructManager, preffix: str = None):
         self.__preffix = preffix
+        self.__file_struct_manager = file_struct_manager
 
         self.__files = {}
 
     def unpack(self) -> None:
-        self.__files['weights_file'] = os.path.join(self.__dir, "weights.pth")
-        self.__files['state_file'] = os.path.join(self.__dir, "state.pth")
+        self.__files['weights_file'] = os.path.join(self.__file_struct_manager.weights_dir(), "weights.pth")
+        self.__files['state_file'] = os.path.join(self.__file_struct_manager.weights_dir(), "state.pth")
         result_file = self.__construct_result_file()
 
         with ZipFile(result_file, 'r') as zipfile:
-            zipfile.extractall(self.__dir)
+            zipfile.extractall(self.__file_struct_manager.weights_dir())
 
-    def clear_files(self):
+    def clear_files(self) -> None:
         def rm_file(file: str):
             if os.path.exists(file) and os.path.isfile(file):
                 os.remove(file)
@@ -26,7 +28,7 @@ class StateManager:
         rm_file(self.__files['state_file'])
         self.__files = {}
 
-    def pack(self):
+    def pack(self) -> None:
         def rm_file(file: str):
             if os.path.exists(file) and os.path.isfile(file):
                 os.remove(file)
@@ -37,8 +39,8 @@ class StateManager:
             if os.path.exists(file) and os.path.isfile(file):
                 os.rename(file, target)
 
-        weights_file = os.path.join(self.__dir, "weights.pth")
-        state_file = os.path.join(self.__dir, "state.pth")
+        weights_file = self.__file_struct_manager.weights_file()
+        state_file = self.__file_struct_manager.weights_dir()
         result_file = self.__construct_result_file()
 
         rm_file(weights_file)
@@ -52,8 +54,9 @@ class StateManager:
         rm_file(weights_file)
         rm_file(state_file)
 
-    def get_files(self):
+    def get_files(self) -> {'weights_file', 'state_file'}:
         return self.__files
 
     def __construct_result_file(self):
-        return os.path.join(self.__dir, self.__preffix + "_" if self.__preffix is not None else "" + "state.zip")
+        data_dir = self.__file_struct_manager.weights_dir()
+        return os.path.join(data_dir, self.__preffix + "_" if self.__preffix is not None else "" + "state.zip")

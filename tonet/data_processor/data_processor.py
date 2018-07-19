@@ -1,27 +1,25 @@
-import time
-from functools import partial
-
 import torch
 from tqdm import tqdm
 
-from data_processor.model import Model
-from data_processor.monitoring import Monitor
-from utils.config import InitedByConfig
+from tonet.tonet.utils.file_structure_manager import FileStructManager
+from .model import Model
+from .monitoring import Monitor
+from tonet.tonet.utils.config import InitedByConfig
 
 
 class DataProcessor(InitedByConfig):
     class LearningRate:
         def __init__(self, config: {}):
-            self.__value = float(config['network']['learning_rate']['start_value'])
-            self.__decrease_coefficient = float(config['network']['learning_rate']['decrease_coefficient'])
+            self.__value = float(config['learning_rate']['start_value'])
+            self.__decrease_coefficient = float(config['learning_rate']['decrease_coefficient'])
 
-            if 'first_epoch_decrease_coeff' in config['network']['learning_rate']:
+            if 'first_epoch_decrease_coeff' in config['learning_rate']:
                 self.__first_epoch_decrease_coeff = float(
-                    config['network']['learning_rate']['first_epoch_decrease_coeff'])
+                    config['learning_rate']['first_epoch_decrease_coeff'])
             else:
                 self.__first_epoch_decrease_coeff = None
 
-            self.__skip_steps_number = config['network']['learning_rate']['skip_steps_number']
+            self.__skip_steps_number = config['learning_rate']['skip_steps_number']
             self.__cur_step = 0
 
         def value(self, cur_loss, min_loss) -> float:
@@ -42,15 +40,15 @@ class DataProcessor(InitedByConfig):
 
             return self.__value
 
-    def __init__(self, config: {}):
+    def __init__(self, config: {}, file_struct_manadger: FileStructManager):
         self.__is_cuda = True
-        self.__model = Model(config).model()
-        if self.__is_cuda:
-            self.__model = self.__model.cuda()
+        self.__file_struct_manager = file_struct_manadger
+
+        self.__model = Model(config, self.__file_struct_manager)
         self.__learning_rate = self.LearningRate(config)
 
-        self.__optimizer_fnc = getattr(torch.optim, config['network']['optimizer'])
-        self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4,
+        self.__optimizer_fnc = getattr(torch.optim, config['optimizer'])
+        self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=1.e-4,
                                                 lr=self.__learning_rate.value(0, 0))
 
         self.__criterion = torch.nn.CrossEntropyLoss()
@@ -60,25 +58,23 @@ class DataProcessor(InitedByConfig):
         self.__monitor = Monitor(config)
         self.clear_metrics()
 
-        self.__batch_size = int(config['data_conveyor']['batch_size'])
-
         self.__epoch_num = 0
 
-    def predict(self, input, is_train=False):
+    def predict(self, data, is_train=False):
         if self.__is_cuda:
-            input = input.cuda(async=is_train)
+            data = data.cuda(async=is_train)
 
         if is_train:
-            self.__model.train()
+            self.__model.model().train()
         else:
-            self.__model.eval()
+            self.__model.model().eval()
 
-        input_var = torch.autograd.Variable(input, volatile=not is_train)
-        output = self.__model(input_var)
+        input_var = torch.autograd.Variable(data, volatile=not is_train)
+        output = self.__model.model()(input_var)
         return torch.max(output.data, 1), output
 
     def process_batch(self, input, target, is_train):
-        self.__model.train(is_train)
+        self.__model.model().train(is_train)
 
         if self.__is_cuda:
             target = target.cuda(async=True)
@@ -104,7 +100,7 @@ class DataProcessor(InitedByConfig):
             self.__metrics['val_loss'] += loss.data[0] * inputs_num
             self.__metrics['val_accuracy'] += torch.sum(preds == target_var.data)
 
-        self.__images_processeed['train' if is_train else 'val'] += self.__batch_size
+        self.__images_processeed['train' if is_train else 'val'] += inputs_num
 
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
         for batch in tqdm(train_dataloader, desc="train", leave=False):
@@ -114,10 +110,9 @@ class DataProcessor(InitedByConfig):
 
         cur_metrics = self.get_metrics()
 
-        self.__optimizer = self.__optimizer_fnc(params=self.__model.parameters(), weight_decay=1.e-4,
+        self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=1.e-4,
                                                 lr=self.__learning_rate.value(cur_metrics['val_loss'],
-                                                                              self.__monitor.get_metrics_min_val(
-                                                                                  'val_loss')))
+                                                                              self.__monitor.get_metrics_min_val('val_loss')))
 
         self.__monitor.update(epoch_idx, cur_metrics)
         self.clear_metrics()
@@ -136,7 +131,7 @@ class DataProcessor(InitedByConfig):
         self.__images_processeed = {"val": 0, "train": 0}
 
     def get_state(self):
-        return {'weights': self.__model.state_dict(), 'optimizer': self.__optimizer.state_dict()}
+        return {'weights': self.__model.model().state_dict(), 'optimizer': self.__optimizer.state_dict()}
 
     def load_state(self, optimizer_state: str):
         state = torch.load(optimizer_state)
@@ -146,12 +141,11 @@ class DataProcessor(InitedByConfig):
     def load_weights(self, path):
         self.__model.load_weights(path)
 
-    def save_weights(self, path):
-        torch.save(self.__model.state_dict(), path)
-        # self.__model.save_weights(path)
+    def save_weights(self):
+        self.__model.save_weights()
 
-    def save_state(self, path):
-        torch.save(self.__optimizer.state_dict(), path)
+    def save_state(self):
+        torch.save(self.__optimizer.state_dict(), self.__file_struct_manager.optimizer_state_file())
 
     def close(self):
         self.__monitor.close()

@@ -4,7 +4,8 @@ import requests
 import torch
 import torchvision.models as models
 
-from utils.config import InitedByConfig
+from tonet.tonet.utils.config import InitedByConfig
+from tonet.tonet.utils.file_structure_manager import FileStructManager
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -28,11 +29,18 @@ class Model(InitedByConfig):
         def __str__(self):
             return self.__message
 
-    def __init__(self, config: {}):
+    def __init__(self, config: {}, file_struct_manager: FileStructManager):
         super().__init__()
+
+        self.__file_struct_manager = file_struct_manager
+
         self.__model = None
         self.__config = config
         self.__model = getattr(models, self.__config['architecture'])()
+
+        self.__is_cuda = True
+        if self.__is_cuda:
+            self.__model = self.__model.cuda()
 
         self.__init_from_config()
 
@@ -44,7 +52,7 @@ class Model(InitedByConfig):
         if start_mode == start_modes[0]:
             return
 
-        self.__weights_dir = os.path.join(self.__config['workdir_path'], 'weights')
+        self.__weights_dir = self.__file_struct_manager.weights_dir()
         self.__weights_file = os.path.join(self.__weights_dir, "weights.pth")
 
     def __load_weights_by_url(self):
@@ -78,11 +86,11 @@ class Model(InitedByConfig):
             self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, 128)
             self.__model = torch.nn.DataParallel(self.__model)
 
-    def save_weights(self, weights_path):
-        torch.save(self.__model.state_dict(), weights_path)
+    def save_weights(self):
+        torch.save(self.__model.state_dict(), self.__weights_file)
 
     def __config_start_mode(self):
-        return self.__config['network']['start_from']
+        return self.__config['start_from']
 
     def _required_params(self):
         return {"data_processor": {

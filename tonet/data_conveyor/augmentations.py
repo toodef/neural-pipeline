@@ -134,7 +134,7 @@ class Blur(Augmentation):
         self.__ksize = self._get_config_path(config)['ksize']
 
     def process(self, data):
-        return cv2.blur(data.copy(), self.__ksize).astype(np.uint8)
+        return cv2.blur(data.copy(), (self.__ksize[0], self.__ksize[1])).astype(np.uint8)
 
     def _get_config(self) -> {}:
         return {'ksize': self.__ksize}

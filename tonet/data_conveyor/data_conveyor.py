@@ -3,7 +3,7 @@ from random import randint
 import cv2
 
 
-from data_conveyor.augmentations import augmentations_dict
+from .augmentations import augmentations_dict
 
 
 class Dataset:
@@ -11,7 +11,7 @@ class Dataset:
         self.__pathes = pathes
         percentage = config['images_percentage'] if 'images_percentage' in config else 100
         self.__cell_size = 100 / percentage
-        self.__data_num = len(self.__pathes) * percentage // 100
+        self.__data_num = len(self.__pathes['data']) * percentage // 100
         self.__percentage = percentage
 
         self.load_augmentations(config)
@@ -46,11 +46,11 @@ class Dataset:
 
         item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1 if self.__percentage < 100 else item
 
-        if 'target' in self.__pathes[item]:
-            return {'data': augmentate(cv2.imread(self.__pathes[item]['path'])),
-                    'target': self.__pathes[item]['target']}
+        if 'target' in self.__pathes['data'][item]:
+            return {'data': augmentate(cv2.imread(self.__pathes['data'][item]['path'])),
+                    'target': self.__pathes['data'][item]['target']}
         else:
-            return augmentate(cv2.imread(self.__pathes[item]['path']))
+            return augmentate(cv2.imread(self.__pathes['data'][item]['path']))
 
     def __len__(self):
         return self.__data_num

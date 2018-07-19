@@ -6,7 +6,7 @@ from tensorboardX import SummaryWriter
 class Monitor:
     def __init__(self, config: {}):
         dir = os.path.join("workdir", "logs")
-        dir = os.path.join(dir, "{}_{}".format(config['network']['architecture'], config['network']['optimizer']))
+        dir = os.path.join(dir, "{}_{}".format(config['architecture'], config['optimizer']))
         if os.path.exists(dir) and os.path.isdir(dir):
             idx = 0
             tmp_dir = dir + "_v{}".format(idx)
