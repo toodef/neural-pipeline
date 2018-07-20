@@ -2,10 +2,20 @@ import os
 
 from tensorboardX import SummaryWriter
 
+from tonet.tonet import FileStructManager
+
 
 class Monitor:
-    def __init__(self, config: {}):
-        dir = os.path.join("workdir", "logs")
+    def __init__(self, config: {}, file_struct_manager: FileStructManager):
+        self.__metrics_storage = {}
+        self.__metrics_min_values = {}
+        self.__metrics_max_values = {}
+
+        self.__writer = None
+        dir = file_struct_manager.logdir_path()
+        if dir is None:
+            return
+
         dir = os.path.join(dir, "{}_{}".format(config['architecture'], config['optimizer']))
         if os.path.exists(dir) and os.path.isdir(dir):
             idx = 0
@@ -16,10 +26,6 @@ class Monitor:
             dir = tmp_dir
         os.makedirs(dir, exist_ok=True)
         self.__writer = SummaryWriter(dir)
-
-        self.__metrics_storage = {}
-        self.__metrics_min_values = {}
-        self.__metrics_max_values = {}
 
     def update(self, epoch_idx: int, metrics: {}):
         for k, v in metrics.items():
@@ -46,8 +52,9 @@ class Monitor:
         print(string)
 
     def __update_tensorboard(self, epoch_idx: int, metrics: {}):
-        for k, v in metrics.items():
-            self.__writer.add_scalar('train/{}'.format(k), v, global_step=epoch_idx + 1)
+        if self.__writer is not None:
+            for k, v in metrics.items():
+                self.__writer.add_scalar('plots/{}'.format(k), v, global_step=epoch_idx + 1)
 
     def close(self):
         self.__writer.close()

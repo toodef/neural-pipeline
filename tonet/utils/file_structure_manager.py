@@ -1,4 +1,5 @@
 import os
+import sys
 
 
 class FileStructManager:
@@ -9,7 +10,15 @@ class FileStructManager:
         def __str__(self):
             return self.__message
 
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, logdir_path: str=None):
+        if logdir_path is None:
+            if 'NN_LOGDIR' in os.environ:
+                logdir_path = os.environ['NN_LOGDIR']
+            else:
+                print("Logdir doesn't specified and NN_LOGDIR also doesn't set! Logs will not be writen!", file=sys.stderr)
+
+        self.__logdir_path = logdir_path
+
         if not (os.path.exists(config_path) and os.path.isfile(config_path)):
             raise self.FSMException("Config path doesnt find [{}]".format(config_path))
 
@@ -32,6 +41,9 @@ class FileStructManager:
 
     def optimizer_state_file(self, preffix: str=None) -> str:
         return os.path.join(self.optimizer_state_dir(), "{}_".format(preffix) if preffix is not None else "" + "state.pth")
+
+    def logdir_path(self) -> str:
+        return self.__logdir_path
 
     def __create_data_folder(self) -> None:
         if os.path.exists(self.__data_dir) and os.path.isdir(self.__data_dir):

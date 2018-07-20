@@ -54,7 +54,7 @@ class DataProcessor(InitedByConfig):
         if self.__is_cuda:
             self.__criterion = self.__criterion.cuda()
 
-        self.__monitor = Monitor(config)
+        self.__monitor = Monitor(config, self.__file_struct_manager)
         self.clear_metrics()
 
         self.__epoch_num = 0

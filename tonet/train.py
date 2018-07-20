@@ -11,16 +11,18 @@ from .data_processor.state_manager import StateManager
 
 
 class Trainer:
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, logdir_path: str=None):
         with open(config_path, 'r') as file:
             self.__config = json.load(file)
 
-        self.__file_sruct_manager = FileStructManager(config_path)
+        self.__file_sruct_manager = FileStructManager(config_path, logdir_path)
 
         config_dir = os.path.dirname(config_path)
 
         with open(os.path.normpath(os.path.join(config_dir, self.__config['data_conveyor']['train']['dataset_path'])).replace("\\", "/"), 'r') as file:
             self.__train_pathes = json.load(file)
+        with open(os.path.normpath(os.path.join(config_dir, self.__config['data_conveyor']['validation']['dataset_path'])).replace("\\", "/"), 'r') as file:
+            self.__validation_pathes = json.load(file)
 
     def train(self):
         train_loader = torch.utils.data.DataLoader(
@@ -28,7 +30,7 @@ class Trainer:
             batch_size=int(self.__config['data_conveyor']['batch_size']), shuffle=True,
             num_workers=int(self.__config['data_conveyor']['threads_num']), pin_memory=True)
         val_loader = torch.utils.data.DataLoader(
-            Dataset(self.__config['data_conveyor']['validation'], self.__train_pathes, self.__file_sruct_manager),
+            Dataset(self.__config['data_conveyor']['validation'], self.__validation_pathes, self.__file_sruct_manager),
             batch_size=int(self.__config['data_conveyor']['batch_size']), shuffle=True,
             num_workers=int(self.__config['data_conveyor']['threads_num']), pin_memory=True)
 

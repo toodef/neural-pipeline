@@ -119,7 +119,7 @@ class AugmentationsUi(Widget):
             self.cancel()
             self.__add_btn.set_on_click_callback(parent.add_augmentation)
 
-            self.__previous_augmentations = []
+            self.__previous_augmentations = None
 
         def set_dataset_path(self, datatset_path):
             self.__dataset_path = datatset_path
