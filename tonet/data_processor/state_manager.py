@@ -6,10 +6,19 @@ from tonet.tonet.utils.file_structure_manager import FileStructManager
 
 class StateManager:
     def __init__(self, file_struct_manager: FileStructManager, preffix: str = None):
-        self.__preffix = preffix
         self.__file_struct_manager = file_struct_manager
 
         self.__files = {}
+
+        weights_file = self.__file_struct_manager.weights_file()
+        state_file = self.__file_struct_manager.optimizer_state_file()
+
+        if os.path.exists(weights_file) and os.path.exists(state_file) and os.path.isfile(weights_file) and os.path.isfile(state_file):
+            self.__preffix = "prev_start"
+            self.pack()
+            self.__preffix = None
+
+        self.__preffix = preffix
 
     def unpack(self) -> None:
         self.__files['weights_file'] = os.path.join(self.__file_struct_manager.weights_dir(), "weights.pth")
@@ -40,11 +49,8 @@ class StateManager:
                 os.rename(file, target)
 
         weights_file = self.__file_struct_manager.weights_file()
-        state_file = self.__file_struct_manager.weights_dir()
+        state_file = self.__file_struct_manager.optimizer_state_file()
         result_file = self.__construct_result_file()
-
-        rm_file(weights_file)
-        rm_file(state_file)
 
         rename_file(result_file)
         with ZipFile(result_file, 'w') as zipfile:
@@ -59,4 +65,4 @@ class StateManager:
 
     def __construct_result_file(self):
         data_dir = self.__file_struct_manager.weights_dir()
-        return os.path.join(data_dir, self.__preffix + "_" if self.__preffix is not None else "" + "state.zip")
+        return os.path.join(data_dir, (self.__preffix + "_" if self.__preffix is not None else "") + "state.zip")

@@ -1,13 +1,15 @@
+import os
 from random import randint
 
 import cv2
 
-
+from tonet.tonet.utils.file_structure_manager import FileStructManager
 from .augmentations import augmentations_dict
 
 
 class Dataset:
-    def __init__(self, config: {}, pathes: []):
+    def __init__(self, config: {}, pathes: [], file_struct_manager: FileStructManager):
+        self.__config_path = file_struct_manager.conjfig_dir()
         self.__pathes = pathes
         percentage = config['images_percentage'] if 'images_percentage' in config else 100
         self.__cell_size = 100 / percentage
@@ -45,12 +47,12 @@ class Dataset:
             return image
 
         item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1 if self.__percentage < 100 else item
-
+        data_path = os.path.join(self.__config_path, "..", "..", self.__pathes['data'][item]['path']).replace("\\", "/")
         if 'target' in self.__pathes['data'][item]:
-            return {'data': augmentate(cv2.imread(self.__pathes['data'][item]['path'])),
+            return {'data': augmentate(cv2.imread(data_path)),
                     'target': self.__pathes['data'][item]['target']}
         else:
-            return augmentate(cv2.imread(self.__pathes['data'][item]['path']))
+            return augmentate(cv2.imread(data_path))
 
     def __len__(self):
         return self.__data_num

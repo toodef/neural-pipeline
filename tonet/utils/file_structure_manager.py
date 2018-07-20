@@ -13,10 +13,13 @@ class FileStructManager:
         if not (os.path.exists(config_path) and os.path.isfile(config_path)):
             raise self.FSMException("Config path doesnt find [{}]".format(config_path))
 
-        config_dir = os.path.dirname(config_path)
-        self.__data_dir = os.path.join(config_dir, 'data')
+        self.__config_dir = os.path.dirname(config_path)
+        self.__data_dir = os.path.join(self.__config_dir, 'data')
 
         self.__create_data_folder()
+
+    def conjfig_dir(self) -> str:
+        return self.__config_dir
 
     def weights_dir(self) -> str:
         return self.__data_dir

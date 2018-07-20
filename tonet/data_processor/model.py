@@ -53,7 +53,7 @@ class Model(InitedByConfig):
             return
 
         self.__weights_dir = self.__file_struct_manager.weights_dir()
-        self.__weights_file = os.path.join(self.__weights_dir, "weights.pth")
+        self.__weights_file = self.__file_struct_manager.weights_file()
 
     def __load_weights_by_url(self):
         model_url = model_urls[self.__config['architecture']]

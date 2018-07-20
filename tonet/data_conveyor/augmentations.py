@@ -92,10 +92,7 @@ class GaussNoise(Augmentation):
         gauss = np.random.normal(self.__mean, sigma, (row, col, ch))
         gauss = (gauss - np.min(gauss))
         gauss = gauss / np.max(gauss) * self.__interval
-        noisy = data.copy()
-        mask = data < 255 - self.__interval
-        noisy[mask] = data[mask] + gauss[mask]
-        return noisy.astype(np.uint8)
+        return np.where((255 - data) < gauss, 255, data + gauss).astype(np.uint8)
 
     def _get_config(self) -> {}:
         return {'mean': self.__mean, 'var': self.__var, 'interval': self.__interval}
@@ -233,9 +230,7 @@ class RandomBrightness(Augmentation):
 
     def process(self, data):
         brightness = randint(self.__interval[0], self.__interval[1])
-        new_data = data.copy()
-        new_data[new_data < 255 - brightness] += brightness
-        return new_data
+        return np.where((255 - data) < brightness, 255, data + brightness)
 
     def _get_config(self) -> {}:
         return {'interval': self.__interval}
@@ -248,7 +243,7 @@ class RandomContrast(Augmentation):
 
     def process(self, data):
         contrast = randint(self.__interval[0], self.__interval[1]) / 100
-        return (data * contrast).astype(np.uint8)
+        return np.where((data * contrast) > 255, 255, data * contrast).astype(np.uint8)
 
     def _get_config(self) -> {}:
         return {'interval': self.__interval}

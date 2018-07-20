@@ -7,11 +7,10 @@ from PySide2.QtWidgets import QAction
 
 from data_conveyor.augmentations import augmentations_dict
 from data_processor.model import model_urls, start_modes
-from neuro_studio.PySide2Wrapper.PySide2Wrapper import MainWindow, ComboBox, OpenFile, LineEdit, Button, SaveFile, CheckBox, \
+from .PySide2Wrapper.PySide2Wrapper import MainWindow, ComboBox, OpenFile, LineEdit, Button, SaveFile, CheckBox, \
     ListWidget, Widget, DynamicView, DockWidget, MessageWindow
 
-from neuro_studio.PySide2Wrapper.PySide2Wrapper import Application
-from neuro_studio.augmentations import augmentations_ui
+from .augmentations import augmentations_ui
 from utils.config import default_config
 
 
@@ -499,7 +498,8 @@ class NeuralStudio(MainWindow):
         if id is None:
             self.__configs.append({"name": name, "instance": self.Config(config, self.__project_path), 'id': self.__last_config_id})
         else:
-            self.__configs.append({"name": name, "instance": self.Config(config, self.__project_path), 'id': id})
+            cur_path = os.path.join(self.__project_path, 'workdir', str(id))
+            self.__configs.append({"name": name, "instance": self.Config(config, cur_path), 'id': id})
 
             if id > self.__last_config_id:
                 self.__last_config_id = id
@@ -545,13 +545,12 @@ class NeuralStudio(MainWindow):
         with open(os.path.join(self.__project_path, self.__project_name), 'r') as file:
             self.__project_config = json.load(file)
 
-        self.__cur_view.clear()
-        self.__configs = []
-        self.__chunks_items.get_instance().clear()
+        self.__close_project()
 
         for c in self.__project_config:
             config_id = c['id']
-            with open(os.path.join(self.__project_path, "workdir", str(config_id), 'config.json'), 'r') as file:
+            config_path = os.path.join(self.__project_path, "workdir", str(config_id), 'config.json')
+            with open(config_path, 'r') as file:
                 config = json.load(file)
             self.add_config(name=c['name'], config=config, id=config_id)
 
@@ -567,10 +566,11 @@ class NeuralStudio(MainWindow):
             json.dump(project_config, outfile, indent=2)
 
         for c in self.__configs:
-            config = {'data_processor': {}, 'data_conveyor': {}}
-            c['instance'].flush_to_config(config, self.__project_path)
-
             cur_path = os.path.join(self.__project_path, 'workdir', str(c['id']))
+
+            config = {'data_processor': {}, 'data_conveyor': {}}
+            c['instance'].flush_to_config(config, cur_path)
+
             if not os.path.exists(cur_path) or not os.path.isdir(cur_path):
                 os.makedirs(cur_path)
             with open(os.path.join(cur_path, 'config.json'), 'w') as outfile:
@@ -578,15 +578,13 @@ class NeuralStudio(MainWindow):
 
         self.__project_path_changed()
 
+    def __close_project(self):
+        if len(self.__configs) == 1:
+            self.del_config(0)
+        else:
+            for i in range(len(self.__configs) - 1, 0, -1):
+                self.del_config(i)
+        self.__configs = []
+
     def __clear_trash(self):
         MessageWindow("Clear trash", "Not implemented", self.get_instance()).show()
-
-
-if __name__ == "__main__":
-    app = Application()
-    studio = NeuralStudio()
-    resolution = app.screen_resolution()
-    studio.resize(1000, 0)
-    studio.move(100, 100)
-    studio.show()
-    app.run()
