@@ -55,6 +55,7 @@ class InitedByConfig(metaclass=ABCMeta):
 
 default_config = {
     "data_processor": {
+        'model_type': "classifier",
         "architecture": "densenet201",
         "optimizer": "Adam",
         "learning_rate": {"start_value": 0.001,

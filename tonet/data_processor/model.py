@@ -1,9 +1,11 @@
 import os
+
 import requests
 
 import torch
-import torchvision.models as models
+import torchvision
 
+from tonet.tonet.data_processor import u_net_model
 from tonet.tonet.utils.config import InitedByConfig
 from tonet.tonet.utils.file_structure_manager import FileStructManager
 
@@ -29,14 +31,18 @@ class Model(InitedByConfig):
         def __str__(self):
             return self.__message
 
-    def __init__(self, config: {}, file_struct_manager: FileStructManager):
+    def __init__(self, config: {}, file_struct_manager: FileStructManager, classes_num: int):
         super().__init__()
 
         self.__file_struct_manager = file_struct_manager
 
-        self.__model = None
         self.__config = config
-        self.__model = getattr(models, self.__config['architecture'])()
+        self.__classes_num = classes_num
+
+        if self.__config["model"] is "classifier":
+            self.__model = getattr(torchvision.models, self.__config['architecture'])()
+        elif self.__config['model'] is "u_net":
+            self.__model = getattr(u_net_model, self.__config['architecture'])(in_channels=classes_num)
 
         self.__is_cuda = True
         if self.__is_cuda:
@@ -68,22 +74,16 @@ class Model(InitedByConfig):
 
     def load_weights(self, weights_file: str, url=False):
         pretrained_weights = torch.load(weights_file)
-        # # pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
-        # from collections import OrderedDict
-        # new_state_dict = OrderedDict()
-        # for k, v in pretrained_weights.items():
-        #     name = k[7:]  # remove `module.`
-        #     new_state_dict[name] = v
 
         if not url:
-            self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, 128)
+            self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, self.__classes_num)
             self.__model = torch.nn.DataParallel(self.__model)
             pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
             self.__model.load_state_dict(pretrained_weights)
         else:
             self.__load_weights_by_url()
             self.__model.load_state_dict(pretrained_weights)
-            self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, 128)
+            self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, self.__classes_num)
             self.__model = torch.nn.DataParallel(self.__model)
 
     def save_weights(self):

@@ -20,6 +20,9 @@ class Dataset:
 
         self.__augmentations_percentage = config['augmentations_percentage'] if 'augmentations_percentage' in config else None
 
+    def get_classes(self) -> []:
+        return self.__pathes['labels']
+
     def load_augmentations(self, config: []):
         """
         Load augmentations by config

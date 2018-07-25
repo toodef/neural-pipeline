@@ -39,11 +39,11 @@ class DataProcessor(InitedByConfig):
 
             return self.__value
 
-    def __init__(self, config: {}, file_struct_manadger: FileStructManager):
+    def __init__(self, config: {}, file_struct_manadger: FileStructManager, classes_num):
         self.__is_cuda = True
         self.__file_struct_manager = file_struct_manadger
 
-        self.__model = Model(config, self.__file_struct_manager)
+        self.__model = Model(config, self.__file_struct_manager, classes_num)
         self.__learning_rate = self.LearningRate(config)
 
         self.__optimizer_fnc = getattr(torch.optim, config['optimizer'])

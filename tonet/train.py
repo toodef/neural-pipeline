@@ -11,7 +11,7 @@ from .data_processor.state_manager import StateManager
 
 
 class Trainer:
-    def __init__(self, config_path: str, logdir_path: str=None):
+    def __init__(self, config_path: str, logdir_path: str = None):
         with open(config_path, 'r') as file:
             self.__config = json.load(file)
 
@@ -25,16 +25,16 @@ class Trainer:
             self.__validation_pathes = json.load(file)
 
     def train(self):
-        train_loader = torch.utils.data.DataLoader(
-            Dataset(self.__config['data_conveyor']['train'], self.__train_pathes, self.__file_sruct_manager),
-            batch_size=int(self.__config['data_conveyor']['batch_size']), shuffle=True,
-            num_workers=int(self.__config['data_conveyor']['threads_num']), pin_memory=True)
+        train_dataset = Dataset(self.__config['data_conveyor']['train'], self.__train_pathes, self.__file_sruct_manager)
+        train_loader = torch.utils.data.DataLoader(train_dataset,
+                                                   batch_size=int(self.__config['data_conveyor']['batch_size']), shuffle=True,
+                                                   num_workers=int(self.__config['data_conveyor']['threads_num']), pin_memory=True)
         val_loader = torch.utils.data.DataLoader(
             Dataset(self.__config['data_conveyor']['validation'], self.__validation_pathes, self.__file_sruct_manager),
             batch_size=int(self.__config['data_conveyor']['batch_size']), shuffle=True,
             num_workers=int(self.__config['data_conveyor']['threads_num']), pin_memory=True)
 
-        data_processor = DataProcessor(self.__config['data_processor'], self.__file_sruct_manager)
+        data_processor = DataProcessor(self.__config['data_processor'], self.__file_sruct_manager, len(train_dataset.get_classes()))
         state_manager = StateManager(self.__file_sruct_manager)
 
         for epoch_idx in range(int(self.__config['data_conveyor']['epoch_num'])):
