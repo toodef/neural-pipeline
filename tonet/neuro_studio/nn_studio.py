@@ -7,6 +7,8 @@ from PySide2.QtWidgets import QAction
 
 from data_conveyor.augmentations import augmentations_dict
 from data_processor.model import model_urls, start_modes
+
+from tonet.tonet.data_processor.model import model_types
 from .PySide2Wrapper.PySide2Wrapper import MainWindow, ComboBox, OpenFile, LineEdit, Button, SaveFile, CheckBox, \
     ListWidget, Widget, DynamicView, DockWidget, MessageWindow
 
@@ -28,9 +30,20 @@ class DataProcessorUi:
         self.__optimizers = ['Adam', 'SGD']
 
         parent.start_group_box("Data Processor")
+        self.__model_type = parent.add_widget(
+            ComboBox().add_label('Model type', 'top').add_items(model_types))
         self.__architecture = parent.add_widget(
             ComboBox().add_label('Architecture', 'top').add_items(model_urls.keys()))
         self.__optimizer = parent.add_widget(ComboBox().add_label('Optimizer', 'top').add_items(self.__optimizers))
+
+        parent.start_horizontal()
+        parent.insert_text_label('Data size:')
+        self.__dc_data_size_x = parent.add_widget(LineEdit())
+        parent.insert_text_label('X')
+        self.__dc_data_size_y = parent.add_widget(LineEdit())
+        parent.insert_text_label('X')
+        self.__dc_data_size_c = parent.add_widget(LineEdit())
+        parent.cancel()
 
         parent.start_group_box('Learning rate')
         self.__lr_start_value = parent.add_widget(LineEdit().add_label('Start value: ', 'left'))
@@ -47,9 +60,14 @@ class DataProcessorUi:
 
     def init_by_config(self, config: {}):
         cur_config = config['data_processor']
+        self.__model_type.set_value(model_types.index(cur_config['model_type']))
         self.__architecture.set_value(self.__models.index(cur_config['architecture']))
         self.__optimizer.set_value(self.__optimizers.index(cur_config['optimizer']))
         self.__start_from.set_value(start_modes.index(cur_config['start_from']))
+
+        self.__dc_data_size_x.set_value(str(cur_config['data_size'][0]))
+        self.__dc_data_size_y.set_value(str(cur_config['data_size'][1]))
+        self.__dc_data_size_c.set_value(str(cur_config['data_size'][2]))
 
         self.__lr_start_value.set_value(str(cur_config['learning_rate']['start_value']))
         self.__lr_skip_steps_num.set_value(str(cur_config['learning_rate']['skip_steps_number']))
@@ -57,9 +75,15 @@ class DataProcessorUi:
         self.__lr_first_epoch_decrease_coeff.set_value(str(cur_config['learning_rate']['first_epoch_decrease_coeff']))
 
     def flush_to_config(self, config: {}):
+        config['data_processor']['model_type'] = model_types[int(self.__model_type.get_value())]
+
         config['data_processor']['architecture'] = self.__models[int(self.__architecture.get_value())]
         config['data_processor']['optimizer'] = self.__optimizers[int(self.__optimizer.get_value())]
         config['data_processor']['start_from'] = start_modes[int(self.__start_from.get_value())]
+
+        config['data_processor']['data_size'] = [int(self.__dc_data_size_x.get_value()),
+                                                int(self.__dc_data_size_y.get_value()),
+                                                int(self.__dc_data_size_c.get_value())]
 
         config['data_processor']['learning_rate'] = {}
         try:
@@ -337,14 +361,6 @@ class DataConveyorUi:
     def __init__(self, parent: Widget):
         parent.start_group_box('Data Conveyor')
         parent.start_horizontal()
-        parent.insert_text_label('Data size:')
-        self.__dc_data_size_x = parent.add_widget(LineEdit())
-        parent.insert_text_label('X')
-        self.__dc_data_size_y = parent.add_widget(LineEdit())
-        parent.insert_text_label('X')
-        self.__dc_data_size_c = parent.add_widget(LineEdit())
-        parent.cancel()
-        parent.start_horizontal()
         self.__dc_batch_size = parent.add_widget(LineEdit().add_label('Batch size', 'top'))
         self.__dc_threads_num = parent.add_widget(LineEdit().add_label('Threads number', 'top'))
         self.__dc_epoch_num = parent.add_widget(LineEdit().add_label('Epochs number', 'top'))
@@ -362,9 +378,6 @@ class DataConveyorUi:
 
     def init_by_config(self, config: {}):
         cur_config = config['data_conveyor']
-        self.__dc_data_size_x.set_value(str(cur_config['data_size'][0]))
-        self.__dc_data_size_y.set_value(str(cur_config['data_size'][1]))
-        self.__dc_data_size_c.set_value(str(cur_config['data_size'][2]))
         self.__dc_batch_size.set_value(str(cur_config['batch_size']))
         self.__dc_threads_num.set_value(str(cur_config['threads_num']))
         self.__dc_epoch_num.set_value(str(cur_config['epoch_num']))
@@ -374,9 +387,6 @@ class DataConveyorUi:
             self.__dataset_path.set_value(str(cur_config['dataset_path']))
 
     def flush_to_config(self, config: {}):
-        config['data_conveyor']['data_size'] = [int(self.__dc_data_size_x.get_value()),
-                                                int(self.__dc_data_size_y.get_value()),
-                                                int(self.__dc_data_size_c.get_value())]
         config['data_conveyor']['batch_size'] = int(self.__dc_batch_size.get_value())
         config['data_conveyor']['threads_num'] = int(self.__dc_threads_num.get_value())
         config['data_conveyor']['epoch_num'] = int(self.__dc_epoch_num.get_value())

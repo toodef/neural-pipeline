@@ -20,6 +20,7 @@ model_urls = {
 }
 
 start_modes = ['begin', 'url', 'continue']
+model_types = ['classifier', 'u_net']
 
 
 class Model(InitedByConfig):
@@ -39,10 +40,12 @@ class Model(InitedByConfig):
         self.__config = config
         self.__classes_num = classes_num
 
-        if self.__config["model"] is "classifier":
+        channels_num = self.__config['data_size'][2]
+
+        if self.__config["model_type"] == "classifier":
             self.__model = getattr(torchvision.models, self.__config['architecture'])()
-        elif self.__config['model'] is "u_net":
-            self.__model = getattr(u_net_model, self.__config['architecture'])(in_channels=classes_num)
+        elif self.__config['model_type'] == "u_net":
+            self.__model = getattr(u_net_model, self.__config['architecture'])(classes_num=classes_num, in_channels=channels_num)
 
         self.__is_cuda = True
         if self.__is_cuda:

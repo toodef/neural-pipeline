@@ -2,9 +2,12 @@ import os
 from random import randint
 
 import cv2
+import torch
 
 from tonet.tonet.utils.file_structure_manager import FileStructManager
 from .augmentations import augmentations_dict
+
+import numpy as np
 
 
 class Dataset:
@@ -12,7 +15,7 @@ class Dataset:
         self.__config_path = file_struct_manager.conjfig_dir()
         self.__pathes = pathes
         percentage = config['images_percentage'] if 'images_percentage' in config else 100
-        self.__cell_size = 100 / percentage
+        self.__cell_size = 100 // percentage
         self.__data_num = len(self.__pathes['data']) * percentage // 100
         self.__percentage = percentage
 
@@ -53,9 +56,12 @@ class Dataset:
         data_path = os.path.join(self.__config_path, "..", "..", self.__pathes['data'][item]['path']).replace("\\", "/")
         if 'target' in self.__pathes['data'][item]:
             return {'data': augmentate(cv2.imread(data_path)),
-                    'target': self.__pathes['data'][item]['target']}
+                    'target': self.process_target(self.__pathes['data'][item]['target'])}
         else:
             return augmentate(cv2.imread(data_path))
+
+    def process_target(self, target):
+        return np.moveaxis(np.zeros((224, 224), dtype=np.float32), -1, 0)
 
     def __len__(self):
         return self.__data_num

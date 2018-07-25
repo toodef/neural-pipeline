@@ -79,7 +79,7 @@ class DataProcessor(InitedByConfig):
             target = target.cuda(async=True)
 
         inputs_num = input.size(0)
-        target_var = torch.autograd.Variable(target, volatile=not is_train)
+        target_var = torch.autograd.Variable(target, volatile=not is_train).long()
 
         if is_train:
             self.__optimizer.zero_grad()

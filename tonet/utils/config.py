@@ -55,7 +55,8 @@ class InitedByConfig(metaclass=ABCMeta):
 
 default_config = {
     "data_processor": {
-        'model_type': "classifier",
+        'model_type': "u_net",
+        "data_size": [224, 224, 3],
         "architecture": "densenet201",
         "optimizer": "Adam",
         "learning_rate": {"start_value": 0.001,
@@ -65,7 +66,6 @@ default_config = {
         "start_from": "url"
     },
     "data_conveyor": {
-        "data_size": [224, 224, 3],
         "batch_size": 1,
         "threads_num": 1,
         "epoch_num": 1,

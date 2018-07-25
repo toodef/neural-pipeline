@@ -1,7 +1,98 @@
+import torch
 import torch.nn as nn
 import math
 
 __all__ = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152']
+
+
+class UnetDecoderBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.layer = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        return self.layer(x)
+
+
+class ConvBottleneck(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.seq = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, dec, enc):
+        x = torch.cat([dec, enc], dim=1)
+        return self.seq(x)
+
+
+class UNetModel(torch.nn.Module):
+    def __init__(self, base_model: torch.nn.Module, num_classes: int, in_channels: int):
+        super().__init__()
+        if not hasattr(self, 'decoder_block'):
+            self.decoder_block = UnetDecoderBlock
+        if not hasattr(self, 'bottleneck_type'):
+            self.bottleneck_type = ConvBottleneck
+
+        filters = [64, 64, 128, 256, 512]
+
+        self.bottlenecks = nn.ModuleList([self.bottleneck_type(f * 2, f) for f in reversed(filters[:-1])])
+        self.decoder_stages = nn.ModuleList([self.get_decoder(filters, idx) for idx in range(1, len(filters))])
+
+        self.encoder_stages = nn.ModuleList([self.get_encoder(base_model, idx) for idx in range(len(filters))])
+
+        self.last_upsample = self.decoder_block(filters[0], filters[0])
+        self.final = self.make_final_classifier(filters[0], num_classes)
+
+    def forward(self, x):
+        # you better run this in debugger and see what happens.
+        # initial ideas are U-Net and LinkNet. see papers or blogposts for additional information
+        enc_results = []
+        for stage in self.encoder_stages:
+            x = stage(x)
+            enc_results.append(x.clone())
+
+        for idx, bottleneck in enumerate(self.bottlenecks):
+            rev_idx = - (idx + 1)
+            x = self.decoder_stages[rev_idx](x)
+            x = bottleneck(x, enc_results[rev_idx - 1])
+
+        x = self.last_upsample(x)
+        f = self.final(x)
+        return f
+
+    def make_final_classifier(self, in_filters, num_classes):
+        return nn.Sequential(
+            nn.Conv2d(in_filters, num_classes, 3, padding=1)
+        )
+
+    def get_encoder(self, encoder, layer):
+        """
+        encoder layers are different sized features from different net depth
+        """
+        if layer == 0:
+            return nn.Sequential(
+                encoder.conv1,
+                encoder.bn1,
+                encoder.relu)
+        elif layer == 1:
+            return nn.Sequential(
+                encoder.maxpool,
+                encoder.layer1)
+        elif layer == 2:
+            return encoder.layer2
+        elif layer == 3:
+            return encoder.layer3
+        elif layer == 4:
+            return encoder.layer4
+
+    def get_decoder(self, filters, layer):
+        return self.decoder_block(filters[layer], filters[max(layer - 1, 0)])
 
 
 def conv3x3(in_planes, out_planes, stride=1):
@@ -141,17 +232,17 @@ def resnet18(**kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
-    return model
+    return UNetModel(model, **kwargs)
 
 
-def resnet34(**kwargs):
+def resnet34(classes_num: int, in_channels:int):
     """Constructs a ResNet-34 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
-    return model
+    model = ResNet(BasicBlock, [3, 4, 6, 3], in_channels)
+    return UNetModel(model, classes_num, in_channels)
 
 
 def resnet50(**kwargs):
