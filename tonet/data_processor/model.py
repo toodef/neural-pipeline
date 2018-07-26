@@ -4,6 +4,7 @@ import requests
 
 import torch
 import torchvision
+from torch.utils import model_zoo
 
 from tonet.tonet.data_processor import u_net_model
 from tonet.tonet.utils.config import InitedByConfig
@@ -44,14 +45,23 @@ class Model(InitedByConfig):
 
         if self.__config["model_type"] == "classifier":
             self.__model = getattr(torchvision.models, self.__config['architecture'])()
+
+            if config['start_from'] == 'url':
+                self.__load_weights_by_url()
+
+            self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, self.__classes_num)
         elif self.__config['model_type'] == "u_net":
-            self.__model = getattr(u_net_model, self.__config['architecture'])(classes_num=classes_num, in_channels=channels_num)
+            if config['start_from'] == 'url':
+                self.__model = getattr(u_net_model, self.__config['architecture'])(classes_num=classes_num, in_channels=channels_num, weights_url=model_urls[self.__config['architecture']])
+            else:
+                self.__model = getattr(u_net_model, self.__config['architecture'])(classes_num=classes_num, in_channels=channels_num)
+        self.__init_from_config()
+
+        self.__model = torch.nn.DataParallel(self.__model)
 
         self.__is_cuda = True
         if self.__is_cuda:
             self.__model = self.__model.cuda()
-
-        self.__init_from_config()
 
     def model(self):
         return self.__model
@@ -65,29 +75,20 @@ class Model(InitedByConfig):
         self.__weights_file = self.__file_struct_manager.weights_file()
 
     def __load_weights_by_url(self):
+        print("Model weights inited by url")
         model_url = model_urls[self.__config['architecture']]
-        init_weights_file = os.path.join(self.__weights_dir, model_url.split("/")[-1])
 
-        if not os.path.isfile(init_weights_file):
-            if not os.path.exists(self.__weights_dir) or not os.path.isdir(self.__weights_dir):
-                os.makedirs(self.__weights_dir)
-            response = requests.get(model_url)
-            with open(init_weights_file, 'wb') as file:
-                file.write(response.content)
+        pretrained_weights = model_zoo.load_url(model_url)
+        model_state_dict = self.__model.state_dict()
+        pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in model_state_dict}
+        self.__model.load_state_dict(pretrained_weights)
 
-    def load_weights(self, weights_file: str, url=False):
+    def load_weights(self, weights_file: str):
+        print("Model inited by file: ", weights_file)
+
         pretrained_weights = torch.load(weights_file)
-
-        if not url:
-            self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, self.__classes_num)
-            self.__model = torch.nn.DataParallel(self.__model)
-            pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
-            self.__model.load_state_dict(pretrained_weights)
-        else:
-            self.__load_weights_by_url()
-            self.__model.load_state_dict(pretrained_weights)
-            self.__model.classifier = torch.nn.Linear(self.__model.classifier.in_features, self.__classes_num)
-            self.__model = torch.nn.DataParallel(self.__model)
+        pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self.__model.state_dict()}
+        self.__model.load_state_dict(pretrained_weights)
 
     def save_weights(self):
         torch.save(self.__model.state_dict(), self.__weights_file)

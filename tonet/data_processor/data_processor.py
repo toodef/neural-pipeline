@@ -2,6 +2,7 @@ import torch
 from tqdm import tqdm
 
 from tonet.tonet.data_processor.metrics import dice_loss, jaccard
+from tonet.tonet.data_processor.state_manager import StateManager
 from tonet.tonet.utils.file_structure_manager import FileStructManager
 from .model import Model
 from .monitoring import Monitor
@@ -124,6 +125,13 @@ class DataProcessor(InitedByConfig):
         self.__optimizer_fnc = getattr(torch.optim, config['optimizer'])
         self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=1.e-4,
                                                 lr=self.__learning_rate.value(0, 0))
+
+        if config['start_from'] == 'resume':
+            state_manager = StateManager(file_struct_manadger)
+            state_manager.unpack()
+            self.load_weights(state_manager.get_files()['weights_file'])
+            self.load_state(state_manager.get_files()['state_file'])
+            state_manager.clear_files()
 
         if self.__is_cuda:
             self.__criterion = self.__criterion.cuda()

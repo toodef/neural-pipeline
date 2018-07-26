@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import math
 
+from torch.utils import model_zoo
+
 __all__ = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152']
 
 
@@ -32,12 +34,20 @@ class ConvBottleneck(nn.Module):
 
 
 class UNetModel(torch.nn.Module):
-    def __init__(self, base_model: torch.nn.Module, num_classes: int, in_channels: int):
+    def __init__(self, base_model: torch.nn.Module, num_classes: int, weights_url: str = None):
         super().__init__()
         if not hasattr(self, 'decoder_block'):
             self.decoder_block = UnetDecoderBlock
         if not hasattr(self, 'bottleneck_type'):
             self.bottleneck_type = ConvBottleneck
+
+        if weights_url is not None:
+            print("Model weights inited by url")
+
+            pretrained_weights = model_zoo.load_url(weights_url)
+            model_state_dict = base_model.state_dict()
+            pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in model_state_dict}
+            base_model.load_state_dict(pretrained_weights)
 
         filters = [64, 64, 128, 256, 512]
 
@@ -227,51 +237,51 @@ class ResNet(nn.Module):
         return x
 
 
-def resnet18(**kwargs):
+def resnet18(classes_num: int, in_channels: int, weights_url: str = None):
     """Constructs a ResNet-18 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
-    return UNetModel(model, **kwargs)
+    model = ResNet(BasicBlock, [2, 2, 2, 2], in_channels)
+    return UNetModel(model, classes_num, weights_url=weights_url)
 
 
-def resnet34(classes_num: int, in_channels:int):
+def resnet34(classes_num: int, in_channels: int, weights_url: str = None):
     """Constructs a ResNet-34 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [3, 4, 6, 3], in_channels)
-    return UNetModel(model, classes_num, in_channels)
+    return UNetModel(model, classes_num, weights_url=weights_url)
 
 
-def resnet50(**kwargs):
+def resnet50(classes_num: int, in_channels: int, weights_url: str = None):
     """Constructs a ResNet-50 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
-    return model
+    model = ResNet(Bottleneck, [3, 4, 6, 3], in_channels)
+    return UNetModel(model, classes_num, weights_url=weights_url)
 
 
-def resnet101(**kwargs):
+def resnet101(classes_num: int, in_channels: int, weights_url: str = None):
     """Constructs a ResNet-101 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
-    return model
+    model = ResNet(Bottleneck, [3, 4, 23, 3], in_channels)
+    return UNetModel(model, classes_num, weights_url=weights_url)
 
 
-def resnet152(**kwargs):
+def resnet152(classes_num: int, in_channels: int, weights_url: str = None):
     """Constructs a ResNet-152 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
-    return model
+    model = ResNet(Bottleneck, [3, 8, 36, 3], in_channels)
+    return UNetModel(model, classes_num, weights_url=weights_url)
