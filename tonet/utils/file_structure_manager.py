@@ -15,7 +15,7 @@ class FileStructManager:
             if 'NN_LOGDIR' in os.environ:
                 logdir_path = os.environ['NN_LOGDIR']
             else:
-                print("Logdir doesn't specified and NN_LOGDIR also doesn't set! Logs will not be writen!", file=sys.stderr)
+                print("Logdir doesn't specified and NN_LOGDIR env variable also doesn't specified! Logs will not be writen!", file=sys.stderr)
 
         self.__logdir_path = logdir_path
 

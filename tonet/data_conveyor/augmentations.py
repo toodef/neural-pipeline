@@ -55,24 +55,65 @@ class Augmentation(metaclass=ABCMeta):
         internal_config.update(self._get_config())
         return {self.get_name(): internal_config}
 
+    def is_changed_geometry(self) -> bool:
+        """
+        Is this augmentation changed geometry
+        :return: flag
+        """
+        return False
 
-class HorizontalFlip(Augmentation):
+
+class ChangedGeometryAugmentation(Augmentation, metaclass=ABCMeta):
+    def __init__(self, config: {}, aug_name: str):
+        super().__init__(config, aug_name)
+
+    def __call__(self, data, mask=None) -> []:
+        """
+        Process data
+        :param data: data object
+        :return: processed data and mask objects
+        """
+        if randint(1, 100) <= self._percentage:
+            return self.process(data, mask)
+        else:
+            return data if mask is None else [data, mask]
+
+    def is_changed_geometry(self):
+        return True
+
+    @abstractmethod
+    def process(self, data, mask=None) -> []:
+        """
+        Process data
+        :param data: data object
+        :param mask: mask of groundtruph
+        :return: processed data object
+        """
+
+
+class HorizontalFlip(ChangedGeometryAugmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'hflip')
 
-    def process(self, data):
-        return cv2.flip(data.copy(), 1)
+    def process(self, data, mask=None):
+        if mask is None:
+            return cv2.flip(data.copy(), 1)
+        else:
+            return cv2.flip(data.copy(), 1), cv2.flip(mask.copy(), 1)
 
     def _get_config(self) -> {}:
         return {}
 
 
-class VerticalFlip(Augmentation):
+class VerticalFlip(ChangedGeometryAugmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'vflip')
 
-    def process(self, data):
-        return cv2.flip(data.copy(), 0)
+    def process(self, data, mask=None) -> []:
+        if mask is None:
+            return cv2.flip(data.copy(), 0)
+        else:
+            return cv2.flip(data.copy(), 0), cv2.flip(mask.copy(), 0)
 
     def _get_config(self) -> {}:
         return {}
@@ -149,7 +190,7 @@ def resize_by_min_edge(data, size):
     return cv2.resize(data, target_size)
 
 
-class Resize(Augmentation):
+class Resize(ChangedGeometryAugmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'resize')
         self.__size = self._get_config_path(config)['size']
@@ -157,66 +198,84 @@ class Resize(Augmentation):
             self.__size) == 2 else resize_by_min_edge
         self._percentage = 100
 
-    def process(self, data):
-        return self.__resize_fnc(data, self.__size)
+    def process(self, data, mask=None):
+        if mask is None:
+            return self.__resize_fnc(data, self.__size)
+        else:
+            return self.__resize_fnc(data, self.__size), self.__resize_fnc(mask, self.__size)
 
     def _get_config(self) -> {}:
         return {'size': self.__size}
 
 
-class CentralCrop(Augmentation):
+class CentralCrop(ChangedGeometryAugmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'ccrop')
         self.__size = self._get_config_path(config)['size']
         self.__width, self.__height = self.__size if type(self.__size) == list and len(self.__size) == 2 else [self.__size, self.__size]
 
-    def process(self, data):
+    def process(self, data, mask=None):
         h, w, c = data.shape
         dx, dy = (w - self.__width) // 2, (h - self.__height) // 2
         y1, y2 = dy, dy + self.__height
         x1, x2 = dx, dx + self.__width
-        data = data[y1: y2, x1: x2, :]
-        return data
+
+        if mask is None:
+            return data[y1: y2, x1: x2, :]
+        else:
+            return data[y1: y2, x1: x2, :], mask[y1: y2, x1: x2]
 
     def _get_config(self) -> {}:
         return {'size': self.__size}
 
 
-class RandomCrop(Augmentation):
+class RandomCrop(ChangedGeometryAugmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'rcrop')
         self.__size = self._get_config_path(config)['size']
         self.__width, self.__height = self.__size if type(self.__size) == list and len(self.__size) == 2 else [self.__size, self.__size]
 
-    def process(self, data):
+    def process(self, data, mask=None):
         h, w, c = data.shape
         dx, dy = randint(0, w - self.__width) if w > self.__width else 0, \
                  randint(0, h - self.__height) if h > self.__height else 0
         y1, y2 = dy, dy + self.__height
         x1, x2 = dx, dx + self.__width
-        data = data[y1: y2, x1: x2, :]
-        return data
+
+        if mask is None:
+            return data[y1: y2, x1: x2, :]
+        else:
+            return data[y1: y2, x1: x2, :], mask[y1: y2, x1: x2]
 
     def _get_config(self) -> {}:
         return {'size': self.__size}
 
 
-class RandomRotate(Augmentation):
+class RandomRotate(ChangedGeometryAugmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'rrotate')
         self.__interval = self._get_config_path(config)['interval']
 
-    def process(self, data):
+    def process(self, data, mask=None):
         rows, cols = data.shape[:2]
         angle = randint(self.__interval[0], self.__interval[1])
 
         if angle == 0:
-            return data
+            if mask is None:
+                return data
+            else:
+                return data, mask
 
         M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
-        img = cv2.warpAffine(data, M, (cols, rows))
         offset = abs(int(rows // (2 + 1 / np.tan(np.deg2rad(angle)))))
-        return resize_to_defined(img[offset: rows - offset, offset: cols - offset], [rows, cols])
+
+        img = cv2.warpAffine(data.copy(), M, (cols, rows))
+
+        if mask is None:
+            return resize_to_defined(img[offset: rows - offset, offset: cols - offset], [rows, cols])
+        else:
+            mask_img = cv2.warpAffine(mask.copy(), M, (cols, rows))
+            return resize_to_defined(img[offset: rows - offset, offset: cols - offset], [rows, cols]), resize_to_defined(mask_img[offset: rows - offset, offset: cols - offset], [rows, cols])
 
     def _get_config(self) -> {}:
         return {'interval': self.__interval}

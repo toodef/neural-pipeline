@@ -1,10 +1,13 @@
 import torch
 from tqdm import tqdm
 
+from tonet.tonet.data_processor.metrics import dice_loss, jaccard
 from tonet.tonet.utils.file_structure_manager import FileStructManager
 from .model import Model
 from .monitoring import Monitor
 from tonet.tonet.utils.config import InitedByConfig
+
+import numpy as np
 
 
 class DataProcessor(InitedByConfig):
@@ -39,18 +42,89 @@ class DataProcessor(InitedByConfig):
 
             return self.__value
 
+    class ClassifierDataProcessor:
+        def __init__(self):
+            self.clear_metrics()
+
+        def process_output(self, output) -> {'mask', 'output'}:
+            return {'mask': torch.max(output.data, 1), 'output': output}
+
+        def calc_metrics(self, is_train: bool, preds, target, output, inputs_num: int):
+            if is_train:
+                self.__metrics['train_accuracy'] += torch.sum(preds == target.data)
+                self.__images_processeed['train'] += inputs_num
+            else:
+                self.__metrics['val_accuracy'] += torch.sum(preds == target.data)
+                self.__images_processeed['val'] += inputs_num
+
+        def get_metrics(self):
+            val_acc = self.__metrics['val_accuracy'] / self.__images_processeed['val']
+            train_acc = self.__metrics['train_accuracy'] / self.__images_processeed['train']
+            return {"val_accuracy": val_acc,
+                    "train_accuracy": train_acc,
+                    "train_min_val_acc": train_acc - val_acc}
+
+        def clear_metrics(self):
+            self.__metrics = {"val_accuracy": 0, "train_accuracy": 0, "train_min_val_acc": 0}
+            self.__images_processeed = {"val": 0, "train": 0}
+
+    class SegmentationDataProcessor:
+        def __init__(self):
+            self.clear_metrics()
+
+        def process_output(self, output) -> {'mask', 'output'}:
+            tmp_output = output.data.cpu().numpy()[0][0]
+            mask = np.zeros_like(tmp_output, dtype=np.float32)
+            min = np.min(tmp_output)
+            thresold = 0.7 * (np.max(tmp_output) - min) + min
+            mask[tmp_output > thresold] = 1
+            return {'mask': mask, 'output': output}
+
+        def calc_metrics(self, is_train: bool, preds, target, output, inputs_num):
+            if is_train:
+                self.__metrics['train_dice'] += dice_loss(output, target)
+                self.__metrics['train_jaccard'] += jaccard(output, target)
+                self.__images_processeed['train'] += inputs_num
+            else:
+                self.__metrics['val_dice'] += dice_loss(output, target)
+                self.__metrics['val_jaccard'] += jaccard(output, target)
+                self.__images_processeed['val'] += inputs_num
+
+        def get_metrics(self):
+            train_dice = self.__metrics['train_dice'] / self.__images_processeed['val']
+            val_dice = self.__metrics['val_dice'] / self.__images_processeed['val']
+            train_jaccard = self.__metrics['train_jaccard'] / self.__images_processeed['val']
+            val_jaccard = self.__metrics['val_jaccard'] / self.__images_processeed['val']
+            return {"val_dice": val_dice,
+                    "train_dice": train_dice,
+                    "val_jaccard": val_jaccard,
+                    "train_jaccard": train_jaccard,
+                    "train_min_val_dice": train_dice - val_dice,
+                    "train_min_val_jaccard": train_jaccard - val_jaccard}
+
+        def clear_metrics(self):
+            self.__metrics = {"val_dice": 0, "train_dice": 0, "val_jaccard": 0, "train_jaccard": 0, "train_min_val_dice": 0, "train_min_val_jaccard": 0}
+            self.__images_processeed = {"val": 0, "train": 0}
+
     def __init__(self, config: {}, file_struct_manadger: FileStructManager, classes_num):
         self.__is_cuda = True
         self.__file_struct_manager = file_struct_manadger
 
         self.__model = Model(config, self.__file_struct_manager, classes_num)
+
+        if config["model_type"] == "classifier":
+            self.__target_data_processor = self.ClassifierDataProcessor()
+            self.__criterion = torch.nn.CrossEntropyLoss()
+        else:
+            self.__target_data_processor = self.SegmentationDataProcessor()
+            self.__criterion = torch.nn.BCEWithLogitsLoss()
+
         self.__learning_rate = self.LearningRate(config)
 
         self.__optimizer_fnc = getattr(torch.optim, config['optimizer'])
         self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=1.e-4,
                                                 lr=self.__learning_rate.value(0, 0))
 
-        self.__criterion = torch.nn.CrossEntropyLoss()
         if self.__is_cuda:
             self.__criterion = self.__criterion.cuda()
 
@@ -60,17 +134,13 @@ class DataProcessor(InitedByConfig):
         self.__epoch_num = 0
 
     def predict(self, data, is_train=False):
-        if self.__is_cuda:
-            data = data.cuda(async=is_train)
-
         if is_train:
             self.__model.model().train()
         else:
             self.__model.model().eval()
 
-        input_var = torch.autograd.Variable(data, volatile=not is_train)
-        output = self.__model.model()(input_var)
-        return torch.max(output.data, 1), output
+        output = self.__model.model()(data)
+        return self.__target_data_processor.process_output(output)
 
     def process_batch(self, input, target, is_train):
         self.__model.model().train(is_train)
@@ -79,26 +149,25 @@ class DataProcessor(InitedByConfig):
             target = target.cuda(async=True)
 
         inputs_num = input.size(0)
-        target_var = torch.autograd.Variable(target, volatile=not is_train).long()
+        input = torch.autograd.Variable(input.cuda(async=True), volatile=not is_train)
+        target = torch.autograd.Variable(target.cuda(async=True), volatile=not is_train)
 
         if is_train:
             self.__optimizer.zero_grad()
 
-        [_, preds], output = self.predict(input, is_train)
+        res = self.predict(input, is_train)
+        preds, output = res['mask'], res['output']
 
         if is_train:
-            loss = self.__criterion(output, target_var)
+            loss = self.__criterion(output, target)
             loss.backward()
             self.__metrics['loss'] += loss.data[0] * inputs_num
-            self.__metrics['train_accuracy'] += torch.sum(preds == target_var.data)
-
-            # torch.nn.utils.clip_grad_norm(self.__model.parameters(), 1 / 128.)
             self.__optimizer.step()
         else:
-            loss = self.__criterion(output, target_var)
+            loss = self.__criterion(output, target)
             self.__metrics['val_loss'] += loss.data[0] * inputs_num
-            self.__metrics['val_accuracy'] += torch.sum(preds == target_var.data)
 
+        self.__target_data_processor.calc_metrics(is_train, preds, target, output, inputs_num)
         self.__images_processeed['train' if is_train else 'val'] += inputs_num
 
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
@@ -117,16 +186,15 @@ class DataProcessor(InitedByConfig):
         self.clear_metrics()
 
     def get_metrics(self):
-        val_acc = self.__metrics['val_accuracy'] / self.__images_processeed['val']
-        train_acc = self.__metrics['train_accuracy'] / self.__images_processeed['train']
-        return {"loss": self.__metrics['loss'] / self.__images_processeed['train'],
-                "val_loss": self.__metrics['val_loss'] / self.__images_processeed['train'],
-                "val_accuracy": val_acc,
-                "train_accuracy": train_acc,
-                "train_min_val_acc": train_acc - val_acc}
+        res = {"loss": self.__metrics['loss'] / self.__images_processeed['train'], "val_loss": self.__metrics['val_loss'] / self.__images_processeed['train']}
+
+        for k, v in self.__target_data_processor.get_metrics().items():
+            res[k] = v
+        return res
 
     def clear_metrics(self):
-        self.__metrics = {"loss": 0, "val_loss": 0, "val_accuracy": 0, "train_accuracy": 0, "train_min_val_acc": 0}
+        self.__metrics = {"loss": 0, "val_loss": 0}
+        self.__target_data_processor.clear_metrics()
         self.__images_processeed = {"val": 0, "train": 0}
 
     def get_state(self):

@@ -66,12 +66,14 @@ class UNetModel(torch.nn.Module):
         f = self.final(x)
         return f
 
-    def make_final_classifier(self, in_filters, num_classes):
+    @staticmethod
+    def make_final_classifier(in_filters, num_classes):
         return nn.Sequential(
             nn.Conv2d(in_filters, num_classes, 3, padding=1)
         )
 
-    def get_encoder(self, encoder, layer):
+    @staticmethod
+    def get_encoder(encoder, layer):
         """
         encoder layers are different sized features from different net depth
         """
