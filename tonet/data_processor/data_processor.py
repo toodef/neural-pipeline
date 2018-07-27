@@ -1,6 +1,8 @@
 import torch
 from tqdm import tqdm
 
+import torch.nn.functional as F
+
 from tonet.tonet.data_processor.metrics import dice_loss, jaccard
 from tonet.tonet.data_processor.state_manager import StateManager
 from tonet.tonet.utils.file_structure_manager import FileStructManager
@@ -82,6 +84,7 @@ class DataProcessor(InitedByConfig):
             return {'mask': mask, 'output': output}
 
         def calc_metrics(self, is_train: bool, preds, target, output, inputs_num):
+            output = F.sigmoid(output)
             if is_train:
                 self.__metrics['train_dice'] += dice_loss(output, target)
                 self.__metrics['train_jaccard'] += jaccard(output, target)
@@ -92,9 +95,9 @@ class DataProcessor(InitedByConfig):
                 self.__images_processeed['val'] += inputs_num
 
         def get_metrics(self):
-            train_dice = self.__metrics['train_dice'] / self.__images_processeed['val']
+            train_dice = self.__metrics['train_dice'] / self.__images_processeed['train']
             val_dice = self.__metrics['val_dice'] / self.__images_processeed['val']
-            train_jaccard = self.__metrics['train_jaccard'] / self.__images_processeed['val']
+            train_jaccard = self.__metrics['train_jaccard'] / self.__images_processeed['train']
             val_jaccard = self.__metrics['val_jaccard'] / self.__images_processeed['val']
             return {"val_dice": val_dice,
                     "train_dice": train_dice,
@@ -107,9 +110,9 @@ class DataProcessor(InitedByConfig):
             self.__metrics = {"val_dice": 0, "train_dice": 0, "val_jaccard": 0, "train_jaccard": 0, "train_min_val_dice": 0, "train_min_val_jaccard": 0}
             self.__images_processeed = {"val": 0, "train": 0}
 
-    def __init__(self, config: {}, file_struct_manadger: FileStructManager, classes_num):
+    def __init__(self, config: {}, file_struct_manager: FileStructManager, classes_num):
         self.__is_cuda = True
-        self.__file_struct_manager = file_struct_manadger
+        self.__file_struct_manager = file_struct_manager
 
         self.__model = Model(config, self.__file_struct_manager, classes_num)
 
@@ -127,7 +130,7 @@ class DataProcessor(InitedByConfig):
                                                 lr=self.__learning_rate.value(0, 0))
 
         if config['start_from'] == 'resume':
-            state_manager = StateManager(file_struct_manadger)
+            state_manager = StateManager(file_struct_manager)
             state_manager.unpack()
             self.load_weights(state_manager.get_files()['weights_file'])
             self.load_state(state_manager.get_files()['state_file'])
@@ -194,7 +197,7 @@ class DataProcessor(InitedByConfig):
         self.clear_metrics()
 
     def get_metrics(self):
-        res = {"loss": self.__metrics['loss'] / self.__images_processeed['train'], "val_loss": self.__metrics['val_loss'] / self.__images_processeed['train']}
+        res = {"loss": self.__metrics['loss'] / self.__images_processeed['train'], "val_loss": self.__metrics['val_loss'] / self.__images_processeed['val']}
 
         for k, v in self.__target_data_processor.get_metrics().items():
             res[k] = v

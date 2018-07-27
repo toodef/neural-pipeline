@@ -1,1 +1,0 @@
-from .PySide2Wrapper import widget, window, app

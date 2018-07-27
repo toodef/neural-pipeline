@@ -3,7 +3,7 @@ import torch
 eps = 1e-3
 
 
-def dice_loss(preds, trues, weight=None, is_average=True):
+def dice_loss(preds, trues, weight=None, is_average=False):
     preds = preds.contiguous()
     trues = trues.contiguous()
     num = preds.size(0)
@@ -20,10 +20,11 @@ def dice_loss(preds, trues, weight=None, is_average=True):
         score = scores.sum() / num
         return float(torch.clamp(score, 0., 1.))
     else:
-        return scores
+        score = scores.sum()
+        return float(torch.clamp(score, 0., 1.))
 
 
-def jaccard(preds, trues, weight=None, is_average=True):
+def jaccard(preds, trues, weight=None, is_average=False):
     num = preds.size(0)
     preds = preds.view(num, -1)
     trues = trues.view(num, -1)

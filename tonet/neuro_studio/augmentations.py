@@ -3,6 +3,7 @@ import os
 from random import randint, shuffle
 
 import cv2
+import numpy as np
 
 from data_conveyor.augmentations import augmentations_dict, Augmentation
 from neuro_studio.PySide2Wrapper.PySide2Wrapper import ImageLayout, CheckBox, LineEdit, ModalWindow, ABCMeta, \
@@ -16,7 +17,7 @@ class AbstractAugmentationUi(ModalWindow, metaclass=ABCMeta):
         with open(dataset_path, 'r') as dataset:
             dataset_conf = json.load(dataset)
 
-        self.__pathes = [os.path.join(project_dir_path, p['path']) for p in dataset_conf['data']]
+        self.__pathes = [{'path': os.path.join(project_dir_path, p['path']), 'target': p['target']} if type(p['target']) == list else {'path': os.path.join(project_dir_path, p['path'])} for p in dataset_conf['data']]
         shuffle(self.__pathes)
 
         self.__previous_augs = previous_augmentations
@@ -24,10 +25,12 @@ class AbstractAugmentationUi(ModalWindow, metaclass=ABCMeta):
         def read_next():
             self.__cur_img_idx += 1
             self.__read_image(self.__cur_img_idx, True)
+            original_img_layout.set_image_from_data(cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB), self._image.shape[1], self._image.shape[0], self._image.shape[1] * self._image.shape[2])
 
         def read_prev():
             self.__cur_img_idx -= 1
             self.__read_image(self.__cur_img_idx, True)
+            original_img_layout.set_image_from_data(cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB), self._image.shape[1], self._image.shape[0], self._image.shape[1] * self._image.shape[2])
 
         self.start_horizontal()
         self.add_widget(Button("Update", is_tool_button=True).set_on_click_callback(self.update))
@@ -35,17 +38,28 @@ class AbstractAugmentationUi(ModalWindow, metaclass=ABCMeta):
         self.add_widget(Button("-->", is_tool_button=True).set_on_click_callback(read_next))
         self.cancel()
         self._percentage = self.add_widget(LineEdit().add_label("Percentage", 'left'))
+        self.start_horizontal()
+        original_img_layout = self.add_widget(ImageLayout())
         self._image_layout = self.add_widget(ImageLayout())
+        self.cancel()
 
         self.__cur_img_idx = 0
         self.__read_image(0, with_augmentations=False)
+        original_img_layout.set_image_from_data(cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB), self._image.shape[1], self._image.shape[0], self._image.shape[1] * self._image.shape[2])
 
     def update(self, with_augmentations=True):
         if with_augmentations:
-            try:
+            aug = self.get_augmentation_instance()
+            if self._mask is not None:
+                if aug.is_changed_geometry():
+                    img, mask = self.get_augmentation_instance()(self._image, self._mask)
+                    _, cntrs, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                else:
+                    img = self.get_augmentation_instance()(self._image)
+                    _, cntrs, _ = cv2.findContours(self._mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                img = cv2.drawContours(img.copy(), cntrs, -1, (0, 0, 255), 1)
+            else:
                 img = self.get_augmentation_instance()(self._image)
-            except ValueError:
-                return
         else:
             img = self._image
         self._image_layout.set_image_from_data(cv2.cvtColor(img, cv2.COLOR_BGR2RGB), img.shape[1], img.shape[0],
@@ -54,10 +68,21 @@ class AbstractAugmentationUi(ModalWindow, metaclass=ABCMeta):
     def __read_image(self, image_id: int, with_augmentations=True):
         path = self.__pathes[image_id]
 
-        self._image = cv2.imread(path)
+        self._image = cv2.imread(path['path'])
+
+        if 'target' in path:
+            cntrs = path['target']
+            new_cntrs = np.array([np.array([[p] for p in c]) for c in cntrs])
+            self._mask = cv2.drawContours(np.zeros((self._image.shape[0], self._image.shape[1]), dtype=np.uint8), new_cntrs, -1, 255, -1)
+        else:
+            self._mask = None
+
         if self.__previous_augs is not None:
             for aug in self.__previous_augs:
-                self._image = aug(self._image)
+                if self._mask is not None and aug.is_changed_geometry():
+                    self._image, self._mask = aug(self._image, self._mask)
+                else:
+                    self._image = aug(self._image)
 
         self.update(with_augmentations)
 
