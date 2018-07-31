@@ -310,7 +310,7 @@ class RandomContrast(Augmentation):
 class Normalize(Augmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'normalize')
-        self.__normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        self.__normalize = transforms.Normalize(mean=[124 / 255, 117 / 255, 104 / 255], std=[1 / (.0167 * 255)] * 3)
         self._percentage = 100
 
     def process(self, data):
@@ -327,7 +327,7 @@ class ToPyTorch(Augmentation):
 
     def process(self, data):
         if data.dtype == np.uint8:
-            return torch.from_numpy(np.moveaxis(data / 255., -1, 0).astype(np.float32))
+            return torch.from_numpy(np.moveaxis(data.astype(np.float32) / 255., -1, 0))
 
         return torch.from_numpy(np.moveaxis(data, -1, 0).astype(np.float32))
 

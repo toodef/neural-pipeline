@@ -74,7 +74,7 @@ class Dataset:
 
             if cur_mask is None:
                 return cur_image
-            return cur_image, ToPyTorch({"to_pytorch": {"percentage": 100}})(np.reshape(cur_mask.astype(np.float32) / 255, (cur_mask.shape[0], cur_mask.shape[1], 1)))
+            return cur_image, torch.from_numpy(np.expand_dims(cur_mask.astype(np.float32) / 255., 0))
 
         item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1 if self.__percentage < 100 else item
         data_path = os.path.join(self.__config_path, "..", "..", self.__pathes['data'][item]['path']).replace("\\", "/")
@@ -87,9 +87,6 @@ class Dataset:
             return {'data': data, 'target': target}
         else:
             return augmentate(image)
-
-    def process_target(self, target):
-        return np.moveaxis(np.zeros((224, 224), dtype=np.float32), -1, 0)
 
     def __len__(self):
         return self.__data_num
