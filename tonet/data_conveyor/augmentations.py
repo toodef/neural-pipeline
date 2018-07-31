@@ -97,9 +97,9 @@ class HorizontalFlip(ChangedGeometryAugmentation):
 
     def process(self, data, mask=None):
         if mask is None:
-            return cv2.flip(data.copy(), 1)
+            return cv2.flip(data, 1)
         else:
-            return cv2.flip(data.copy(), 1), cv2.flip(mask.copy(), 1)
+            return cv2.flip(data, 1), cv2.flip(mask, 1)
 
     def _get_config(self) -> {}:
         return {}
@@ -111,9 +111,9 @@ class VerticalFlip(ChangedGeometryAugmentation):
 
     def process(self, data, mask=None) -> []:
         if mask is None:
-            return cv2.flip(data.copy(), 0)
+            return cv2.flip(data, 0)
         else:
-            return cv2.flip(data.copy(), 0), cv2.flip(mask.copy(), 0)
+            return cv2.flip(data, 0), cv2.flip(mask, 0)
 
     def _get_config(self) -> {}:
         return {}
@@ -147,19 +147,18 @@ class SNPNoise(Augmentation):
         self.__amount = self._get_config_path(config)['amount']
 
     def process(self, data):
-        out = data.copy()
         # Salt mode
         num_salt = np.ceil(self.__amount * data.size * self.__s_vs_p)
         coords = [np.random.randint(0, i - 1, int(num_salt))
                   for i in data.shape]
-        out[coords] = 255
+        data[coords] = 255
 
         # Pepper mode
         num_pepper = np.ceil(self.__amount * data.size * (1. - self.__s_vs_p))
         coords = [np.random.randint(0, i - 1, int(num_pepper))
                   for i in data.shape]
-        out[coords] = 0
-        return out
+        data[coords] = 0
+        return data
 
     def _get_config(self) -> {}:
         return {'s_vs_p': self.__s_vs_p, 'amount': self.__amount}
@@ -172,7 +171,7 @@ class Blur(Augmentation):
         self.__ksize = self._get_config_path(config)['ksize']
 
     def process(self, data):
-        return cv2.blur(data.copy(), (self.__ksize[0], self.__ksize[1])).astype(np.uint8)
+        return cv2.blur(data, (self.__ksize[0], self.__ksize[1])).astype(np.uint8)
 
     def _get_config(self) -> {}:
         return {'ksize': self.__ksize}
@@ -269,12 +268,12 @@ class RandomRotate(ChangedGeometryAugmentation):
         M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
         offset = abs(int(rows // (2 + 1 / np.tan(np.deg2rad(angle)))))
 
-        img = cv2.warpAffine(data.copy(), M, (cols, rows))
+        img = cv2.warpAffine(data, M, (cols, rows))
 
         if mask is None:
             return resize_to_defined(img[offset: rows - offset, offset: cols - offset], [rows, cols])
         else:
-            mask_img = cv2.warpAffine(mask.copy(), M, (cols, rows))
+            mask_img = cv2.warpAffine(mask, M, (cols, rows))
             return resize_to_defined(img[offset: rows - offset, offset: cols - offset], [rows, cols]), resize_to_defined(mask_img[offset: rows - offset, offset: cols - offset], [rows, cols])
 
     def _get_config(self) -> {}:
