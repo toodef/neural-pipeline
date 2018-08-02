@@ -3,7 +3,7 @@ from tqdm import tqdm
 
 import torch.nn.functional as F
 
-from tonet.tonet.data_processor.metrics import dice_loss, jaccard
+from tonet.tonet.data_processor.metrics import dice_loss, jaccard, masked_jaccard
 from tonet.tonet.data_processor.state_manager import StateManager
 from tonet.tonet.utils.file_structure_manager import FileStructManager
 from .model import Model
@@ -92,6 +92,9 @@ class DataProcessor(InitedByConfig):
             else:
                 self.__metrics['val_dice'] += dice_loss(output, target)
                 self.__metrics['val_jaccard'] += jaccard(output, target)
+                self.__metrics['mask_val_jaccard_0.3'] += masked_jaccard(output, target, 0.3)
+                self.__metrics['mask_val_jaccard_0.5'] += masked_jaccard(output, target, 0.5)
+                self.__metrics['mask_val_jaccard_0.7'] += masked_jaccard(output, target, 0.7)
                 self.__images_processeed['val'] += inputs_num
 
         def get_metrics(self):
@@ -99,15 +102,22 @@ class DataProcessor(InitedByConfig):
             val_dice = self.__metrics['val_dice'] / self.__images_processeed['val']
             train_jaccard = self.__metrics['train_jaccard'] / self.__images_processeed['train']
             val_jaccard = self.__metrics['val_jaccard'] / self.__images_processeed['val']
+            mask_val_jaccard_3 = self.__metrics['mask_val_jaccard_0.3'] / self.__images_processeed['val']
+            mask_val_jaccard_5 = self.__metrics['mask_val_jaccard_0.5'] / self.__images_processeed['val']
+            mask_val_jaccard_7 = self.__metrics['mask_val_jaccard_0.7'] / self.__images_processeed['val']
             return {"val_dice": val_dice,
                     "train_dice": train_dice,
                     "val_jaccard": val_jaccard,
                     "train_jaccard": train_jaccard,
+                    'mask_val_jaccard_0.3': mask_val_jaccard_3,
+                    'mask_val_jaccard_0.5': mask_val_jaccard_5,
+                    'mask_val_jaccard_0.7': mask_val_jaccard_7,
                     "train_min_val_dice": train_dice - val_dice,
                     "train_min_val_jaccard": train_jaccard - val_jaccard}
 
         def clear_metrics(self):
-            self.__metrics = {"val_dice": 0, "train_dice": 0, "val_jaccard": 0, "train_jaccard": 0, "train_min_val_dice": 0, "train_min_val_jaccard": 0}
+            self.__metrics = {"val_dice": 0, "train_dice": 0, "val_jaccard": 0, "train_jaccard": 0, "train_min_val_dice": 0, "train_min_val_jaccard": 0,
+                              'mask_val_jaccard_0.3': 0, 'mask_val_jaccard_0.5': 0, 'mask_val_jaccard_0.7': 0}
             self.__images_processeed = {"val": 0, "train": 0}
 
     def __init__(self, config: {}, file_struct_manager: FileStructManager, classes_num):
@@ -145,6 +155,8 @@ class DataProcessor(InitedByConfig):
         self.__epoch_num = 0
 
     def predict(self, data, is_train=False):
+        data = torch.autograd.Variable(data.cuda(async=True), volatile=not is_train)
+
         if is_train:
             self.__model.model().train()
         else:
@@ -160,7 +172,6 @@ class DataProcessor(InitedByConfig):
             target = target.cuda(async=True)
 
         inputs_num = input.size(0)
-        input = torch.autograd.Variable(input.cuda(async=True), volatile=not is_train)
         target = torch.autograd.Variable(target.cuda(async=True), volatile=not is_train)
 
         if is_train:
@@ -194,7 +205,6 @@ class DataProcessor(InitedByConfig):
                                                                               self.__monitor.get_metrics_min_val('val_loss')))
 
         self.__monitor.update(epoch_idx, cur_metrics)
-        self.clear_metrics()
 
     def get_metrics(self):
         res = {"loss": self.__metrics['loss'] / self.__images_processeed['train'], "val_loss": self.__metrics['val_loss'] / self.__images_processeed['val']}

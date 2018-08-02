@@ -36,9 +36,23 @@ class Trainer:
 
         data_processor = DataProcessor(self.__config['data_processor'], self.__file_sruct_manager, len(train_dataset.get_classes()))
         state_manager = StateManager(self.__file_sruct_manager)
+        best_state_manager = StateManager(self.__file_sruct_manager, preffix="best")
+
+        best_metric = None
 
         for epoch_idx in range(int(self.__config['data_conveyor']['epoch_num'])):
             data_processor.train_epoch(train_loader, val_loader, epoch_idx)
             data_processor.save_state()
             data_processor.save_weights()
-            state_manager.pack()
+
+            if best_metric is None:
+                best_metric = data_processor.get_metrics()['val_jaccard']
+                state_manager.pack()
+            elif best_metric < data_processor.get_metrics()['val_jaccard']:
+                print("-------------- Detect best metric --------------")
+                best_metric = data_processor.get_metrics()['val_jaccard']
+                best_state_manager.pack()
+            else:
+                state_manager.pack()
+
+        data_processor.clear_metrics()

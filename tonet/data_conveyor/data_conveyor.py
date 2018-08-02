@@ -79,6 +79,7 @@ class Dataset:
         item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1 if self.__percentage < 100 else item
         data_path = os.path.join(self.__config_path, "..", "..", self.__pathes['data'][item]['path']).replace("\\", "/")
         image = cv2.imread(data_path)
+
         if 'target' in self.__pathes['data'][item]:
             cntrs = self.__pathes['data'][item]['target']
             new_cntrs = np.array([np.array([[p] for p in c]) for c in cntrs])
