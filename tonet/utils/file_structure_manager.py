@@ -42,6 +42,9 @@ class FileStructManager:
     def optimizer_state_file(self, preffix: str=None) -> str:
         return os.path.join(self.optimizer_state_dir(), "{}_".format(preffix) if preffix is not None else "" + "state.pth")
 
+    def data_processor_state_file(self, preffix: str=None) -> str:
+        return os.path.join(self.optimizer_state_dir(), "{}_".format(preffix) if preffix is not None else "" + "data_processor_state.json")
+
     def logdir_path(self) -> str:
         return self.__logdir_path
 

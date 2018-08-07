@@ -1,9 +1,11 @@
+import json
+
 import torch
 from tqdm import tqdm
 
 import torch.nn.functional as F
 
-from tonet.tonet.data_processor.metrics import dice_loss, jaccard, masked_jaccard
+from tonet.tonet.data_processor.metrics import dice_loss, jaccard, masked_jaccard, iou, iou_new
 from tonet.tonet.data_processor.state_manager import StateManager
 from tonet.tonet.utils.file_structure_manager import FileStructManager
 from .model import Model
@@ -86,41 +88,34 @@ class DataProcessor(InitedByConfig):
         def calc_metrics(self, is_train: bool, preds, target, output, inputs_num):
             output = F.sigmoid(output)
             if is_train:
-                self.__metrics['train_dice'] += dice_loss(output, target)
-                self.__metrics['train_jaccard'] += jaccard(output, target)
+                self.__metrics['train']['train_dice'] = np.append(self.__metrics['train']['train_dice'], dice_loss(output, target))
+                self.__metrics['train']['train_jaccard'] = np.append(self.__metrics['train']['train_jaccard'], jaccard(output, target))
                 self.__images_processeed['train'] += inputs_num
             else:
-                self.__metrics['val_dice'] += dice_loss(output, target)
-                self.__metrics['val_jaccard'] += jaccard(output, target)
-                self.__metrics['mask_val_jaccard_0.3'] += masked_jaccard(output, target, 0.3)
-                self.__metrics['mask_val_jaccard_0.5'] += masked_jaccard(output, target, 0.5)
-                self.__metrics['mask_val_jaccard_0.7'] += masked_jaccard(output, target, 0.7)
+                self.__metrics['validation']['val_dice'] = np.append(self.__metrics['validation']['val_dice'], dice_loss(output, target))
+                self.__metrics['validation']['val_jaccard'] = np.append(self.__metrics['validation']['val_jaccard'], jaccard(output, target))
+                self.__metrics['special']["val_mask_jaccard"]['thresh_0.3'] = np.append(self.__metrics['special']["val_mask_jaccard"]['thresh_0.3'], masked_jaccard(output, target, 0.3))
+                self.__metrics['special']["val_mask_jaccard"]['thresh_0.5'] = np.append(self.__metrics['special']["val_mask_jaccard"]['thresh_0.5'], masked_jaccard(output, target, 0.5))
+                self.__metrics['special']["val_mask_jaccard"]['thresh_0.7'] = np.append(self.__metrics['special']["val_mask_jaccard"]['thresh_0.7'], masked_jaccard(output, target, 0.7))
+                self.__metrics['special']['iou']['iou'] = np.append(self.__metrics['special']['iou']['iou'], iou_new(output, target))
+                self.__metrics['special']['iou']['iou_0.3'] = np.append(self.__metrics['special']['iou']['iou_0.3'], iou_new(output, target, 0.3))
+                self.__metrics['special']['iou']['iou_0.5'] = np.append(self.__metrics['special']['iou']['iou_0.5'], iou_new(output, target, 0.5))
+                self.__metrics['special']['iou']['iou_0.7'] = np.append(self.__metrics['special']['iou']['iou_0.7'], iou_new(output, target, 0.7))
                 self.__images_processeed['val'] += inputs_num
 
         def get_metrics(self):
-            train_dice = self.__metrics['train_dice'] / self.__images_processeed['train']
-            val_dice = self.__metrics['val_dice'] / self.__images_processeed['val']
-            train_jaccard = self.__metrics['train_jaccard'] / self.__images_processeed['train']
-            val_jaccard = self.__metrics['val_jaccard'] / self.__images_processeed['val']
-            mask_val_jaccard_3 = self.__metrics['mask_val_jaccard_0.3'] / self.__images_processeed['val']
-            mask_val_jaccard_5 = self.__metrics['mask_val_jaccard_0.5'] / self.__images_processeed['val']
-            mask_val_jaccard_7 = self.__metrics['mask_val_jaccard_0.7'] / self.__images_processeed['val']
-            return {"val_dice": val_dice,
-                    "train_dice": train_dice,
-                    "val_jaccard": val_jaccard,
-                    "train_jaccard": train_jaccard,
-                    'mask_val_jaccard_0.3': mask_val_jaccard_3,
-                    'mask_val_jaccard_0.5': mask_val_jaccard_5,
-                    'mask_val_jaccard_0.7': mask_val_jaccard_7,
-                    "train_min_val_dice": train_dice - val_dice,
-                    "train_min_val_jaccard": train_jaccard - val_jaccard}
+            self.__metrics['train']["train_min_val"]["dice"] = np.mean(self.__metrics['train']["train_dice"]) - np.mean(self.__metrics['validation']["val_dice"])
+            self.__metrics['train']["train_min_val"]["jaccard"] = np.mean(self.__metrics['train']["train_jaccard"]) - np.mean(self.__metrics['validation']["val_jaccard"])
+            return self.__metrics
 
         def clear_metrics(self):
-            self.__metrics = {"val_dice": 0, "train_dice": 0, "val_jaccard": 0, "train_jaccard": 0, "train_min_val_dice": 0, "train_min_val_jaccard": 0,
-                              'mask_val_jaccard_0.3': 0, 'mask_val_jaccard_0.5': 0, 'mask_val_jaccard_0.7': 0}
+            self.__metrics = {"train": {"train_dice": np.array([]), "train_jaccard": np.array([]), "train_min_val": {"dice": np.array([]), "jaccard": np.array([])}},
+                              "validation": {"val_dice": np.array([]), "val_jaccard": np.array([])},
+                              "special": {"val_mask_jaccard": {'thresh_0.3': np.array([]), 'thresh_0.5': np.array([]), 'thresh_0.7': np.array([])},
+                                          "iou": {'iou': np.array([]), 'iou_0.3': np.array([]), 'iou_0.5': np.array([]), 'iou_0.7': np.array([])}}}
             self.__images_processeed = {"val": 0, "train": 0}
 
-    def __init__(self, config: {}, file_struct_manager: FileStructManager, classes_num):
+    def __init__(self, config: {}, file_struct_manager: FileStructManager, classes_num, network_name: str = None):
         self.__is_cuda = True
         self.__file_struct_manager = file_struct_manager
 
@@ -139,7 +134,9 @@ class DataProcessor(InitedByConfig):
         self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=1.e-4,
                                                 lr=self.__learning_rate.value(0, 0))
 
-        if config['start_from'] == 'resume':
+        self.__monitor = Monitor(config, self.__file_struct_manager, is_continue=config['start_from'] == 'continue', network_name=network_name)
+
+        if config['start_from'] == 'continue':
             state_manager = StateManager(file_struct_manager)
             state_manager.unpack()
             self.load_weights(state_manager.get_files()['weights_file'])
@@ -149,9 +146,7 @@ class DataProcessor(InitedByConfig):
         if self.__is_cuda:
             self.__criterion = self.__criterion.cuda()
 
-        self.__monitor = Monitor(config, self.__file_struct_manager)
         self.clear_metrics()
-
         self.__epoch_num = 0
 
     def predict(self, data, is_train=False):
@@ -199,15 +194,14 @@ class DataProcessor(InitedByConfig):
             self.process_batch(batch['data'], batch['target'], is_train=False)
 
         cur_metrics = self.get_metrics()
-
-        self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=1.e-4,
-                                                lr=self.__learning_rate.value(cur_metrics['val_loss'],
-                                                                              self.__monitor.get_metrics_min_val('val_loss')))
-
+        self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=1.e-4, lr=self.__learning_rate.value(cur_metrics['validation']['val_loss'], None))
         self.__monitor.update(epoch_idx, cur_metrics)
+        self.__epoch_num = epoch_idx
 
     def get_metrics(self):
-        res = {"loss": self.__metrics['loss'] / self.__images_processeed['train'], "val_loss": self.__metrics['val_loss'] / self.__images_processeed['val']}
+        res = self.__target_data_processor.get_metrics()
+        res['train']['train_loss'] = self.__metrics['loss'] / self.__images_processeed['train']
+        res['validation']['val_loss'] = self.__metrics['val_loss'] / self.__images_processeed['val']
 
         for k, v in self.__target_data_processor.get_metrics().items():
             res[k] = v
@@ -221,10 +215,17 @@ class DataProcessor(InitedByConfig):
     def get_state(self):
         return {'weights': self.__model.model().state_dict(), 'optimizer': self.__optimizer.state_dict()}
 
+    def get_last_epoch_idx(self):
+        return self.__epoch_num
+
     def load_state(self, optimizer_state: str):
         state = torch.load(optimizer_state)
         state = {k: v for k, v in state.items() if k in self.__optimizer.state_dict()}
         self.__optimizer.load_state_dict(state)
+
+        with open(self.__file_struct_manager.data_processor_state_file(), 'r') as in_file:
+            dp_state = json.load(in_file)
+            self.__epoch_num = dp_state['last_epoch_idx']
 
     def load_weights(self, path):
         self.__model.load_weights(path)
@@ -234,6 +235,9 @@ class DataProcessor(InitedByConfig):
 
     def save_state(self):
         torch.save(self.__optimizer.state_dict(), self.__file_struct_manager.optimizer_state_file())
+
+        with open(self.__file_struct_manager.data_processor_state_file(), 'w') as out:
+            json.dump({"last_epoch_idx": self.__epoch_num}, out)
 
     def close(self):
         self.__monitor.close()

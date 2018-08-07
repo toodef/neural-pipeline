@@ -1,3 +1,5 @@
+import json
+import os
 from abc import ABCMeta, abstractmethod
 
 
@@ -51,6 +53,55 @@ class InitedByConfig(metaclass=ABCMeta):
         Method, that return required parameters in config for inherit class
         :return: required parameters as dict with same structure as config dict
         """
+
+
+class Config:
+    def __init__(self, config_path: str = None):
+        if config_path is not None:
+            with open(config_path, 'r') as file:
+                self.__config = json.load(file)
+        else:
+            self.__config = default_config
+
+        self.__path = config_path
+
+    def get_model_type(self):
+        return self.__config['data_processor']['model_type']
+
+    def set_model_type(self, model_type: str):
+        self.__config['data_processor']['model_type'] = model_type
+
+    def get_data_size(self):
+        return self.__config['data_processor']['data_size']
+
+    def set_data_size(self, data_size: list):
+        self.__config['data_processor']['data_size'] = data_size
+
+    def get_config(self):
+        return self.__config
+
+    def get_config_path(self):
+        return self.__path
+
+
+class Project:
+    def __init__(self, project_path: str = None):
+        if project_path is not None:
+            with open(project_path, 'r') as file:
+                self.__project = json.load(file)
+        else:
+            self.__project = default_config
+
+        self.__project_dir = os.path.dirname(project_path)
+
+    def get_config_list(self):
+        return self.__project
+
+    def get_config_by_id(self, idx: int):
+        return Config(os.path.join(self.__project_dir, "workdir", str(self.__project[idx]['id']), "config.json"))
+
+    def get_config_name_by_id(self, idx: int):
+        return self.__project[idx]['name']
 
 
 default_config = {

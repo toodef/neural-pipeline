@@ -4,17 +4,21 @@ from multiprocessing import freeze_support
 
 import torch
 
+from tonet.tonet.utils.config import Project, Config
 from tonet.tonet.utils.file_structure_manager import FileStructManager
 from .data_conveyor.data_conveyor import Dataset
 from .data_processor.data_processor import DataProcessor
 from .data_processor.state_manager import StateManager
+import numpy as np
 
 
 class Trainer:
-    def __init__(self, config_path: str, logdir_path: str = None):
-        with open(config_path, 'r') as file:
-            self.__config = json.load(file)
+    def __init__(self, config: Config, network_name: str = None, logdir_path: str = None):
+        self.__config = config.get_config()
 
+        self.__network_name = network_name
+
+        config_path = config.get_config_path()
         self.__file_sruct_manager = FileStructManager(config_path, logdir_path)
 
         config_dir = os.path.dirname(config_path)
@@ -34,25 +38,34 @@ class Trainer:
             batch_size=int(self.__config['data_conveyor']['batch_size']), shuffle=True,
             num_workers=int(self.__config['data_conveyor']['threads_num']), pin_memory=True)
 
-        data_processor = DataProcessor(self.__config['data_processor'], self.__file_sruct_manager, len(train_dataset.get_classes()))
+        data_processor = DataProcessor(self.__config['data_processor'], self.__file_sruct_manager, len(train_dataset.get_classes()), network_name=self.__network_name)
         state_manager = StateManager(self.__file_sruct_manager)
         best_state_manager = StateManager(self.__file_sruct_manager, preffix="best")
 
         best_metric = None
 
+        last_epoch = data_processor.get_last_epoch_idx()
+
         for epoch_idx in range(int(self.__config['data_conveyor']['epoch_num'])):
-            data_processor.train_epoch(train_loader, val_loader, epoch_idx)
+            data_processor.train_epoch(train_loader, val_loader, epoch_idx + last_epoch)
             data_processor.save_state()
             data_processor.save_weights()
 
+            metric = np.mean(data_processor.get_metrics()['validation']['val_jaccard'])
+
             if best_metric is None:
-                best_metric = data_processor.get_metrics()['val_jaccard']
+                best_metric = metric
                 state_manager.pack()
-            elif best_metric < data_processor.get_metrics()['val_jaccard']:
+            elif best_metric < metric:
                 print("-------------- Detect best metric --------------")
-                best_metric = data_processor.get_metrics()['val_jaccard']
+                best_metric = metric
                 best_state_manager.pack()
             else:
                 state_manager.pack()
 
-        data_processor.clear_metrics()
+            data_processor.clear_metrics()
+
+
+class ProjectTrainer(Trainer):
+    def __init__(self, project: Project, config_id: int, logdir_path: str = None):
+        super().__init__(project.get_config_by_id(config_id), network_name=project.get_config_name_by_id(config_id), logdir_path=logdir_path)

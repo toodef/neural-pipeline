@@ -21,12 +21,14 @@ class StateManager:
         self.__preffix = preffix
 
     def unpack(self) -> None:
-        self.__files['weights_file'] = os.path.join(self.__file_struct_manager.weights_dir(), "weights.pth")
-        self.__files['state_file'] = os.path.join(self.__file_struct_manager.weights_dir(), "state.pth")
         result_file = self.__construct_result_file()
 
         with ZipFile(result_file, 'r') as zipfile:
             zipfile.extractall(self.__file_struct_manager.weights_dir())
+
+        self.__files['weights_file'] = self.__file_struct_manager.weights_file()
+        self.__files['state_file'] = self.__file_struct_manager.optimizer_state_file()
+        self.__files['dp_state_file'] = self.__file_struct_manager.data_processor_state_file()
 
     def clear_files(self) -> None:
         def rm_file(file: str):
@@ -35,6 +37,8 @@ class StateManager:
 
         rm_file(self.__files['weights_file'])
         rm_file(self.__files['state_file'])
+        rm_file(self.__files['dp_state_file'])
+
         self.__files = {}
 
     def pack(self) -> None:
@@ -50,15 +54,18 @@ class StateManager:
 
         weights_file = self.__file_struct_manager.weights_file()
         state_file = self.__file_struct_manager.optimizer_state_file()
+        dp_state_file = self.__file_struct_manager.data_processor_state_file()
         result_file = self.__construct_result_file()
 
         rename_file(result_file)
         with ZipFile(result_file, 'w') as zipfile:
             zipfile.write(weights_file, os.path.basename(weights_file))
             zipfile.write(state_file, os.path.basename(state_file))
+            zipfile.write(dp_state_file, os.path.basename(dp_state_file))
 
         rm_file(weights_file)
         rm_file(state_file)
+        rm_file(dp_state_file)
 
     def get_files(self) -> {'weights_file', 'state_file'}:
         return self.__files

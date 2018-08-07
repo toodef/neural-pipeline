@@ -193,8 +193,7 @@ class Resize(ChangedGeometryAugmentation):
     def __init__(self, config: {}):
         super().__init__(config, 'resize')
         self.__size = self._get_config_path(config)['size']
-        self.__resize_fnc = resize_to_defined if type(self.__size) == list and len(
-            self.__size) == 2 else resize_by_min_edge
+        self.__resize_fnc = resize_to_defined if type(self.__size) == list and len(self.__size) == 2 else resize_by_min_edge
         self._percentage = 100
 
     def process(self, data, mask=None):
