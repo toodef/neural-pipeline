@@ -75,11 +75,14 @@ def iou(preds, trues, threshold=None):
     return np.sum([fbeta(f_thresh, 2) for f_thresh in thresholds], axis=0) / np.linalg.norm(thresholds)
 
 
-def iou_new(preds, trues, threshold=None):
+def iou_new(preds, trues, threshold):
     beta = 2
     beta_square = beta ** 2
 
     def iou_inner(pred, true):
+        if pred.sum() == true.sum():
+            return 1
+
         tp = np.bitwise_and(pred, true).sum()  # m11
         fp = np.bitwise_and(pred, 1 - true).sum()  # m01
         fn = np.bitwise_and(1 - pred, true).sum()  # m10
@@ -92,9 +95,8 @@ def iou_new(preds, trues, threshold=None):
     trues_inner = np.reshape(trues_inner, (trues_inner.shape[0], trues_inner.shape[1] * trues_inner.shape[2]))
     preds_inner = np.clip(preds_inner, 0, 1)
 
-    if threshold is not None:
-        preds_inner[preds_inner < threshold] = 0
-        preds_inner[preds_inner >= threshold] = 1
+    preds_inner[preds_inner < threshold] = 0
+    preds_inner[preds_inner >= threshold] = 1
 
     preds_inner = preds_inner.astype(np.int)
     trues_inner = trues_inner.astype(np.int)

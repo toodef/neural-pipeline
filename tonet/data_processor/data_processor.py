@@ -94,13 +94,13 @@ class DataProcessor(InitedByConfig):
             else:
                 self.__metrics['validation']['val_dice'] = np.append(self.__metrics['validation']['val_dice'], dice_loss(output, target))
                 self.__metrics['validation']['val_jaccard'] = np.append(self.__metrics['validation']['val_jaccard'], jaccard(output, target))
-                self.__metrics['special']["val_mask_jaccard"]['thresh_0.3'] = np.append(self.__metrics['special']["val_mask_jaccard"]['thresh_0.3'], masked_jaccard(output, target, 0.3))
-                self.__metrics['special']["val_mask_jaccard"]['thresh_0.5'] = np.append(self.__metrics['special']["val_mask_jaccard"]['thresh_0.5'], masked_jaccard(output, target, 0.5))
-                self.__metrics['special']["val_mask_jaccard"]['thresh_0.7'] = np.append(self.__metrics['special']["val_mask_jaccard"]['thresh_0.7'], masked_jaccard(output, target, 0.7))
-                self.__metrics['special']['iou']['iou'] = np.append(self.__metrics['special']['iou']['iou'], iou_new(output, target))
-                self.__metrics['special']['iou']['iou_0.3'] = np.append(self.__metrics['special']['iou']['iou_0.3'], iou_new(output, target, 0.3))
-                self.__metrics['special']['iou']['iou_0.5'] = np.append(self.__metrics['special']['iou']['iou_0.5'], iou_new(output, target, 0.5))
-                self.__metrics['special']['iou']['iou_0.7'] = np.append(self.__metrics['special']['iou']['iou_0.7'], iou_new(output, target, 0.7))
+                self.__metrics['special']["val_mask_jaccard"]['0.3'] = np.append(self.__metrics['special']["val_mask_jaccard"]['0.3'], masked_jaccard(output, target, 0.3))
+                self.__metrics['special']["val_mask_jaccard"]['0.5'] = np.append(self.__metrics['special']["val_mask_jaccard"]['0.5'], masked_jaccard(output, target, 0.5))
+                self.__metrics['special']["val_mask_jaccard"]['0.7'] = np.append(self.__metrics['special']["val_mask_jaccard"]['0.7'], masked_jaccard(output, target, 0.7))
+                self.__metrics['special']['iou']['0.3'] = np.append(self.__metrics['special']['iou']['0.3'], iou_new(output, target, 0.3))
+                self.__metrics['special']['iou']['0.5'] = np.append(self.__metrics['special']['iou']['0.5'], iou_new(output, target, 0.5))
+                self.__metrics['special']['iou']['0.7'] = np.append(self.__metrics['special']['iou']['0.7'], iou_new(output, target, 0.7))
+                self.__metrics['special']['iou']['0.9'] = np.append(self.__metrics['special']['iou']['0.9'], iou_new(output, target, 0.9))
                 self.__images_processeed['val'] += inputs_num
 
         def get_metrics(self):
@@ -111,8 +111,8 @@ class DataProcessor(InitedByConfig):
         def clear_metrics(self):
             self.__metrics = {"train": {"train_dice": np.array([]), "train_jaccard": np.array([]), "train_min_val": {"dice": np.array([]), "jaccard": np.array([])}},
                               "validation": {"val_dice": np.array([]), "val_jaccard": np.array([])},
-                              "special": {"val_mask_jaccard": {'thresh_0.3': np.array([]), 'thresh_0.5': np.array([]), 'thresh_0.7': np.array([])},
-                                          "iou": {'iou': np.array([]), 'iou_0.3': np.array([]), 'iou_0.5': np.array([]), 'iou_0.7': np.array([])}}}
+                              "special": {"val_mask_jaccard": {'0.3': np.array([]), '0.5': np.array([]), '0.7': np.array([])},
+                                          "iou": {'0.9': np.array([]), '0.3': np.array([]), '0.5': np.array([]), '0.7': np.array([])}}}
             self.__images_processeed = {"val": 0, "train": 0}
 
     def __init__(self, config: {}, file_struct_manager: FileStructManager, classes_num, network_name: str = None):
@@ -136,6 +136,8 @@ class DataProcessor(InitedByConfig):
 
         self.__monitor = Monitor(config, self.__file_struct_manager, is_continue=config['start_from'] == 'continue', network_name=network_name)
 
+        self.__epoch_num = 0
+
         if config['start_from'] == 'continue':
             state_manager = StateManager(file_struct_manager)
             state_manager.unpack()
@@ -147,7 +149,6 @@ class DataProcessor(InitedByConfig):
             self.__criterion = self.__criterion.cuda()
 
         self.clear_metrics()
-        self.__epoch_num = 0
 
     def predict(self, data, is_train=False):
         data = torch.autograd.Variable(data.cuda(async=True), volatile=not is_train)
