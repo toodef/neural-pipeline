@@ -1,3 +1,5 @@
+import cv2
+
 import numpy as np
 from sklearn.metrics import jaccard_similarity_score
 
@@ -103,3 +105,79 @@ def iou_new(preds, trues, threshold):
 
     iou_values = np.array([iou_inner(true, pred) for pred, true in zip(preds_inner, trues_inner)])
     return np.mean([iou_values > thresh for thresh in np.linspace(0.5, 0.95, 10)], axis=0)
+
+
+def IoU(mask1, mask2):
+    Inter = np.sum((mask1 > 0) & (mask2 > 0))
+    Union = np.sum((mask1 > 0) | (mask2 > 0))
+
+    return Inter / (1e-8 + Union)
+
+def fscore(tp, fn, fp, beta=2.):
+    if tp + fn + fp < 1:
+        return 1.
+    num = (1 + beta ** 2) * tp
+    return num / (num + beta ** 2 * fn + fp)
+
+
+def confusion_counts(predict_mask_seq, truth_mask_seq, iou_thresh=0.5):
+    if len(predict_mask_seq) + len(truth_mask_seq) == 0:
+        tp, fn, fp = 0, 0, 0
+        return tp, fn, fp
+
+    if len(predict_mask_seq) == 1 and len(truth_mask_seq) == 1 and np.sum(predict_mask_seq) == 0 and np.sum(truth_mask_seq) == 0:
+        return 1, 0, 0
+
+    pred_hits = np.zeros(len(predict_mask_seq), dtype=np.bool) # 0 miss, 1 hit
+    truth_hits = np.zeros(len(truth_mask_seq), dtype=np.bool)  # 0 miss, 1 hit
+
+    for p, pred_mask in enumerate(predict_mask_seq):
+        for t, truth_mask in enumerate(truth_mask_seq):
+            if IoU(pred_mask, truth_mask) > iou_thresh:
+                truth_hits[t] = True
+                pred_hits[p] = True
+
+    tp = np.sum(pred_hits)
+    fn = len(truth_mask_seq) - np.sum(truth_hits)
+    fp = len(predict_mask_seq) - tp
+
+    return tp, fn, fp
+
+
+def mean_fscore(preds, trues, threshold, iou_thresholds=None, beta=2.):
+    def clip_to_the_masks(pred, true):
+        _, pred_cntrs, _ = cv2.findContours((np.clip(pred, 0, 1) * 255).astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        pred_masks = [cv2.drawContours(np.zeros_like(pred, dtype=np.uint8), [c], 0, 1, -1).astype(np.float32) for c in pred_cntrs]
+        _, true_cntrs, _ = cv2.findContours((np.clip(true, 0, 1) * 255).astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        true_masks = [cv2.drawContours(np.zeros_like(true, dtype=np.uint8), [c], 0, 1, -1).astype(np.float32) for c in true_cntrs]
+
+        if len(pred_masks) == 0:
+            pred_masks = [np.zeros_like(pred).astype(np.float32)]
+        if len(true_masks) == 0:
+            true_masks = [np.zeros_like(true).astype(np.float32)]
+        return pred_masks, true_masks
+
+    """ calculates the average FScore for the predictions in an image over
+    the iou_thresholds sets.
+    predict_mask_seq: list of masks of the predicted objects in the image
+    truth_mask_seq: list of masks of ground-truth objects in the image
+    """
+
+    if iou_thresholds is None:
+        iou_thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+
+    preds_inner = np.squeeze(preds.data.cpu().numpy().copy(), axis=1)
+    trues_inner = np.squeeze(trues.data.cpu().numpy().copy(), axis=1)
+    # preds_inner = np.reshape(preds_inner, (preds_inner.shape[0], preds_inner.shape[1] * preds_inner.shape[2]))
+    # trues_inner = np.reshape(trues_inner, (trues_inner.shape[0], trues_inner.shape[1] * trues_inner.shape[2]))
+    # preds_inner = np.clip(preds_inner, 0, 1)
+
+    preds_inner[preds_inner < threshold] = 0
+    preds_inner[preds_inner >= threshold] = 1
+
+    # preds_inner = preds_inner.astype(np.int)
+    # trues_inner = trues_inner.astype(np.int)
+
+    masks_per_image = [clip_to_the_masks(preds_inner[i], trues_inner[i]) for i in range(preds_inner.shape[0])]
+
+    return [np.mean([fscore(tp, fn, fp, beta) for (tp, fn, fp) in [confusion_counts(masks[0], masks[1], iou_thresh) for iou_thresh in iou_thresholds]]) for masks in masks_per_image]

@@ -25,6 +25,8 @@ class AbstractDataset:
 
         self.__augmentations_percentage = config['augmentations_percentage'] if 'augmentations_percentage' in config else None
 
+        self.__indices = None
+
     def get_classes(self) -> []:
         return self._pathes['labels']
 
@@ -78,7 +80,10 @@ class AbstractDataset:
                 return cur_image
             return cur_image, torch.from_numpy(np.expand_dims(cur_mask.astype(np.float32) / 255., 0))
 
-        item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1 if self.__percentage < 100 else item
+        if self.__indices is None:
+            item = randint(1, self.__cell_size) + int(item * self.__cell_size) - 1 if self.__percentage < 100 else item
+        else:
+            item = self.__indices[item]
 
         data = None
         try:
@@ -107,7 +112,9 @@ class AbstractDataset:
             return augmentate(data['data'])
 
     def __len__(self):
-        return self.__data_num
+        if self.__indices is None:
+            return self.__data_num
+        return len(self.__indices)
 
     @abstractmethod
     def _load_data(self, index):
@@ -120,6 +127,12 @@ class AbstractDataset:
     @abstractmethod
     def _get_path_by_idx(self, idx):
         pass
+
+    def walk_by_indices(self, indices: list):
+        self.__indices = indices
+
+    def clear_indices(self):
+        self.__indices = None
 
 
 class Dataset(AbstractDataset):
@@ -156,7 +169,7 @@ class TiledDataset(AbstractDataset):
 
         def __init__(self, region: list, cell_size: list, overlap: list = None):
             region = np.array(region)
-            if (region[1] - region[0]).norm() == 0:
+            if np.linalg.norm(region[1] - region[0]) == 0:
                 raise self.MGException("Region size is zero!")
 
             if region[0][0] >= region[1][0] or region[0][1] >= region[1][1]:
@@ -167,33 +180,41 @@ class TiledDataset(AbstractDataset):
 
             self.__region = region
             self.__cell_size = cell_size
-            self.__overlap = 0.5 * np.array([overlap[0], overlap[1]] if overlap is not None else [0, 0])
+            if overlap is not None:
+                self.__overlap = 0.5 * np.array([overlap[0], overlap[1]])
+            else:
+                cells_cnt = np.array(np.abs(self.__region[1] - self.__region[0]) / self.__cell_size)
+                if np.array_equal(cells_cnt, [0, 0]):
+                    self.__overlap = np.array([0, 0])
+                else:
+                    self.__overlap = 2 * (np.ceil(cells_cnt) * cell_size - np.abs(self.__region[1] - self.__region[0])) / np.round(cells_cnt)
 
         def generate_cells(self):
             result = []
 
             def walk_cells(callback: callable):
-                y_start = self.__region[1][1] - self.__cell_size[1]
+                y_start = self.__region[0][1]
                 x_start = self.__region[0][0]
 
                 y = y_start
 
-                step_cnt = np.array(np.abs(self.__region[1] - self.__region[0]) / self.__cell_size, dtype=np.uint64)
+                step_cnt = np.array(np.ceil(np.abs(self.__region[1] - self.__region[0]) / self.__cell_size), dtype=np.uint64)
 
                 for i in range(step_cnt[1]):
                     x = x_start
 
                     for j in range(step_cnt[0]):
                         callback([np.array([x, y]),
-                                  np.array([x + self.__cell_size[0], y + self.__cell_size[1]])])
+                                  np.array([x + self.__cell_size[0], y + self.__cell_size[1]])], i, j)
                         x += self.__cell_size[0]
 
-                    y -= self.__cell_size[1]
+                    y += self.__cell_size[1]
 
-            def on_cell(coords):
-                coords[0] = coords[0] - self.__overlap
-                coords[1] = coords[1] + self.__overlap
-                result.append(coords)
+            def on_cell(coords, i, j):
+                offset = self.__overlap * np.array([j, i], dtype=np.float32)
+                coords[0] = coords[0] - offset
+                coords[1] = coords[1] - offset
+                result.append(np.array(coords, dtype=np.uint32))
 
             walk_cells(on_cell)
             return result
@@ -202,23 +223,26 @@ class TiledDataset(AbstractDataset):
         super().__init__(config, pathes, file_struct_manager)
 
         if img_original_size is None:
-            self.__tiles = [[tile, img_path['path']] for img_path in self._pathes['data'] for tile in self.__get_image_tiles_by_photo(img_path, tile_size)]
+            self.__tiles = [{"tile": tile, "path": img_path['path'], "target": img_path['target']} if "target" in img_path else {"tile": tile, "path": img_path['path']} for img_path in self._pathes['data'] for tile in self.__get_image_tiles_by_photo(img_path, tile_size)]
         else:
-            self.__tiles = [[tile, img_path['path']] for img_path in self._pathes['data'] for tile in self.__get_image_tiles_by_size(img_original_size, tile_size)]
+            self.__tiles = [{"tile": tile, "path": img_path['path'], "target": img_path['target']} if "target" in img_path else {"tile": tile, "path": img_path['path']} for img_path in self._pathes['data'] for tile in self.__get_image_tiles_by_size(img_original_size, tile_size)]
+
+        self.__tiles_on_image = self.__get_image_tiles_by_size(img_original_size, tile_size)
+        self.__img_original_size = img_original_size
 
     def __get_image_tiles_by_photo(self, img_path, tile_size):
         return []
 
     def __get_image_tiles_by_size(self, img_original_size, tile_size: list):
-        return self.MeshGenerator(img_original_size, tile_size).generate_cells()
+        return self.MeshGenerator(np.array([[0, 0], img_original_size]), tile_size).generate_cells()
 
     def _load_data(self, index):
-        data_path = os.path.join(self._config_path, "..", "..", self.__tiles[index][1]).replace("\\", "/")
-        [x1, x2], [y1, y2] = self.__tiles[index][0]
+        data_path = self._get_path_by_idx(index)
+        [x1, y1], [x2, y2] = self.__tiles[index]["tile"]
         image = cv2.imread(data_path)
 
-        if 'target' in self._pathes['data'][index]:
-            cntrs = self._pathes['data'][index]['target']
+        if 'target' in self.__tiles[index]:
+            cntrs = self.__tiles[index]['target']
             new_cntrs = np.array([np.array([[p] for p in c]) for c in cntrs])
             mask = cv2.drawContours(np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8), new_cntrs, -1, 255, -1)
             return {'data': image[y1: y2, x1: x2, :], 'mask': mask[y1: y2, x1: x2]}
@@ -226,7 +250,30 @@ class TiledDataset(AbstractDataset):
             return {'data': image[y1: y2, x1: x2, :]}
 
     def _remove_item_by_idx(self, idx):
-        raise NotImplementedError()
+        del self.__tiles[idx]
 
     def _get_path_by_idx(self, idx):
-        raise NotImplementedError()
+        return os.path.join(self._config_path, "..", "..", self.__tiles[idx]["path"]).replace("\\", "/")
+
+    def get_tiles_num_per_image(self):
+        return len(self.__tiles_on_image)
+
+    def unite_data(self, tiles):
+        if len(tiles) != self.get_tiles_num_per_image():
+            raise Exception("Tiles number doesn't equal to real tiles size")
+
+        if len(tiles[0].shape) == 3:
+            res = np.zeros((self.__img_original_size[0], self.__img_original_size[1], tiles[0].shape[2]), dtype=np.uint8)
+            for i, tile in enumerate(tiles):
+                [x1, y1], [x2, y2] = self.__tiles_on_image[i]
+                res[y1: y2, x1: x2, :] = tile
+        else:
+            res = np.zeros((self.__img_original_size[0], self.__img_original_size[1]), dtype=tiles[0].dtype)
+            weights_mask = np.zeros_like(res)
+            for i, tile in enumerate(tiles):
+                [x1, y1], [x2, y2] = self.__tiles_on_image[i]
+                res[y1: y2, x1: x2] += tile
+                weights_mask[y1: y2, x1: x2] += np.ones_like(tile, dtype=np.float)
+            weights_mask[weights_mask == 0] = 1
+            res = res / weights_mask
+        return res

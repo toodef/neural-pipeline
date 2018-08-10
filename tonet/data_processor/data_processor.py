@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 import torch.nn.functional as F
 
-from tonet.tonet.data_processor.metrics import dice_loss, jaccard, masked_jaccard, iou, iou_new
+from tonet.tonet.data_processor.metrics import dice_loss, jaccard, masked_jaccard, iou, iou_new, mean_fscore
 from tonet.tonet.data_processor.state_manager import StateManager
 from tonet.tonet.utils.file_structure_manager import FileStructManager
 from .model import Model
@@ -101,6 +101,10 @@ class DataProcessor(InitedByConfig):
                 self.__metrics['special']['iou']['0.5'] = np.append(self.__metrics['special']['iou']['0.5'], iou_new(output, target, 0.5))
                 self.__metrics['special']['iou']['0.7'] = np.append(self.__metrics['special']['iou']['0.7'], iou_new(output, target, 0.7))
                 self.__metrics['special']['iou']['0.9'] = np.append(self.__metrics['special']['iou']['0.9'], iou_new(output, target, 0.9))
+                self.__metrics['special']['f2']['0.3'] = np.append(self.__metrics['special']['f2']['0.3'], mean_fscore(output, target, 0.3))
+                self.__metrics['special']['f2']['0.5'] = np.append(self.__metrics['special']['f2']['0.5'], mean_fscore(output, target, 0.5))
+                self.__metrics['special']['f2']['0.7'] = np.append(self.__metrics['special']['f2']['0.7'], mean_fscore(output, target, 0.7))
+                self.__metrics['special']['f2']['0.9'] = np.append(self.__metrics['special']['f2']['0.9'], mean_fscore(output, target, 0.9))
                 self.__images_processeed['val'] += inputs_num
 
         def get_metrics(self):
@@ -112,7 +116,8 @@ class DataProcessor(InitedByConfig):
             self.__metrics = {"train": {"train_dice": np.array([]), "train_jaccard": np.array([]), "train_min_val": {"dice": np.array([]), "jaccard": np.array([])}},
                               "validation": {"val_dice": np.array([]), "val_jaccard": np.array([])},
                               "special": {"val_mask_jaccard": {'0.3': np.array([]), '0.5': np.array([]), '0.7': np.array([])},
-                                          "iou": {'0.9': np.array([]), '0.3': np.array([]), '0.5': np.array([]), '0.7': np.array([])}}}
+                                          "iou": {'0.9': np.array([]), '0.3': np.array([]), '0.5': np.array([]), '0.7': np.array([])},
+                                          "f2": {'0.9': np.array([]), '0.3': np.array([]), '0.5': np.array([]), '0.7': np.array([])}}}
             self.__images_processeed = {"val": 0, "train": 0}
 
     def __init__(self, config: {}, file_struct_manager: FileStructManager, classes_num, network_name: str = None):
