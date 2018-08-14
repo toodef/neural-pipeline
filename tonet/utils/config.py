@@ -111,9 +111,8 @@ default_config = {
         "architecture": "densenet201",
         "optimizer": "Adam",
         "learning_rate": {"start_value": 0.001,
-                          "skip_steps_number": 2,
-                          "decrease_coefficient": 10,
-                          "first_epoch_decrease_coeff": 10},
+                          "steps_before_decrease": 10,
+                          "decrease_coefficient": 10},
         "start_from": "url"
     },
     "data_conveyor": {

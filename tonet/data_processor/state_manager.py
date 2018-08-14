@@ -8,8 +8,6 @@ class StateManager:
     def __init__(self, file_struct_manager: FileStructManager, preffix: str = None):
         self.__file_struct_manager = file_struct_manager
 
-        self.__files = {}
-
         weights_file = self.__file_struct_manager.weights_file()
         state_file = self.__file_struct_manager.optimizer_state_file()
 
@@ -26,18 +24,14 @@ class StateManager:
         with ZipFile(result_file, 'r') as zipfile:
             zipfile.extractall(self.__file_struct_manager.weights_dir())
 
-        self.__files['weights_file'] = self.__file_struct_manager.weights_file()
-        self.__files['state_file'] = self.__file_struct_manager.optimizer_state_file()
-        self.__files['dp_state_file'] = self.__file_struct_manager.data_processor_state_file()
-
     def clear_files(self) -> None:
         def rm_file(file: str):
             if os.path.exists(file) and os.path.isfile(file):
                 os.remove(file)
 
-        rm_file(self.__files['weights_file'])
-        rm_file(self.__files['state_file'])
-        rm_file(self.__files['dp_state_file'])
+        rm_file(self.__file_struct_manager.weights_file())
+        rm_file(self.__file_struct_manager.optimizer_state_file())
+        rm_file(self.__file_struct_manager.data_processor_state_file())
 
         self.__files = {}
 
@@ -68,7 +62,7 @@ class StateManager:
         rm_file(dp_state_file)
 
     def get_files(self) -> {'weights_file', 'state_file'}:
-        return self.__files
+        return {'weights_file': self.__file_struct_manager.weights_file(), 'state_file': self.__file_struct_manager.optimizer_state_file()}
 
     def __construct_result_file(self):
         data_dir = self.__file_struct_manager.weights_dir()

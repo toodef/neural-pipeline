@@ -1,25 +1,46 @@
 import os
 import sys
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 from random import randint
 
 import cv2
 import torch
 
 from tonet.tonet.utils.file_structure_manager import FileStructManager
-from .augmentations import augmentations_dict, ToPyTorch
+from .augmentations import augmentations_dict
 
 import numpy as np
 
 
+class AbstractMaskInterpreter(metaclass=ABCMeta):
+    @abstractmethod
+    def __call__(self, shape, data):
+        pass
+
+
+class ContoursMaskInterpreter(AbstractMaskInterpreter):
+    def __call__(self, shape, contours: []):
+        new_cntrs = np.array([np.array([[p] for p in c]) for c in contours])
+        return cv2.drawContours(np.zeros((shape[0], shape[1]), dtype=np.uint8), new_cntrs, -1, 255, -1)
+
+
+class CirclesMaskInterpreter(AbstractMaskInterpreter):
+    def __call__(self, shape, circles: []):
+        res_mask = np.zeros((shape[0], shape[1]), dtype=np.uint8)
+        for c in circles:
+            res_mask = cv2.circle(res_mask, (c[0], c[1]), c[2], 255, -1)
+        return res_mask
+
+
 class AbstractDataset:
-    def __init__(self, config: {}, pathes: [], file_struct_manager: FileStructManager):
+    def __init__(self, config: {}, pathes: [], mask_interpreter: AbstractMaskInterpreter, file_struct_manager: FileStructManager):
         self._config_path = file_struct_manager.conjfig_dir()
         self._pathes = pathes
         percentage = config['images_percentage'] if 'images_percentage' in config else 100
         self.__cell_size = 100 // percentage
         self.__data_num = len(self._pathes['data']) * percentage // 100
         self.__percentage = percentage
+        self._mask_interpreter = mask_interpreter
 
         self.load_augmentations(config)
 
@@ -113,8 +134,12 @@ class AbstractDataset:
 
     def __len__(self):
         if self.__indices is None:
-            return self.__data_num
+            return self._get_data_number()
         return len(self.__indices)
+
+    @abstractmethod
+    def _get_data_number(self):
+        pass
 
     @abstractmethod
     def _load_data(self, index):
@@ -136,8 +161,8 @@ class AbstractDataset:
 
 
 class Dataset(AbstractDataset):
-    def __init__(self, config: {}, pathes: [], file_struct_manager: FileStructManager):
-        super().__init__(config, pathes, file_struct_manager)
+    def __init__(self, config: {}, pathes: [], mask_interpreter: AbstractMaskInterpreter, file_struct_manager: FileStructManager):
+        super().__init__(config, pathes, mask_interpreter, file_struct_manager)
 
     def _load_data(self, index: int):
         data_path = os.path.join(self._config_path, "..", "..", self._pathes['data'][index]['path']).replace("\\", "/")
@@ -145,11 +170,13 @@ class Dataset(AbstractDataset):
 
         if 'target' in self._pathes['data'][index]:
             cntrs = self._pathes['data'][index]['target']
-            new_cntrs = np.array([np.array([[p] for p in c]) for c in cntrs])
-            mask = cv2.drawContours(np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8), new_cntrs, -1, 255, -1)
+            mask = self._mask_interpreter((image.shape[0], image.shape[1]), cntrs)
             return {'data': image, 'mask': mask}
         else:
             return {'data': image}
+
+    def _get_data_number(self):
+        return len(self._pathes['data'])
 
     def _remove_item_by_idx(self, idx):
         del self._pathes['data'][idx]
@@ -219,61 +246,87 @@ class TiledDataset(AbstractDataset):
             walk_cells(on_cell)
             return result
 
-    def __init__(self, config: {}, pathes: [], file_struct_manager: FileStructManager, tile_size: list, img_original_size: list = None):
-        super().__init__(config, pathes, file_struct_manager)
+    def __init__(self, config: {}, pathes: [], mask_interpreter: AbstractMaskInterpreter, file_struct_manager: FileStructManager, tile_size: list, img_original_size: list = None):
+        super().__init__(config, pathes, mask_interpreter, file_struct_manager)
 
+        self.__tiles = []
+        self.__images = []
         if img_original_size is None:
-            self.__tiles = [{"tile": tile, "path": img_path['path'], "target": img_path['target']} if "target" in img_path else {"tile": tile, "path": img_path['path']} for img_path in self._pathes['data'] for tile in self.__get_image_tiles_by_photo(img_path, tile_size)]
+            for i, img_path in enumerate(self._pathes['data']):
+                img = cv2.imread(img_path['path'])
+                img_size = [img.shape[0], img.shape[1]]
+                cur_tiles = []
+                for tile in self.__get_image_tiles_by_size([img_size[1], img_size[0]], tile_size):
+                    cur_tiles.append({"tile": tile, "img_id": i})
+                img_info = {"path": img_path['path'], "tiles_ids": list(range(len(self.__tiles), len(self.__tiles) + len(cur_tiles))), "size": img_size}
+                if "target" in img_path:
+                    img_info["target"] = img_path['target']
+                self.__images.append(img_info)
+                self.__tiles.extend(cur_tiles)
+            # self.__tiles = [{"tile": tile, "path": img_path['path'], "target": img_path['target']} if "target" in img_path else {"tile": tile, "path": img_path['path']} for img_path in self._pathes['data'] for tile in self.__get_image_tiles_by_photo(img_path, tile_size)]
         else:
-            self.__tiles = [{"tile": tile, "path": img_path['path'], "target": img_path['target']} if "target" in img_path else {"tile": tile, "path": img_path['path']} for img_path in self._pathes['data'] for tile in self.__get_image_tiles_by_size(img_original_size, tile_size)]
-
-        self.__tiles_on_image = self.__get_image_tiles_by_size(img_original_size, tile_size)
-        self.__img_original_size = img_original_size
-
-    def __get_image_tiles_by_photo(self, img_path, tile_size):
-        return []
+            one_image_tiles = self.__get_image_tiles_by_size(img_original_size, tile_size)
+            for img_path in self._pathes['data']:
+                cur_tiles = []
+                for tile in one_image_tiles:
+                    cur_tiles.append({"tile": tile, "path": img_path['path'], "target": img_path['target']})
+                img_info = {"path": img_path['path'], "tiles_ids": list(range(len(one_image_tiles), len(self.__tiles) + len(cur_tiles))), "size": img_original_size}
+                if "target" in img_path:
+                    img_info["target"] = img_path['target']
+                self.__images.append(img_info)
+                # self.__images.append({"path": img_path['path'], "tiles": cur_tiles, "target": img_path['target']} if "target" in img_path else {"path": img_path['path'], "tiles": cur_tiles})
+                self.__tiles.extend(cur_tiles)
+            # self.__tiles = [{"tile": tile, "path": img_path['path'], "target": img_path['target']} if "target" in img_path else {"tile": tile, "path": img_path['path']} for img_path in self._pathes['data'] for tile in self.__get_image_tiles_by_size(img_original_size, tile_size)]
 
     def __get_image_tiles_by_size(self, img_original_size, tile_size: list):
         return self.MeshGenerator(np.array([[0, 0], img_original_size]), tile_size).generate_cells()
 
     def _load_data(self, index):
-        data_path = self._get_path_by_idx(index)
+        data_path = self._get_path_by_idx(self.__tiles[index]['img_id'])
         [x1, y1], [x2, y2] = self.__tiles[index]["tile"]
         image = cv2.imread(data_path)
 
-        if 'target' in self.__tiles[index]:
-            cntrs = self.__tiles[index]['target']
-            new_cntrs = np.array([np.array([[p] for p in c]) for c in cntrs])
-            mask = cv2.drawContours(np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8), new_cntrs, -1, 255, -1)
+        if 'target' in self.__images[self.__tiles[index]['img_id']]:
+            cntrs = self.__images[self.__tiles[index]['img_id']]['target']
+            mask = self._mask_interpreter((image.shape[0], image.shape[1]), cntrs)
             return {'data': image[y1: y2, x1: x2, :], 'mask': mask[y1: y2, x1: x2]}
         else:
             return {'data': image[y1: y2, x1: x2, :]}
+
+    def _get_data_number(self):
+        return len(self.__tiles)
 
     def _remove_item_by_idx(self, idx):
         del self.__tiles[idx]
 
     def _get_path_by_idx(self, idx):
-        return os.path.join(self._config_path, "..", "..", self.__tiles[idx]["path"]).replace("\\", "/")
+        return os.path.join(self._config_path, "..", "..", self.__images[idx]["path"]).replace("\\", "/")
 
-    def get_tiles_num_per_image(self):
-        return len(self.__tiles_on_image)
+    def get_tiles_num_per_image(self, image_idx: int):
+        return len(self.__images[image_idx]['tiles_ids'])
 
-    def unite_data(self, tiles):
-        if len(tiles) != self.get_tiles_num_per_image():
+    def unite_data(self, tiles, img_idx):
+        if len(tiles) != self.get_tiles_num_per_image(img_idx):
             raise Exception("Tiles number doesn't equal to real tiles size")
 
+        img_size = self.__images[img_idx]['size']
+
         if len(tiles[0].shape) == 3:
-            res = np.zeros((self.__img_original_size[0], self.__img_original_size[1], tiles[0].shape[2]), dtype=np.uint8)
+            res = np.zeros((img_size[0], img_size[1], tiles[0].shape[2]), dtype=np.uint8)
             for i, tile in enumerate(tiles):
-                [x1, y1], [x2, y2] = self.__tiles_on_image[i]
+                [x1, y1], [x2, y2] = self.__tiles[i]['tile']
                 res[y1: y2, x1: x2, :] = tile
         else:
-            res = np.zeros((self.__img_original_size[0], self.__img_original_size[1]), dtype=tiles[0].dtype)
+            res = np.zeros((img_size[0], img_size[1]), dtype=tiles[0].dtype)
             weights_mask = np.zeros_like(res)
             for i, tile in enumerate(tiles):
-                [x1, y1], [x2, y2] = self.__tiles_on_image[i]
+                [x1, y1], [x2, y2] = self.__tiles[i]['tile']
                 res[y1: y2, x1: x2] += tile
                 weights_mask[y1: y2, x1: x2] += np.ones_like(tile, dtype=np.float)
             weights_mask[weights_mask == 0] = 1
             res = res / weights_mask
         return res
+
+    def __getitem__(self, item):
+        for tile_idx in self.__images[item]["tiles_ids"]:
+            yield super().__getitem__(tile_idx)

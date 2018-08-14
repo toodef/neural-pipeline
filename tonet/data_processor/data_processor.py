@@ -20,32 +20,34 @@ class DataProcessor(InitedByConfig):
         def __init__(self, config: {}):
             self.__value = float(config['learning_rate']['start_value'])
             self.__decrease_coefficient = float(config['learning_rate']['decrease_coefficient'])
-
-            if 'first_epoch_decrease_coeff' in config['learning_rate']:
-                self.__first_epoch_decrease_coeff = float(
-                    config['learning_rate']['first_epoch_decrease_coeff'])
-            else:
-                self.__first_epoch_decrease_coeff = None
-
-            self.__skip_steps_number = config['learning_rate']['skip_steps_number']
+            self.__steps_before_decrease = config['learning_rate']['steps_before_decrease']
             self.__cur_step = 0
+            self.__min_loss = None
+            self.__just_decreased = False
 
-        def value(self, cur_loss, min_loss) -> float:
-            if min_loss is not None and cur_loss < min_loss:
-                print("Clear steps num")
+        def value(self, cur_loss: float = None) -> float:
+            if cur_loss is None:
+                return self.__value
+
+            self.__just_decreased = False
+            if self.__min_loss is None:
+                self.__min_loss = cur_loss
+
+            if cur_loss < self.__min_loss:
+                print("LR: Clear steps num")
                 self.__cur_step = 0
+                self.__min_loss = cur_loss
 
-            if self.__cur_step == 1 and self.__first_epoch_decrease_coeff is not None:
-                self.__value /= self.__first_epoch_decrease_coeff
-                self.__first_epoch_decrease_coeff = None
-                print('Decrease lr cause 1 step to', self.__value)
-            elif self.__cur_step > 0 and (self.__cur_step % self.__skip_steps_number) == 0:
+            if self.__cur_step > 0 and (self.__cur_step % self.__steps_before_decrease) == 0:
                 self.__value /= self.__decrease_coefficient
                 print('Decrease lr to', self.__value)
+                self.__just_decreased = True
 
             self.__cur_step += 1
-
             return self.__value
+
+        def lr_just_decreased(self):
+            return self.__just_decreased
 
     class ClassifierDataProcessor:
         def __init__(self):
@@ -136,8 +138,7 @@ class DataProcessor(InitedByConfig):
         self.__learning_rate = self.LearningRate(config)
 
         self.__optimizer_fnc = getattr(torch.optim, config['optimizer'])
-        self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=1.e-4,
-                                                lr=self.__learning_rate.value(0, 0))
+        self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=1.e-4, lr=self.__learning_rate.value())
 
         self.__monitor = Monitor(config, self.__file_struct_manager, is_continue=config['start_from'] == 'continue', network_name=network_name)
 
@@ -200,9 +201,16 @@ class DataProcessor(InitedByConfig):
             self.process_batch(batch['data'], batch['target'], is_train=False)
 
         cur_metrics = self.get_metrics()
-        self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=1.e-4, lr=self.__learning_rate.value(cur_metrics['validation']['val_loss'], None))
+        # self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=1.e-4, lr=self.__learning_rate.value(cur_metrics['validation']['val_loss'], None))
+        self.__update_lr(self.__learning_rate.value(cur_metrics['validation']['val_loss']))
         self.__monitor.update(epoch_idx, cur_metrics)
         self.__epoch_num = epoch_idx
+
+        return {"lr_just_decreased": self.__learning_rate.lr_just_decreased()}
+
+    def __update_lr(self, lr):
+        for param_group in self.__optimizer.param_groups:
+            param_group['lr'] = lr
 
     def get_metrics(self):
         res = self.__target_data_processor.get_metrics()
@@ -224,8 +232,8 @@ class DataProcessor(InitedByConfig):
     def get_last_epoch_idx(self):
         return self.__epoch_num
 
-    def load_state(self, optimizer_state: str):
-        state = torch.load(optimizer_state)
+    def load_state(self, optimizer_state_path: str):
+        state = torch.load(optimizer_state_path)
         state = {k: v for k, v in state.items() if k in self.__optimizer.state_dict()}
         self.__optimizer.load_state_dict(state)
 

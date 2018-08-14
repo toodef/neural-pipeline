@@ -47,10 +47,8 @@ class DataProcessorUi:
 
         parent.start_group_box('Learning rate')
         self.__lr_start_value = parent.add_widget(LineEdit().add_label('Start value: ', 'left'))
-        self.__lr_skip_steps_num = parent.add_widget(LineEdit().add_label('Skip steps number: ', 'left'))
+        self.__lr_steps_before_decay = parent.add_widget(LineEdit().add_label('Steps before decay: ', 'left'))
         self.__lr_decrease_coefficient = parent.add_widget(LineEdit().add_label('Decrease coefficient: ', 'left'))
-        self.__lr_first_epoch_decrease_coeff = parent.add_widget(
-            LineEdit().add_label('First epoch decrease coeff: ', 'left'))
         parent.cancel()
 
         self.__start_from = parent.add_widget(ComboBox().add_label('Start from', 'top').add_items(start_modes))
@@ -70,9 +68,8 @@ class DataProcessorUi:
         self.__dc_data_size_c.set_value(str(cur_config['data_size'][2]))
 
         self.__lr_start_value.set_value(str(cur_config['learning_rate']['start_value']))
-        self.__lr_skip_steps_num.set_value(str(cur_config['learning_rate']['skip_steps_number']))
+        self.__lr_steps_before_decay.set_value(str(cur_config['learning_rate']['steps_before_decrease']))
         self.__lr_decrease_coefficient.set_value(str(cur_config['learning_rate']['decrease_coefficient']))
-        self.__lr_first_epoch_decrease_coeff.set_value(str(cur_config['learning_rate']['first_epoch_decrease_coeff']))
 
     def flush_to_config(self, config: {}):
         config['data_processor']['model_type'] = model_types[int(self.__model_type.get_value())]
@@ -92,21 +89,15 @@ class DataProcessorUi:
             raise ParamException('Please set learning rate start value')
 
         try:
-            config['data_processor']['learning_rate']['skip_steps_number'] = int(self.__lr_skip_steps_num.get_value())
+            config['data_processor']['learning_rate']['steps_before_decrease'] = int(self.__lr_steps_before_decay.get_value())
         except:
-            raise ParamException('Please set learning rate skip steps number')
+            raise ParamException('Please set learning rate skip steps before decay number')
 
         try:
             config['data_processor']['learning_rate']['decrease_coefficient'] = float(
                 self.__lr_decrease_coefficient.get_value())
         except:
             raise ParamException('Please set learning rate decrease coefficient')
-
-        try:
-            config['data_processor']['learning_rate']['first_epoch_decrease_coeff'] = float(
-                self.__lr_first_epoch_decrease_coeff.get_value())
-        except:
-            raise ParamException('Please set learning rate first epoch decrease coefficient')
 
 
 class AugmentationsUi(Widget):
