@@ -1,12 +1,11 @@
 import json
 import os
-from multiprocessing import freeze_support
 
 import torch
 
-from tonet.tonet.utils.config import Project, Config
-from tonet.tonet.utils.file_structure_manager import FileStructManager
-from .data_conveyor.data_conveyor import Dataset, CirclesMaskInterpreter
+from neural_pipeline.tonet.utils.config import Project, Config
+from neural_pipeline.tonet.utils.file_structure_manager import FileStructManager
+from .data_conveyor.data_conveyor import Dataset, ContoursMaskInterpreter
 from .data_processor.data_processor import DataProcessor
 from .data_processor.state_manager import StateManager
 import numpy as np
@@ -29,11 +28,11 @@ class Trainer:
             self.__validation_pathes = json.load(file)
 
     def train(self):
-        train_dataset = Dataset(self.__config['data_conveyor']['train'], self.__train_pathes, CirclesMaskInterpreter(), self.__file_sruct_manager)
+        train_dataset = Dataset(self.__config['data_conveyor']['train'], self.__train_pathes, ContoursMaskInterpreter(), self.__file_sruct_manager)
         train_loader = torch.utils.data.DataLoader(train_dataset,
                                                    batch_size=int(self.__config['data_conveyor']['batch_size']), shuffle=True,
                                                    num_workers=int(self.__config['data_conveyor']['threads_num']), pin_memory=True)
-        val_loader = torch.utils.data.DataLoader(Dataset(self.__config['data_conveyor']['validation'], self.__validation_pathes, CirclesMaskInterpreter(), self.__file_sruct_manager),
+        val_loader = torch.utils.data.DataLoader(Dataset(self.__config['data_conveyor']['validation'], self.__validation_pathes, ContoursMaskInterpreter(), self.__file_sruct_manager),
                                                  batch_size=int(self.__config['data_conveyor']['batch_size']), shuffle=True,
                                                  num_workers=int(self.__config['data_conveyor']['threads_num']), pin_memory=True)
 
@@ -43,7 +42,7 @@ class Trainer:
 
         best_metric = None
 
-        last_epoch = data_processor.get_last_epoch_idx() + 1
+        last_epoch = data_processor.get_last_epoch_idx() + 1 if data_processor.get_last_epoch_idx() > 0 else 0
 
         for epoch_idx in range(int(self.__config['data_conveyor']['epoch_num'])):
             events = data_processor.train_epoch(train_loader, val_loader, epoch_idx + last_epoch)

@@ -1,3 +1,7 @@
+"""
+This file contains U-NET models. Don't touch this file if u not mad
+"""
+
 import torch
 import torch.nn as nn
 import math
@@ -34,7 +38,7 @@ class ConvBottleneck(nn.Module):
 
 
 class UNetModel(torch.nn.Module):
-    def __init__(self, base_model: torch.nn.Module, num_classes: int, weights_url: str = None):
+    def __init__(self, base_model: torch.nn.Module, num_classes: int, in_channels: int, weights_url: str = None):
         super().__init__()
         if not hasattr(self, 'decoder_block'):
             self.decoder_block = UnetDecoderBlock
@@ -47,6 +51,13 @@ class UNetModel(torch.nn.Module):
             pretrained_weights = model_zoo.load_url(weights_url)
             model_state_dict = base_model.state_dict()
             pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in model_state_dict}
+
+            if in_channels != 3:
+                # base_model.state_dict()['conv1.weight'][:, :3, ...] = pretrained_weights['conv1.weight'].data[:, :1, ...]
+                # skip_layers = ['conv1.weight']
+                # pretrained_weights = {k: v for k, v in pretrained_weights.items() if not any(k.startswith(s) for s in skip_layers)}
+                pretrained_weights['conv1.weight'].data = pretrained_weights['conv1.weight'].data[:, :1, ...]
+
             base_model.load_state_dict(pretrained_weights)
 
         filters = [64, 64, 128, 256, 512]
@@ -254,7 +265,7 @@ def resnet34(classes_num: int, in_channels: int, weights_url: str = None):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [3, 4, 6, 3], in_channels)
-    return UNetModel(model, classes_num, weights_url=weights_url)
+    return UNetModel(model, classes_num, weights_url=weights_url, in_channels=in_channels)
 
 
 def resnet50(classes_num: int, in_channels: int, weights_url: str = None):

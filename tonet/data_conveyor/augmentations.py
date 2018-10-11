@@ -7,11 +7,15 @@ from torchvision.transforms import transforms
 
 
 class Augmentation(metaclass=ABCMeta):
+    """
+    Basic abstract interface for augmentations
+    """
+
     def __init__(self, config: {}, aug_name: str):
         self.__aug_name = aug_name
         self._percentage = self._get_config_path(config)['percentage']
 
-    def __call__(self, data):
+    def __call__(self, data) -> np.array or [np.array, np.array]:
         """
         Process data
         :param data: data object
@@ -23,20 +27,32 @@ class Augmentation(metaclass=ABCMeta):
             return data
 
     @abstractmethod
-    def process(self, data):
+    def process(self, data) -> np.array or [np.array, np.array]:
         """
         Process data
         :param data: data object
         :return: processed data object
         """
 
-    def _get_config_path(self, config):
+    def _get_config_path(self, config) -> {}:
+        """
+        Get config of augmentation from all augmentations config
+        :param config: all augmentations config
+        :return: config of augmentation
+        """
         return config[self.__aug_name]
 
-    def get_percetage(self):
+    def get_percetage(self) -> int:
+        """
+        Get percentage of augmentation applying
+        """
         return self._percentage
 
-    def get_name(self):
+    def get_name(self) -> str:
+        """
+        Get name of augmentation
+        :return: name of augmentation
+        """
         return self.__aug_name
 
     @abstractmethod
@@ -64,10 +80,14 @@ class Augmentation(metaclass=ABCMeta):
 
 
 class ChangedGeometryAugmentation(Augmentation, metaclass=ABCMeta):
+    """
+    Augmentation that changed image geometry. This need for data with masks, for example
+    """
+
     def __init__(self, config: {}, aug_name: str):
         super().__init__(config, aug_name)
 
-    def __call__(self, data, mask=None) -> []:
+    def __call__(self, data, mask=None) -> [np.array, np.array]:
         """
         Process data
         :param data: data object
@@ -79,6 +99,10 @@ class ChangedGeometryAugmentation(Augmentation, metaclass=ABCMeta):
             return data if mask is None else [data, mask]
 
     def is_changed_geometry(self):
+        """
+        Is this augmentation changed geometry
+        :return: flag
+        """
         return True
 
     @abstractmethod
@@ -128,9 +152,8 @@ class GaussNoise(Augmentation):
         self.__interval = self._get_config_path(config)['interval']
 
     def process(self, data):
-        row, col, ch = data.shape
         sigma = self.__var ** 0.5
-        gauss = np.random.normal(self.__mean, sigma, (row, col, ch))
+        gauss = np.random.normal(self.__mean, sigma, data.shape)
         gauss = (gauss - np.min(gauss))
         gauss = gauss / np.max(gauss) * self.__interval
         return np.where((255 - data) < gauss, 255, data + gauss).astype(np.uint8)
@@ -140,6 +163,9 @@ class GaussNoise(Augmentation):
 
 
 class SNPNoise(Augmentation):
+    """
+    Salt and pepper noise
+    """
     def __init__(self, config: {}):
         super().__init__(config, 'snp_noise')
 
@@ -177,11 +203,23 @@ class Blur(Augmentation):
         return {'ksize': self.__ksize}
 
 
-def resize_to_defined(data, size):
+def resize_to_defined(data: np.array, size: []):
+    """
+    Resize image to defined size
+    :param data: image
+    :param size: array of target size [h, w]
+    :return: resized image
+    """
     return cv2.resize(data, (size[0], size[1]))
 
 
-def resize_by_min_edge(data, size):
+def resize_by_min_edge(data: np.array, size: int):
+    """
+    Resize image by minimum edge
+    :param data: image
+    :param size: target size
+    :return: resized image
+    """
     min_size_idx = np.argmin(data.shape[0: 2])
     max_size_idx = 1 - min_size_idx
     max_size = size * data.shape[max_size_idx] // data.shape[min_size_idx]
@@ -325,6 +363,9 @@ class ToPyTorch(Augmentation):
         self._percentage = 100
 
     def process(self, data):
+        if len(data.shape) < 3:
+            data = data.reshape((data.shape[0], data.shape[1], 1))
+
         if data.dtype == np.uint8:
             return torch.from_numpy(np.moveaxis(data.astype(np.float32) / 255., -1, 0))
 

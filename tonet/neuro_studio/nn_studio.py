@@ -8,7 +8,7 @@ from PySide2.QtWidgets import QAction
 from data_conveyor.augmentations import augmentations_dict
 from data_processor.model import model_urls, start_modes
 
-from tonet.tonet.data_processor.model import model_types
+from neural_pipeline.tonet.data_processor.model import model_types
 from .PySide2Wrapper.PySide2Wrapper import MainWindow, ComboBox, OpenFile, LineEdit, Button, SaveFile, CheckBox, \
     ListWidget, Widget, DynamicView, DockWidget, MessageWindow
 

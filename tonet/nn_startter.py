@@ -1,5 +1,5 @@
-from tonet.tonet.neuro_studio.PySide2Wrapper.PySide2Wrapper import Application
-from tonet.tonet.neuro_studio.nn_studio import NeuralStudio
+from neural_pipeline.tonet.neuro_studio.PySide2Wrapper.PySide2Wrapper import Application
+from neural_pipeline.tonet.neuro_studio.nn_studio import NeuralStudio
 
 if __name__ == "__main__":
     app = Application()

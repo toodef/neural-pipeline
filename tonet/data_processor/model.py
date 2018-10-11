@@ -1,14 +1,10 @@
-import os
-
-import requests
-
 import torch
 import torchvision
 from torch.utils import model_zoo
 
-from tonet.tonet.data_processor import u_net_model
-from tonet.tonet.utils.config import InitedByConfig
-from tonet.tonet.utils.file_structure_manager import FileStructManager
+from neural_pipeline.tonet.data_processor import u_net_model
+from neural_pipeline.tonet.utils.config import InitedByConfig
+from neural_pipeline.tonet.utils.file_structure_manager import FileStructManager
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -25,6 +21,10 @@ model_types = ['classifier', 'u_net']
 
 
 class Model(InitedByConfig):
+    """
+    Model is a neural network architecture. This class provide initialisation, call and serialisation for it
+    """
+
     class ModelException(Exception):
         def __init__(self, message):
             super(Model.ModelException, self).__init__(message)
@@ -33,7 +33,13 @@ class Model(InitedByConfig):
         def __str__(self):
             return self.__message
 
-    def __init__(self, config: {}, file_struct_manager: FileStructManager, classes_num: int):
+    def __init__(self, config: {}, file_struct_manager: FileStructManager, classes_num: int, is_cuda: bool = True):
+        """
+        :param config: model config
+        :param file_struct_manager: file structure manager
+        :param classes_num: number of classes
+        :param is_cuda: is need to run model on cuda device
+        """
         super().__init__()
 
         self.__file_struct_manager = file_struct_manager
@@ -55,26 +61,18 @@ class Model(InitedByConfig):
                 self.__model = getattr(u_net_model, self.__config['architecture'])(classes_num=classes_num, in_channels=channels_num, weights_url=model_urls[self.__config['architecture']])
             else:
                 self.__model = getattr(u_net_model, self.__config['architecture'])(classes_num=classes_num, in_channels=channels_num)
-        self.__init_from_config()
 
         self.__model = torch.nn.DataParallel(self.__model)
-
-        self.__is_cuda = True
-        if self.__is_cuda:
+        if is_cuda:
             self.__model = self.__model.cuda()
 
-    def model(self):
+    def model(self) -> torch.nn.Module:
         return self.__model
 
-    def __init_from_config(self):
-        start_mode = self.__config_start_mode()
-        if start_mode == start_modes[0]:
-            return
-
-        self.__weights_dir = self.__file_struct_manager.weights_dir()
-        self.__weights_file = self.__file_struct_manager.weights_file()
-
-    def __load_weights_by_url(self):
+    def __load_weights_by_url(self) -> None:
+        """
+        Load pretrained weights from url
+        """
         print("Model weights inited by url")
         model_url = model_urls[self.__config['architecture']]
 
@@ -83,7 +81,11 @@ class Model(InitedByConfig):
         pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in model_state_dict}
         self.__model.load_state_dict(pretrained_weights)
 
-    def load_weights(self, weights_file: str):
+    def load_weights(self, weights_file: str) -> None:
+        """
+        Load weight from file
+        :param weights_file: path to weights file
+        """
         print("Model inited by file: ", weights_file)
 
         pretrained_weights = torch.load(weights_file)
@@ -91,9 +93,16 @@ class Model(InitedByConfig):
         self.__model.load_state_dict(pretrained_weights)
 
     def save_weights(self):
-        torch.save(self.__model.state_dict(), self.__weights_file)
+        """
+        Serialize weights to file
+        :return:
+        """
+        torch.save(self.__model.state_dict(), self.__file_struct_manager.weights_file())
 
     def __config_start_mode(self):
+        """
+        Get start mode from config
+        """
         return self.__config['start_from']
 
     def _required_params(self):
@@ -106,4 +115,8 @@ class Model(InitedByConfig):
         }
 
     def __call__(self, x):
+        """
+        Call torch.nn.Module __call__ method
+        :param x: data
+        """
         return self.__model(x)

@@ -5,19 +5,32 @@ from tqdm import tqdm
 
 import torch.nn.functional as F
 
-from tonet.tonet.data_processor.metrics import dice_loss, jaccard, masked_jaccard, iou, iou_new, mean_fscore
-from tonet.tonet.data_processor.state_manager import StateManager
-from tonet.tonet.utils.file_structure_manager import FileStructManager
+from neural_pipeline.tonet.data_processor.metrics import dice_loss, jaccard, masked_jaccard, fbeta  # iou, iou_new, mean_fscore
+from neural_pipeline.tonet.data_processor.state_manager import StateManager
+from neural_pipeline.tonet.utils.file_structure_manager import FileStructManager
 from .model import Model
 from .monitoring import Monitor
-from tonet.tonet.utils.config import InitedByConfig
+from neural_pipeline.tonet.utils.config import InitedByConfig
 
 import numpy as np
 
 
 class DataProcessor(InitedByConfig):
+    """
+    Class, that get data from data_conveyor and process it:
+    1) Train or predict data
+    2) Provide monitoring (showing metrics to console and tesorboard)
+    """
+
     class LearningRate:
+        """
+        Learning rate manage strategy.
+        This class provide lr decay by loss values. If loss doesn't update minimum throw defined number of steps - lr decay to defined coefficient
+        """
         def __init__(self, config: {}):
+            """
+            :param config: learning rate config
+            """
             self.__value = float(config['learning_rate']['start_value'])
             self.__decrease_coefficient = float(config['learning_rate']['decrease_coefficient'])
             self.__steps_before_decrease = config['learning_rate']['steps_before_decrease']
@@ -26,6 +39,11 @@ class DataProcessor(InitedByConfig):
             self.__just_decreased = False
 
         def value(self, cur_loss: float = None) -> float:
+            """
+            Get value of current leraning rate
+            :param cur_loss: current loss value
+            :return: learning rate value
+            """
             if cur_loss is None:
                 return self.__value
 
@@ -46,17 +64,21 @@ class DataProcessor(InitedByConfig):
             self.__cur_step += 1
             return self.__value
 
-        def lr_just_decreased(self):
+        def lr_just_decreased(self) -> bool:
             return self.__just_decreased
 
     class ClassifierDataProcessor:
+        """
+        Data processor for classification task
+        Process output and calc metrics by data
+        """
         def __init__(self):
             self.clear_metrics()
 
         def process_output(self, output) -> {'mask', 'output'}:
             return {'mask': torch.max(output.data, 1), 'output': output}
 
-        def calc_metrics(self, is_train: bool, preds, target, output, inputs_num: int):
+        def calc_metrics(self, is_train: bool, preds, target, output, inputs_num: int) -> None:
             if is_train:
                 self.__metrics['train_accuracy'] += torch.sum(preds == target.data)
                 self.__images_processeed['train'] += inputs_num
@@ -64,18 +86,22 @@ class DataProcessor(InitedByConfig):
                 self.__metrics['val_accuracy'] += torch.sum(preds == target.data)
                 self.__images_processeed['val'] += inputs_num
 
-        def get_metrics(self):
+        def get_metrics(self) -> {}:
             val_acc = self.__metrics['val_accuracy'] / self.__images_processeed['val']
             train_acc = self.__metrics['train_accuracy'] / self.__images_processeed['train']
             return {"val_accuracy": val_acc,
                     "train_accuracy": train_acc,
                     "train_min_val_acc": train_acc - val_acc}
 
-        def clear_metrics(self):
+        def clear_metrics(self) -> None:
             self.__metrics = {"val_accuracy": 0, "train_accuracy": 0, "train_min_val_acc": 0}
             self.__images_processeed = {"val": 0, "train": 0}
 
     class SegmentationDataProcessor:
+        """
+        Data processor for segmentation task
+        Process output and calc metrics by data
+        """
         def __init__(self):
             self.clear_metrics()
 
@@ -87,7 +113,15 @@ class DataProcessor(InitedByConfig):
             mask[tmp_output > thresold] = 1
             return {'mask': mask, 'output': output}
 
-        def calc_metrics(self, is_train: bool, preds, target, output, inputs_num):
+        def calc_metrics(self, is_train: bool, preds, target, output, inputs_num) -> None:
+            """
+            Calculate metrics. All metrics contains in groups for visualisation
+            :param is_train: need to calculate train metrics
+            :param preds: predict result
+            :param target: target
+            :param output: output
+            :param inputs_num: data samples number
+            """
             output = F.sigmoid(output)
             if is_train:
                 self.__metrics['train']['train_dice'] = np.append(self.__metrics['train']['train_dice'], dice_loss(output, target))
@@ -99,22 +133,22 @@ class DataProcessor(InitedByConfig):
                 self.__metrics['special']["val_mask_jaccard"]['0.3'] = np.append(self.__metrics['special']["val_mask_jaccard"]['0.3'], masked_jaccard(output, target, 0.3))
                 self.__metrics['special']["val_mask_jaccard"]['0.5'] = np.append(self.__metrics['special']["val_mask_jaccard"]['0.5'], masked_jaccard(output, target, 0.5))
                 self.__metrics['special']["val_mask_jaccard"]['0.7'] = np.append(self.__metrics['special']["val_mask_jaccard"]['0.7'], masked_jaccard(output, target, 0.7))
-                self.__metrics['special']['iou']['0.3'] = np.append(self.__metrics['special']['iou']['0.3'], iou_new(output, target, 0.3))
-                self.__metrics['special']['iou']['0.5'] = np.append(self.__metrics['special']['iou']['0.5'], iou_new(output, target, 0.5))
-                self.__metrics['special']['iou']['0.7'] = np.append(self.__metrics['special']['iou']['0.7'], iou_new(output, target, 0.7))
-                self.__metrics['special']['iou']['0.9'] = np.append(self.__metrics['special']['iou']['0.9'], iou_new(output, target, 0.9))
-                self.__metrics['special']['f2']['0.3'] = np.append(self.__metrics['special']['f2']['0.3'], mean_fscore(output, target, 0.3))
-                self.__metrics['special']['f2']['0.5'] = np.append(self.__metrics['special']['f2']['0.5'], mean_fscore(output, target, 0.5))
-                self.__metrics['special']['f2']['0.7'] = np.append(self.__metrics['special']['f2']['0.7'], mean_fscore(output, target, 0.7))
-                self.__metrics['special']['f2']['0.9'] = np.append(self.__metrics['special']['f2']['0.9'], mean_fscore(output, target, 0.9))
+                # self.__metrics['special']['iou']['0.3'] = np.append(self.__metrics['special']['iou']['0.3'], iou_new(output, target, 0.3))
+                # self.__metrics['special']['iou']['0.5'] = np.append(self.__metrics['special']['iou']['0.5'], iou_new(output, target, 0.5))
+                # self.__metrics['special']['iou']['0.7'] = np.append(self.__metrics['special']['iou']['0.7'], iou_new(output, target, 0.7))
+                # self.__metrics['special']['iou']['0.9'] = np.append(self.__metrics['special']['iou']['0.9'], iou_new(output, target, 0.9))
+                self.__metrics['special']['f2']['0.3'] = np.append(self.__metrics['special']['f2']['0.3'], fbeta(output, target, 0.3))
+                self.__metrics['special']['f2']['0.5'] = np.append(self.__metrics['special']['f2']['0.5'], fbeta(output, target, 0.5))
+                self.__metrics['special']['f2']['0.7'] = np.append(self.__metrics['special']['f2']['0.7'], fbeta(output, target, 0.7))
+                self.__metrics['special']['f2']['0.9'] = np.append(self.__metrics['special']['f2']['0.9'], fbeta(output, target, 0.9))
                 self.__images_processeed['val'] += inputs_num
 
-        def get_metrics(self):
+        def get_metrics(self) -> {}:
             self.__metrics['train']["train_min_val"]["dice"] = np.mean(self.__metrics['train']["train_dice"]) - np.mean(self.__metrics['validation']["val_dice"])
             self.__metrics['train']["train_min_val"]["jaccard"] = np.mean(self.__metrics['train']["train_jaccard"]) - np.mean(self.__metrics['validation']["val_jaccard"])
             return self.__metrics
 
-        def clear_metrics(self):
+        def clear_metrics(self) -> None:
             self.__metrics = {"train": {"train_dice": np.array([]), "train_jaccard": np.array([]), "train_min_val": {"dice": np.array([]), "jaccard": np.array([])}},
                               "validation": {"val_dice": np.array([]), "val_jaccard": np.array([])},
                               "special": {"val_mask_jaccard": {'0.3': np.array([]), '0.5': np.array([]), '0.7': np.array([])},
@@ -123,6 +157,13 @@ class DataProcessor(InitedByConfig):
             self.__images_processeed = {"val": 0, "train": 0}
 
     def __init__(self, config: {}, file_struct_manager: FileStructManager, classes_num, network_name: str = None):
+        """
+        :param config: data processor conifig
+        :param file_struct_manager: file stucture manager
+        :param classes_num: number of classes
+        :param network_name: name of network. Need to correct monitor configuration
+        """
+
         self.__is_cuda = True
         self.__file_struct_manager = file_struct_manager
 
@@ -156,7 +197,19 @@ class DataProcessor(InitedByConfig):
 
         self.clear_metrics()
 
-    def predict(self, data, is_train=False):
+    def model(self) -> Model:
+        """
+        Get model
+        """
+        return self.__model.model()
+
+    def predict(self, data, is_train=False) -> {'mask', 'output'}:
+        """
+        Make predict by data
+        :param data: image in torch.Tensor
+        :param is_train: is data processor need train on data or just predict
+        :return: processed output
+        """
         data = torch.autograd.Variable(data.cuda(async=True), volatile=not is_train)
 
         if is_train:
@@ -167,7 +220,14 @@ class DataProcessor(InitedByConfig):
         output = self.__model.model()(data)
         return self.__target_data_processor.process_output(output)
 
-    def process_batch(self, input, target, is_train):
+    def process_batch(self, input, target, is_train) -> None:
+        """
+        Process one batch odf data
+        :param input: input data
+        :param target: target for every data
+        :param is_train: is data processor need to train on data or validate
+        :return:
+        """
         self.__model.model().train(is_train)
 
         if self.__is_cuda:
@@ -185,6 +245,7 @@ class DataProcessor(InitedByConfig):
         if is_train:
             loss = self.__criterion(output, target)
             loss.backward()
+            torch.nn.utils.clip_grad_norm(self.__model.model().parameters(), 1.)
             self.__metrics['loss'] += loss.data[0] * inputs_num
             self.__optimizer.step()
         else:
@@ -194,7 +255,14 @@ class DataProcessor(InitedByConfig):
         self.__target_data_processor.calc_metrics(is_train, preds, target, output, inputs_num)
         self.__images_processeed['train' if is_train else 'val'] += inputs_num
 
-    def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int):
+    def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int) -> {}:
+        """
+        Train one epoch
+        :param train_dataloader: dataloader with train dataset
+        :param validation_dataloader: dataloader with validation dataset
+        :param epoch_idx: index of epoch
+        :return: dict of events
+        """
         for batch in tqdm(train_dataloader, desc="train", leave=False):
             self.process_batch(batch['data'], batch['target'], is_train=True)
         for batch in tqdm(validation_dataloader, desc="validation", leave=False):
@@ -208,11 +276,19 @@ class DataProcessor(InitedByConfig):
 
         return {"lr_just_decreased": self.__learning_rate.lr_just_decreased()}
 
-    def __update_lr(self, lr):
+    def __update_lr(self, lr) -> None:
+        """
+        Provide learning rate decay for optimizer
+        :param lr: target learning rate
+        """
         for param_group in self.__optimizer.param_groups:
             param_group['lr'] = lr
 
-    def get_metrics(self):
+    def get_metrics(self) -> {}:
+        """
+        Get current metrics
+        :return: current metrics from epoch
+        """
         res = self.__target_data_processor.get_metrics()
         res['train']['train_loss'] = self.__metrics['loss'] / self.__images_processeed['train']
         res['validation']['val_loss'] = self.__metrics['val_loss'] / self.__images_processeed['val']
@@ -222,17 +298,27 @@ class DataProcessor(InitedByConfig):
         return res
 
     def clear_metrics(self):
+        """
+        Clear metrics. Just make it zero
+        """
         self.__metrics = {"loss": 0, "val_loss": 0}
         self.__target_data_processor.clear_metrics()
         self.__images_processeed = {"val": 0, "train": 0}
 
-    def get_state(self):
+    def get_state(self) -> {}:
+        """
+        Get model and optimizer state dicts
+        """
         return {'weights': self.__model.model().state_dict(), 'optimizer': self.__optimizer.state_dict()}
 
     def get_last_epoch_idx(self):
         return self.__epoch_num
 
-    def load_state(self, optimizer_state_path: str):
+    def load_state(self, optimizer_state_path: str) -> None:
+        """
+        Load state of darta processor. Model state load separately
+        :param optimizer_state_path: path to optimizer state path
+        """
         state = torch.load(optimizer_state_path)
         state = {k: v for k, v in state.items() if k in self.__optimizer.state_dict()}
         self.__optimizer.load_state_dict(state)
@@ -248,6 +334,10 @@ class DataProcessor(InitedByConfig):
         self.__model.save_weights()
 
     def save_state(self):
+        """
+        Save state of optimizer and perform epochs number
+        :return:
+        """
         torch.save(self.__optimizer.state_dict(), self.__file_struct_manager.optimizer_state_file())
 
         with open(self.__file_struct_manager.data_processor_state_file(), 'w') as out:

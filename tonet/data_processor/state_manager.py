@@ -1,11 +1,20 @@
 import os
 from zipfile import ZipFile
 
-from tonet.tonet.utils.file_structure_manager import FileStructManager
+from neural_pipeline.tonet.utils.file_structure_manager import FileStructManager
 
 
 class StateManager:
+    """
+    Class that manage states for data processor files.
+    All states pack to zip file. It contains few files: model weights, optimizer state, data processor state
+    """
+
     def __init__(self, file_struct_manager: FileStructManager, preffix: str = None):
+        """
+        :param file_struct_manager: file structure manager
+        :param preffix: preffix of saved and loaded files
+        """
         self.__file_struct_manager = file_struct_manager
 
         weights_file = self.__file_struct_manager.weights_file()
@@ -19,12 +28,18 @@ class StateManager:
         self.__preffix = preffix
 
     def unpack(self) -> None:
+        """
+        Unpack state file
+        """
         result_file = self.__construct_result_file()
 
         with ZipFile(result_file, 'r') as zipfile:
             zipfile.extractall(self.__file_struct_manager.weights_dir())
 
     def clear_files(self) -> None:
+        """
+        Clear unpacked files
+        """
         def rm_file(file: str):
             if os.path.exists(file) and os.path.isfile(file):
                 os.remove(file)
@@ -36,6 +51,9 @@ class StateManager:
         self.__files = {}
 
     def pack(self) -> None:
+        """
+        Pack all files in zip
+        """
         def rm_file(file: str):
             if os.path.exists(file) and os.path.isfile(file):
                 os.remove(file)
@@ -62,8 +80,15 @@ class StateManager:
         rm_file(dp_state_file)
 
     def get_files(self) -> {'weights_file', 'state_file'}:
+        """
+        Get files pathes
+        """
         return {'weights_file': self.__file_struct_manager.weights_file(), 'state_file': self.__file_struct_manager.optimizer_state_file()}
 
-    def __construct_result_file(self):
+    def __construct_result_file(self) -> str:
+        """
+        Construct result file name
+        :return: path to result file
+        """
         data_dir = self.__file_struct_manager.weights_dir()
         return os.path.join(data_dir, (self.__preffix + "_" if self.__preffix is not None else "") + "state.zip")

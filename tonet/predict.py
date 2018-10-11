@@ -7,7 +7,7 @@ from tqdm import tqdm
 import numpy as np
 import torch.nn.functional as F
 
-from tonet.tonet.utils.file_structure_manager import FileStructManager
+from neural_pipeline.tonet.utils.file_structure_manager import FileStructManager
 from .data_conveyor.data_conveyor import Dataset, TiledDataset, CirclesMaskInterpreter
 from .data_processor.data_processor import DataProcessor
 
@@ -24,9 +24,7 @@ class Predictor:
 
     def predict(self, callback: callable):
         dataset = Dataset(self.__config['data_conveyor']['test'], self.__data_pathes, CirclesMaskInterpreter(), self.__file_sruct_manager)
-        loader = torch.utils.data.DataLoader(dataset,
-                                             batch_size=1, shuffle=False,
-                                             num_workers=1, pin_memory=True)
+        loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
 
         with open(os.path.normpath(os.path.join(self.__config_dir, self.__config['data_conveyor']['train']['dataset_path'])).replace("\\", "/"), 'r') as file:
             self.__train_pathes = json.load(file)
@@ -36,7 +34,7 @@ class Predictor:
         data_processor = DataProcessor(self.__config['data_processor'], self.__file_sruct_manager, len(train_dataset.get_classes()))
 
         for img in tqdm(loader):
-            callback(data_processor.predict(img))
+            callback(data_processor.predict(img).data.cpu().numpy()[0][0])
             del img
 
     def predict_by_tiles(self, callback: callable, tile_size: list, img_original_size: list = None):
@@ -51,7 +49,7 @@ class Predictor:
         data_processor = DataProcessor(self.__config['data_processor'], self.__file_sruct_manager, len(train_dataset.get_classes()))
 
         # for img in tqdm(loader):
-        for idx, img_tiles in enumerate(dataset):
+        for idx, img_tiles in tqdm(enumerate(dataset), desc="predict by tiles", leave=True):
             output_tiles = []
             image_tiles = []
             for i, tile in enumerate(img_tiles):
