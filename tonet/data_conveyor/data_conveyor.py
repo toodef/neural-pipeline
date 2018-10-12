@@ -43,6 +43,9 @@ class CirclesMaskInterpreter(AbstractMaskInterpreter):
         return res_mask
 
 
+mask_interpreters = {'cntr': ContoursMaskInterpreter, 'circ': CirclesMaskInterpreter}
+
+
 class AbstractDataset:
     """
     Abstract class for every dataset
@@ -57,11 +60,10 @@ class AbstractDataset:
     3) After augmentations - postprocess. normalize, cast to porch tensor for example
     """
 
-    def __init__(self, config: {}, pathes: [], mask_interpreter: AbstractMaskInterpreter, file_struct_manager: FileStructManager):
+    def __init__(self, config: {}, pathes: [], file_struct_manager: FileStructManager):
         """
         :param config: dataset config
         :param pathes: dataset date. Like pathes, targets, labels
-        :param mask_interpreter: concrette mask interpreter
         :param file_struct_manager: file_struct_manager
         """
         self._config_path = file_struct_manager.config_dir()
@@ -69,7 +71,6 @@ class AbstractDataset:
         percentage = config['images_percentage'] if 'images_percentage' in config else 100
         self.__cell_size = 100 // percentage
         self.__percentage = percentage
-        self._mask_interpreter = mask_interpreter
 
         self.load_augmentations(config)
 
@@ -170,6 +171,18 @@ class AbstractDataset:
         else:
             return augmentate(data['data'])
 
+    def _generate_target(self, image, index):
+        if 'target' in self._pathes['data'][index]:
+            masks = np.zeros_like((image.shape[0], image.shape[1], len(self.get_classes())))
+            for item in self._pathes['data'][index]['target']:
+                label = item['lab']
+                data = item['dat']
+                mask_interpreter = mask_interpreters[item['interp']]((image.shape[0], image.shape[1]), data)
+                masks[:, :, label] = mask_interpreter()
+            return {'data': image, 'mask': np.squeeze(masks)}
+        else:
+            return {'data': image}
+
     def __len__(self):
         """
         Get actual data number
@@ -244,13 +257,7 @@ class Dataset(AbstractDataset):
     def _load_data(self, index: int):
         data_path = self._get_path_by_idx(index)
         image = cv2.imread(data_path, -1)
-
-        if 'target' in self._pathes['data'][index]:
-            cntrs = self._pathes['data'][index]['target']
-            mask = self._mask_interpreter((image.shape[0], image.shape[1]), cntrs)
-            return {'data': image, 'mask': mask}
-        else:
-            return {'data': image}
+        return self._generate_target(image, index)
 
     def _get_data_number(self):
         return len(self._pathes['data'])
@@ -271,6 +278,7 @@ class TiledDataset(AbstractDataset):
         """
         Class, that generate tiles by image
         """
+
         class MGException(Exception):
             def init(self, message: str):
                 self.message = message
@@ -400,12 +408,8 @@ class TiledDataset(AbstractDataset):
         [x1, y1], [x2, y2] = self.__tiles[index]["tile"]
         image = cv2.imread(data_path, -1)
 
-        if 'target' in self.__images[self.__tiles[index]['img_id']]:
-            cntrs = self.__images[self.__tiles[index]['img_id']]['target']
-            mask = self._mask_interpreter((image.shape[0], image.shape[1]), cntrs)
-            return {'data': image[y1: y2, x1: x2, :], 'mask': mask[y1: y2, x1: x2]}
-        else:
-            return {'data': image[y1: y2, x1: x2, :]}
+        res = self._generate_target(image, index)
+        return {'data': res['data'][y1: y2, x1: x2, :], 'mask': res['mask'][y1: y2, x1: x2]} if 'mask' in res else {'data': res['data'][y1: y2, x1: x2, :]}
 
     def _get_data_number(self):
         return len(self.__tiles)
