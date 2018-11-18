@@ -1,7 +1,7 @@
 import os
 from zipfile import ZipFile
 
-from neural_pipeline.tonet.utils.file_structure_manager import FileStructManager
+from neural_pipeline.utils.file_structure_manager import FileStructManager
 
 
 class StateManager:
@@ -10,10 +10,10 @@ class StateManager:
     All states pack to zip file. It contains few files: model weights, optimizer state, data processor state
     """
 
-    def __init__(self, file_struct_manager: FileStructManager, preffix: str = None):
+    def __init__(self, file_struct_manager: FileStructManager, prefix: str = None):
         """
         :param file_struct_manager: file structure manager
-        :param preffix: preffix of saved and loaded files
+        :param prefix: prefix of saved and loaded files
         """
         self.__file_struct_manager = file_struct_manager
 
@@ -25,7 +25,7 @@ class StateManager:
             self.pack()
             self.__preffix = None
 
-        self.__preffix = preffix
+        self.__preffix = prefix
 
     def unpack(self) -> None:
         """
@@ -79,7 +79,7 @@ class StateManager:
         rm_file(state_file)
         rm_file(dp_state_file)
 
-    def get_files(self) -> {'weights_file', 'state_file'}:
+    def get_files(self) -> {}:
         """
         Get files pathes
         """

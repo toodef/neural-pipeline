@@ -11,7 +11,7 @@ from onnx_caffe2.backend import Caffe2Backend
 import cv2
 from torchvision import transforms
 
-from tonet.tonet import DataProcessor, FileStructManager, Model, StateManager
+from neural_pipeline.tonet import DataProcessor, FileStructManager, Model, StateManager
 
 result_dir = r"D:\\sunflowers_configs"
 config_dir = r"Z:\nn_projects\sunflowers\workdir\1"

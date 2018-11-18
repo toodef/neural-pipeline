@@ -115,7 +115,7 @@ default_config = {
                           "decrease_coefficient": 10},
         "start_from": "url"
     },
-    "data_conveyor": {
+    "data_producer": {
         "batch_size": 1,
         "threads_num": 1,
         "epoch_num": 1,

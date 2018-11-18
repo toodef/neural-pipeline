@@ -1,4 +1,3 @@
-import cv2
 import json
 import os
 
@@ -8,8 +7,8 @@ import numpy as np
 import torch.nn.functional as F
 
 from neural_pipeline.tonet.utils.file_structure_manager import FileStructManager
-from .data_conveyor.data_conveyor import Dataset, TiledDataset, CirclesMaskInterpreter
-from .data_processor.data_processor import DataProcessor
+from neural_pipeline.data_producer.builtins.segmentation import Dataset, TiledDataset, CirclesMaskInterpreter
+from neural_pipeline.data_processor.data_processor import DataProcessor
 
 
 class Predictor:
@@ -23,12 +22,12 @@ class Predictor:
         self.__config_dir = os.path.dirname(config_path)
 
     def predict(self, callback: callable):
-        dataset = Dataset(self.__config['data_conveyor']['test'], self.__data_pathes, CirclesMaskInterpreter(), self.__file_sruct_manager)
+        dataset = Dataset(self.__config['data_producer']['test'], self.__data_pathes, CirclesMaskInterpreter(), self.__file_sruct_manager)
         loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
 
-        with open(os.path.normpath(os.path.join(self.__config_dir, self.__config['data_conveyor']['train']['dataset_path'])).replace("\\", "/"), 'r') as file:
+        with open(os.path.normpath(os.path.join(self.__config_dir, self.__config['data_producer']['train']['dataset_path'])).replace("\\", "/"), 'r') as file:
             self.__train_pathes = json.load(file)
-        train_dataset = Dataset(self.__config['data_conveyor']['train'], self.__train_pathes, CirclesMaskInterpreter(), self.__file_sruct_manager)
+        train_dataset = Dataset(self.__config['data_producer']['train'], self.__train_pathes, CirclesMaskInterpreter(), self.__file_sruct_manager)
 
         self.__config['data_processor']['start_from'] = 'continue'
         data_processor = DataProcessor(self.__config['data_processor'], self.__file_sruct_manager, len(train_dataset.get_classes()))
@@ -38,12 +37,12 @@ class Predictor:
             del img
 
     def predict_by_tiles(self, callback: callable, tile_size: list, img_original_size: list = None):
-        dataset = TiledDataset(self.__config['data_conveyor']['test'], self.__data_pathes, CirclesMaskInterpreter(), self.__file_sruct_manager, tile_size, img_original_size)
+        dataset = TiledDataset(self.__config['data_producer']['test'], self.__data_pathes, CirclesMaskInterpreter(), self.__file_sruct_manager, tile_size, img_original_size)
         # loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
 
-        with open(os.path.normpath(os.path.join(self.__config_dir, self.__config['data_conveyor']['train']['dataset_path'])).replace("\\", "/"), 'r') as file:
+        with open(os.path.normpath(os.path.join(self.__config_dir, self.__config['data_producer']['train']['dataset_path'])).replace("\\", "/"), 'r') as file:
             self.__train_pathes = json.load(file)
-        train_dataset = Dataset(self.__config['data_conveyor']['train'], self.__train_pathes, CirclesMaskInterpreter(), self.__file_sruct_manager)
+        train_dataset = Dataset(self.__config['data_producer']['train'], self.__train_pathes, CirclesMaskInterpreter(), self.__file_sruct_manager)
 
         self.__config['data_processor']['start_from'] = 'continue'
         data_processor = DataProcessor(self.__config['data_processor'], self.__file_sruct_manager, len(train_dataset.get_classes()))

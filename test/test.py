@@ -1,7 +1,7 @@
 import torch
 import unittest
 
-from tonet.tonet.data_processor import metrics
+from neural_pipeline.tonet.data_processor import metrics
 import numpy as np
 
 
