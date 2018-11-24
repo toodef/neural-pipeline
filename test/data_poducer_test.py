@@ -1,6 +1,6 @@
 import unittest
 
-from tonet.neural_pipeline.data_producer.data_producer import AbstractDataset, DataProducer
+from neural_pipeline.data_producer.data_producer import AbstractDataset, DataProducer
 
 
 class SampleDataset(AbstractDataset):

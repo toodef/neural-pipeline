@@ -59,6 +59,8 @@ class MetricsGroup:
             raise self.MetricsGroupException("The metric group {} have {} level. There must be no more than 2 levels"
                                              .format(self.__name, self.__lvl))
         self.__lvl = level
+        for group in self.__metrics_groups:
+            group.set_level(self.__lvl + 1)
 
 
 class AbstractMetricsProcessor(metaclass=ABCMeta):

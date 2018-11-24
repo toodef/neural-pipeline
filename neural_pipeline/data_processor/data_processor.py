@@ -4,10 +4,10 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from tonet.neural_pipeline.data_processor.model import Model
-from tonet.neural_pipeline.data_processor.state_manager import StateManager
-from tonet.neural_pipeline.train_pipeline.train_pipeline import AbstractTrainPipeline
-from tonet.neural_pipeline.utils.file_structure_manager import FileStructManager
+from neural_pipeline.data_processor.model import Model
+from neural_pipeline.data_processor.state_manager import StateManager
+from neural_pipeline.train_pipeline.train_pipeline import TrainPipeline
+from neural_pipeline.utils.file_structure_manager import FileStructManager
 # from tonet.neural_pipeline.utils.utils import dict_recursive_bypass
 
 
@@ -80,7 +80,7 @@ class DataProcessor:
         def lr_just_decreased(self) -> bool:
             return self.__just_decreased
 
-    def __init__(self, model, train_pipeline: AbstractTrainPipeline, config: {}, file_struct_manager: FileStructManager, is_cuda=True, for_train: bool = True):
+    def __init__(self, model, train_pipeline: TrainPipeline, config: {}, file_struct_manager: FileStructManager, is_cuda=True, for_train: bool = True):
         """
         :param model: model object
         :param config: data processor conifig

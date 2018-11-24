@@ -1,6 +1,6 @@
 import unittest
 
-from tonet.neural_pipeline.train_pipeline.train_pipeline import MetricsGroup
+from neural_pipeline.train_pipeline.train_pipeline import MetricsGroup
 
 
 class NeuralPipelineTest(unittest.TestCase):
@@ -8,7 +8,13 @@ class NeuralPipelineTest(unittest.TestCase):
         metrics_group_lv1 = MetricsGroup('lvl')
         metrics_group_lv2 = MetricsGroup('lv2')
         metrics_group_lv1.add(metrics_group_lv2)
-        self.assertRaises(metrics_group_lv2.add(MetricsGroup('lv3')))
+        self.assertRaises(MetricsGroup.MetricsGroupException, lambda: metrics_group_lv2.add(MetricsGroup('lv3')))
+
+        metrics_group_lv1 = MetricsGroup('lvl')
+        metrics_group_lv2 = MetricsGroup('lv2')
+        metrics_group_lv3 = MetricsGroup('lv2')
+        metrics_group_lv2.add(metrics_group_lv3)
+        self.assertRaises(MetricsGroup.MetricsGroupException, lambda: metrics_group_lv1.add(metrics_group_lv2))
 
 
 if __name__ == '__main__':
