@@ -52,3 +52,6 @@ class Model:
         :param x: data
         """
         return self.__base_model(x)
+
+    def to_cuda(self):
+        self.__base_model.to('cuda')

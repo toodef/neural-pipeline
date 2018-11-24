@@ -1,6 +1,8 @@
 from abc import ABCMeta, abstractmethod
 
 from torch import Tensor
+from torch.optim import Optimizer
+from torch.nn import Module
 import numpy as np
 
 
@@ -113,9 +115,48 @@ class AbstractMetricsProcessor(metaclass=ABCMeta):
         return self._values
 
 
-class TrainPipeline:
-    def __init__(self, metrics_processor: AbstractMetricsProcessor):
+class AbstractLearningRate:
+    """
+    Learning rate manage strategy.
+    This class provide lr decay by loss values. If loss doesn't update minimum throw defined number of steps - lr decay to defined coefficient
+    """
+
+    def __init__(self):
+        self._value = 1e-4
+
+    def value(self) -> float:
+        """
+        Get value of current learning rate
+        """
+        return self._value
+
+    def set_value(self, value):
+        self._value = value
+
+
+class TrainConfig:
+    def __init__(self, metrics_processor: AbstractMetricsProcessor, loss: Module, optimizer: Optimizer, experiment_name: str = None):
         self.__metrics_processor = metrics_processor
+        self.__loss = loss
+        self.__experiment_name = experiment_name
+        self.__optimizer = optimizer
+        self.__learning_rate = AbstractLearningRate()
+
+    def set_learning_rate(self, lr: AbstractLearningRate) -> 'TrainConfig':
+        self.__learning_rate = lr
+        return self
 
     def metrics_processor(self) -> AbstractMetricsProcessor:
         return self.__metrics_processor
+
+    def loss(self):
+        return self.__loss
+
+    def optimizer(self):
+        return self.__optimizer
+
+    def learning_rate(self):
+        return self.__learning_rate
+
+    def experiment_name(self):
+        return self.__experiment_name

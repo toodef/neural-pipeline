@@ -6,8 +6,9 @@ from tqdm import tqdm
 
 from ..data_processor.model import Model
 from ..data_processor.state_manager import StateManager
-from ..train_pipeline.train_pipeline import TrainPipeline
+from ..train_pipeline.train_pipeline import TrainConfig
 from ..utils.file_structure_manager import FileStructManager
+from ..utils.utils import dict_recursive_bypass
 
 
 class DataProcessor:
@@ -17,116 +18,37 @@ class DataProcessor:
     2) Provide monitoring (showing metrics to console and tesorboard)
     """
 
-    class LearningRate:
-        """
-        Learning rate manage strategy.
-        This class provide lr decay by loss values. If loss doesn't update minimum throw defined number of steps - lr decay to defined coefficient
-        """
-
-        def __init__(self, config: {}, is_continue: bool = False):
-            """
-            :param config: learning rate config
-            """
-            self.__value = float(config['learning_rate']['start_value'])
-            self.__decrease_coefficient = float(config['learning_rate']['decrease_coefficient'])
-            self.__steps_before_decrease = config['learning_rate']['steps_before_decrease']
-            if is_continue and 'first_steps_before_decrease' in config['learning_rate']:
-                self.__decrease_after_first_steps_num = config['learning_rate']['first_steps_before_decrease']
-                self.__first_decrease_coefficient = config['learning_rate']['first_decrease_coefficient']
-            self.__cur_step = 0
-            self.__min_loss = None
-            self.__just_decreased = False
-
-        def value(self, cur_loss: float = None) -> float:
-            """
-            Get value of current leraning rate
-            :param cur_loss: current loss value
-            :return: learning rate value
-            """
-            self.__just_decreased = False
-
-            if hasattr(self, "_LearningRate__decrease_after_first_steps_num") and self.__cur_step == self.__decrease_after_first_steps_num:
-                self.set_value(self.__value / self.__first_decrease_coefficient)
-
-            if cur_loss is None:
-                self.__cur_step += 1
-                return self.__value
-
-            if self.__min_loss is None:
-                self.__min_loss = cur_loss
-
-            if cur_loss < self.__min_loss:
-                print("LR: Clear steps num")
-                self.__cur_step = 0
-                self.__min_loss = cur_loss
-
-            if self.__cur_step > 0 and (self.__cur_step % self.__steps_before_decrease) == 0:
-                self.__value /= self.__decrease_coefficient
-                self.__min_loss = None
-                print('Decrease lr to', self.__value)
-                self.__just_decreased = True
-                self.__cur_step = 0
-                return self.__value
-
-            self.__cur_step += 1
-            return self.__value
-
-        def set_value(self, value):
-            self.__value = value
-            self.__cur_step = 0
-            self.__min_loss = None
-
-        def lr_just_decreased(self) -> bool:
-            return self.__just_decreased
-
-    def __init__(self, model, train_pipeline: TrainPipeline, config: {}, file_struct_manager: FileStructManager, is_cuda=True, for_train: bool = True):
+    def __init__(self, model, train_pipeline: TrainConfig, file_struct_manager: FileStructManager, is_cuda=True,
+                 for_train: bool = True):
         """
         :param model: model object
-        :param config: data processor conifig
         :param file_struct_manager: file stucture manager
         """
-
         self.__is_cuda = is_cuda
         self.__file_struct_manager = file_struct_manager
 
         self.__model = Model(model, file_struct_manager)
 
         if for_train:
-            self.metrics_processor = train_pipeline.get_metrics_procesor()
-            self.__criterion = train_pipeline.get_loss()
+            self.metrics_processor = train_pipeline.metrics_processor()
+            self.__criterion = train_pipeline.loss()
 
             if self.__is_cuda:
                 self.__criterion.to('cuda:0')
 
-            self.__learning_rate = self.LearningRate(config, is_continue=config['start_from'] == 'continue')
-
-            self.__optimizer_fnc = getattr(torch.optim, config['optimizer'])
-            if config['optimizer'] == "Adam":
-                self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=0.0005, eps=10e-10, lr=self.__learning_rate.value())
-            else:
-                self.__optimizer = self.__optimizer_fnc(params=self.__model.model().parameters(), weight_decay=0.0005, lr=self.__learning_rate.value())
+            self.__learning_rate = train_pipeline.learning_rate()
+            self.__optimizer = train_pipeline.optimizer()
 
             self.__epoch_num = 0
 
         if self.__is_cuda:
             self.__model.to_cuda()
 
-        if config['start_from'] == 'continue':
-            state_manager = StateManager(file_struct_manager, preffix="best")
-            state_manager.unpack()
-            self.load_weights(state_manager.get_files()['weights_file'])
-            if for_train:
-                self.load_state(state_manager.get_files()['state_file'])
-            state_manager.clear_files()
-
     def model(self):
         """
         Get model
         """
         return self.__model.model()
-
-    def learning_rate(self) -> LearningRate:
-        return self.__learning_rate
 
     def predict(self, data, is_train=False, prev_pose: np.array = None) -> np.array:
         """
