@@ -4,11 +4,10 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from neural_pipeline.data_processor.model import Model
-from neural_pipeline.data_processor.state_manager import StateManager
-from neural_pipeline.train_pipeline.train_pipeline import TrainPipeline
-from neural_pipeline.utils.file_structure_manager import FileStructManager
-# from tonet.neural_pipeline.utils.utils import dict_recursive_bypass
+from ..data_processor.model import Model
+from ..data_processor.state_manager import StateManager
+from ..train_pipeline.train_pipeline import TrainPipeline
+from ..utils.file_structure_manager import FileStructManager
 
 
 class DataProcessor:
