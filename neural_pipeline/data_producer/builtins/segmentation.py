@@ -3,7 +3,7 @@ from abc import abstractmethod, ABCMeta
 import cv2
 import numpy as np
 
-from neural_pipeline.data_producer.data_producer import AbstractDataset
+from tonet.neural_pipeline.data_producer.data_producer import AbstractDataset
 
 
 class AbstractMaskInterpreter(metaclass=ABCMeta):

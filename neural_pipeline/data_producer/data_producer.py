@@ -13,7 +13,7 @@ class AbstractDataset(metaclass=ABCMeta):
         pass
 
 
-class AbstractDataProducer:
+class DataProducer:
     def __init__(self, datasets: [AbstractDataset], batch_size: int = 1, num_workers: int = 0):
         self.__datasets = datasets
         self.__batch_size = batch_size

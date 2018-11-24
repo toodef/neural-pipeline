@@ -1,7 +1,7 @@
 import torch
 from torch.nn import Module
 
-from neural_pipeline.utils.file_structure_manager import FileStructManager
+from tonet.neural_pipeline.utils.file_structure_manager import FileStructManager
 
 
 class Model:

@@ -1,6 +1,6 @@
 import unittest
 
-from neural_pipeline.data_producer.data_producer import AbstractDataset, AbstractDataProducer
+from tonet.neural_pipeline.data_producer.data_producer import AbstractDataset, DataProducer
 
 
 class SampleDataset(AbstractDataset):
@@ -14,7 +14,7 @@ class SampleDataset(AbstractDataset):
         return self.__numbers[item]
 
 
-class DataProducer(AbstractDataProducer):
+class TestDataProducer(DataProducer):
     def __init__(self, datasets: [AbstractDataset]):
         super().__init__(datasets)
 
@@ -33,7 +33,7 @@ class DataProducerTest(unittest.TestCase):
             else:
                 self.assertEqual(dataset2[i - len(dataset1)], n)
 
-        data_producer = DataProducer([dataset1, dataset2])
+        data_producer = TestDataProducer([dataset1, dataset2])
 
         for i, n in enumerate(numbers):
             self.assertEqual(data_producer[i], n)
