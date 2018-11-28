@@ -13,9 +13,9 @@ class FileStructManager:
         def __str__(self):
             return self.__message
 
-    def __init__(self, config_path: str, logdir_path: str=None):
+    def __init__(self, checkpoint_dir_path: str, logdir_path: str=None):
         """
-        :param config_path: path to config
+        :param checkpoint_dir_path: path to directory with checkpoints
         :param logdir_path: logdir path. May be none if exists NN_LOGDIR environment variable. If nothig was defined - tensorboard will not work
         """
 
@@ -27,19 +27,19 @@ class FileStructManager:
 
         self.__logdir_path = logdir_path
 
-        if not (os.path.exists(config_path) and os.path.isfile(config_path)):
-            raise self.FSMException("Config path doesnt find [{}]".format(config_path))
+        if not (os.path.exists(checkpoint_dir_path) and os.path.isfile(checkpoint_dir_path)):
+            raise self.FSMException("Checkpoint directory doesn't find [{}]".format(checkpoint_dir_path))
 
-        self.__config_dir = os.path.dirname(config_path)
-        self.__data_dir = os.path.join(self.__config_dir, 'data')
+        self.__checkpoint_dir = os.path.dirname(checkpoint_dir_path)
+        self.__data_dir = os.path.join(self.__checkpoint_dir, 'data')
 
         self.__create_data_folder()
 
-    def config_dir(self) -> str:
+    def checkpoint_dir(self) -> str:
         """
         Get path of directory, contains config file
         """
-        return self.__config_dir
+        return self.__checkpoint_dir
 
     def weights_dir(self) -> str:
         """
@@ -81,8 +81,3 @@ class FileStructManager:
         if os.path.exists(self.__data_dir) and os.path.isdir(self.__data_dir):
             return
         os.mkdir(self.__data_dir)
-
-
-class FileStructManagerNSProject(FileStructManager):
-    def __init__(self, project_path: str, config_path: int):
-        super().__init__(project_path)

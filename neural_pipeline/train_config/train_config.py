@@ -9,6 +9,7 @@ import numpy as np
 class AbstractMetric(metaclass=ABCMeta):
     def __init__(self, name: str):
         self._name = name
+        self._values = np.array([])
 
     @abstractmethod
     def calc(self, output: Tensor, target: Tensor) -> np.ndarray:
@@ -20,6 +21,17 @@ class AbstractMetric(metaclass=ABCMeta):
 
     def name(self):
         return self._name
+
+    def get_values(self) -> np.ndarray:
+        return self._values
+
+    @staticmethod
+    def min_val() -> float:
+        return 0
+
+    @staticmethod
+    def max_val() -> float:
+        return 1
 
 
 class MetricsGroup:
@@ -64,46 +76,34 @@ class MetricsGroup:
         for group in self.__metrics_groups:
             group.set_level(self.__lvl + 1)
 
+    def calc(self, output: Tensor, target: Tensor):
+        for metric in self.__metrics:
+            metric.calc(output, target)
+        for group in self.__metrics_groups:
+            group.calc(output, target)
+
 
 class AbstractMetricsProcessor(metaclass=ABCMeta):
     def __init__(self):
         self._metrics = []
         self._metrics_groups = []
-        self._values = {}
 
     def add_metric(self, metric: AbstractMetric):
         self._metrics.append(metric)
-        self._values[metric.name()] = np.array([])
 
     def add_metrics_group(self, group: MetricsGroup):
-        def process_metrics_group(target: dict, source_group: MetricsGroup):
-            target[source_group.name()] = {}
-            for metric in source_group.metrics():
-                target[source_group.name()][metric.name()] = np.array([])
-
         self._metrics_groups.append(group)
-        for metrics_group in group.groups():
-            process_metrics_group(self._values[group.name()], metrics_group)
-            if metrics_group.have_groups():
-                for metrics_group_lv2 in metrics_group.groups():
-                    if metrics_group_lv2.have_groups():
-                        raise MetricsGroup.MetricsGroupException("The metric group '{}', added to '{}' have metrics groups. There "
-                                                                 "must be no more than 2 levels "
-                                                                 .format(metrics_group_lv2.name(), metrics_group.name()))
-                    else:
-                        process_metrics_group(self._values[group.name()], metrics_group_lv2)
-                    self._values[group.name()][metrics_group.name()][metrics_group_lv2.name()] = np.array([])
 
-    def calculate_metrics(self, output: Tensor, target: Tensor) -> None:
+    def calculate_metrics(self, output: Tensor, target: Tensor, is_train) -> None:
         """
         Calculate metrics by output from network and target
         :param output: output from model
         :param target: target
         """
         for metric in self._metrics:
-            self._values[metric.name()] = np.append(self._values[metric.name()], metric.calc(output, target))
+            metric.calc(output, target)
         for metrics_group in self._metrics_groups:
-            self._values[group.name()][metrics_group.name()] = np.array([]) if metrics_group.have_groups() else {}
+            metrics_group.calc(output, target)
 
     @abstractmethod
     def clear_metrics(self) -> None:
@@ -112,7 +112,7 @@ class AbstractMetricsProcessor(metaclass=ABCMeta):
         """
 
     def get_metrics(self):
-        return self._values
+        return {'metrics': self._metrics, 'groups': self._metrics_groups}
 
 
 class AbstractLearningRate:

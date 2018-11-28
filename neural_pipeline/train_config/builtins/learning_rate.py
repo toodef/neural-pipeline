@@ -4,16 +4,15 @@ class DecayingLearningRate:
     This class provide lr decay by loss values. If loss doesn't update minimum throw defined number of steps - lr decay to defined coefficient
     """
 
-    def __init__(self, config: {}, is_continue: bool = False):
+    def __init__(self, start_value: float, decay_coefficient: float, steps_before_decay: int):
         """
-        :param config: learning rate config
+        :param start_value: start value
+        :param decay_coefficient: coefficient of decaying
+        :param steps_before_decay: steps before decay
         """
-        self.__value = float(config['learning_rate']['start_value'])
-        self.__decrease_coefficient = float(config['learning_rate']['decrease_coefficient'])
-        self.__steps_before_decrease = config['learning_rate']['steps_before_decrease']
-        if is_continue and 'first_steps_before_decrease' in config['learning_rate']:
-            self.__decrease_after_first_steps_num = config['learning_rate']['first_steps_before_decrease']
-            self.__first_decrease_coefficient = config['learning_rate']['first_decrease_coefficient']
+        self.__value = start_value
+        self.__decay_coefficient = decay_coefficient
+        self.__steps_before_decrease = steps_before_decay
         self.__cur_step = 0
         self.__min_loss = None
         self.__just_decreased = False
@@ -25,9 +24,6 @@ class DecayingLearningRate:
         :return: learning rate value
         """
         self.__just_decreased = False
-
-        if hasattr(self, "_LearningRate__decrease_after_first_steps_num") and self.__cur_step == self.__decrease_after_first_steps_num:
-            self.set_value(self.__value / self.__first_decrease_coefficient)
 
         if cur_loss is None:
             self.__cur_step += 1
@@ -42,7 +38,7 @@ class DecayingLearningRate:
             self.__min_loss = cur_loss
 
         if self.__cur_step > 0 and (self.__cur_step % self.__steps_before_decrease) == 0:
-            self.__value /= self.__decrease_coefficient
+            self.__value /= self.__decay_coefficient
             self.__min_loss = None
             print('Decrease lr to', self.__value)
             self.__just_decreased = True

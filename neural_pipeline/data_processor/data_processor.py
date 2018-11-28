@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from ..data_processor.model import Model
 from ..data_processor.state_manager import StateManager
-from ..train_pipeline.train_pipeline import TrainConfig
+from ..train_config.train_config import TrainConfig
 from ..utils.file_structure_manager import FileStructManager
 from ..utils.utils import dict_recursive_bypass
 
@@ -22,7 +22,7 @@ class DataProcessor:
                  for_train: bool = True):
         """
         :param model: model object
-        :param file_struct_manager: file stucture manager
+        :param file_struct_manager: file structure manager
         """
         self.__is_cuda = is_cuda
         self.__file_struct_manager = file_struct_manager
@@ -40,6 +40,8 @@ class DataProcessor:
             self.__optimizer = train_pipeline.optimizer()
 
             self.__epoch_num = 0
+            self.__val_loss_values = np.array([])
+            self.__train_loss_values = np.array([])
 
         if self.__is_cuda:
             self.__model.to_cuda()
@@ -59,24 +61,18 @@ class DataProcessor:
         :return: processed output
         """
 
-        def make_predict(prev_pose=None):
-            if prev_pose is None:
-                prev_pose = torch.cat([data['target']['prev']['pose'], data['target']['prev']['orientation']], dim=1)
-            else:
-                prev_pose = torch.from_numpy(prev_pose)
-
+        def make_predict():
             if self.__is_cuda:
                 dict_recursive_bypass(data['data'], lambda v: v.to('cuda:0'))
-                prev_pose = prev_pose.to('cuda:0')
-            return self.__model({'prev_img': data['data']['prev_img'], 'cur_img': data['data']['cur_img'], 'prev_pos': prev_pose})
+            return self.__model(data)
 
         if is_train:
             self.__model.model().train()
-            output = make_predict(prev_pose)
+            output = make_predict()
         else:
-            with torch.no_grad():
-                output = make_predict(prev_pose)
             self.__model.model().eval()
+            with torch.no_grad():
+                output = make_predict()
 
         return output
 
@@ -95,14 +91,15 @@ class DataProcessor:
         self.__optimizer.zero_grad()
 
         res = self.predict(batch, is_train)
-        self.metrics_processor.calc_metrics(res, batch['target'], is_train)
+        self.metrics_processor.calculate_metrics(res, batch['target'], is_train)
 
         loss = self.__criterion(res, batch['target'])
         if is_train:
             loss.backward()
             self.__optimizer.step()
 
-        self.metrics_processor.set_loss(loss.data[0], is_train)
+        target_loss_storage = (self.__train_loss_values if is_train else self.__val_loss_values)
+        target_loss_storage = np.append(target_loss_storage, loss.data[0])
 
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int, msg: str = None) -> {}:
         """
@@ -136,37 +133,29 @@ class DataProcessor:
     def get_last_epoch_idx(self):
         return self.__epoch_num
 
-    def load_state(self, optimizer_state_path: str, with_cur_lr: bool=False) -> None:
-        """
-        Load state of darta processor. Model state load separately
-        :param with_cur_lr: is need to load learning rate
-        :param optimizer_state_path: path to optimizer state path
-        """
-        print("Data processor inited by file: ", optimizer_state_path, end='; ')
-        state = torch.load(optimizer_state_path)
+    def load_state(self) -> None:
+        print("Data processor inited by file: ", self.__file_struct_manager.optimizer_state_file(), end='; ')
+        state = torch.load(self.__file_struct_manager.optimizer_state_file())
         print('state dict len before:', len(state), end='; ')
         state = {k: v for k, v in state.items() if k in self.__optimizer.state_dict()}
         print('state dict len after:', len(state), end='; ')
         self.__optimizer.load_state_dict(state)
         print('done')
 
+    def continue_from_last_checkpoint(self) -> None:
+        """
+        Load state of data processor. Model state load separately
+        """
+        self.load_state()
         with open(self.__file_struct_manager.data_processor_state_file(), 'r') as in_file:
             dp_state = json.load(in_file)
             self.__epoch_num = dp_state['last_epoch_idx']
-            if not with_cur_lr:
-                self.update_lr(dp_state['lr'])
-                self.__learning_rate.set_value(dp_state['lr'])
+            self.update_lr(dp_state['lr'])
+            self.__learning_rate.set_value(dp_state['lr'])
 
-    def load_weights(self, path):
-        self.__model.load_weights(path)
-
-    def save_weights(self):
-        self.__model.save_weights()
-
-    def save_state(self):
+    def save_state(self) -> None:
         """
         Save state of optimizer and perform epochs number
-        :return:
         """
         torch.save(self.__optimizer.state_dict(), self.__file_struct_manager.optimizer_state_file())
 

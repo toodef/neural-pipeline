@@ -1,64 +1,43 @@
-import json
-import os
-
-import torch
-
+from neural_pipeline.data_processor import Model
+from neural_pipeline.data_processor.monitoring import Monitor
 from neural_pipeline.utils.file_structure_manager import FileStructManager
-from neural_pipeline.data_producer.builtins.segmentation import Dataset, ContoursMaskInterpreter
 from neural_pipeline.data_processor.data_processor import DataProcessor
-from neural_pipeline.train_pipeline.train_pipeline import AbstractTrainPipeline
+from neural_pipeline.train_config.train_config import TrainConfig
 from neural_pipeline.data_processor.state_manager import StateManager
+from neural_pipeline.data_producer.data_producer import DataProducer
 import numpy as np
 
 
 class Trainer:
-    def __init__(self, train_pipeline: AbstractTrainPipeline, checkpoint_dir: str, network_name: str = None, logdir_path: str = None):
-        self.__network_name = network_name
-        self.__file_struct_manager = FileStructManager(checkpoint_dir, logdir_path)
+    def __init__(self, model: Model, train_config: TrainConfig, file_struct_manager: FileStructManager, train_producer: DataProducer, validation_producer: DataProducer=None):
+        self.__train_config = train_config
+        self.__file_struct_manager = file_struct_manager
+        self.__train_producer = train_producer
+        self.__validation_producer = validation_producer
+        self.__model = model
+
+        self.__is_cuda = True
+        self.__epoch_num = 2000
+
+    def set_epoch_num(self, epoch_number: int) -> 'Trainer':
+        self.__epoch_num = epoch_number
+        return self
 
     def train(self):
-        train_dataset = Dataset(self.__config['data_producer']['train'], self.__train_pathes, ContoursMaskInterpreter(), self.__file_sruct_manager)
-        train_loader = torch.utils.data.DataLoader(train_dataset,
-                                                   batch_size=int(self.__config['data_producer']['batch_size']), shuffle=True,
-                                                   num_workers=int(self.__config['data_producer']['threads_num']), pin_memory=True)
-        val_loader = torch.utils.data.DataLoader(Dataset(self.__config['data_producer']['validation'], self.__validation_pathes, ContoursMaskInterpreter(), self.__file_sruct_manager),
-                                                 batch_size=int(self.__config['data_producer']['batch_size']), shuffle=True,
-                                                 num_workers=int(self.__config['data_producer']['threads_num']), pin_memory=True)
+        train_loader = self.__train_producer.get_loader()
+        val_loader = self.__validation_producer.get_loader()
 
-        data_processor = DataProcessor(self.__config['data_processor'], self.__file_sruct_manager, len(train_dataset.get_classes()), network_name=self.__network_name)
-        state_manager = StateManager(self.__file_sruct_manager)
-        best_state_manager = StateManager(self.__file_sruct_manager, prefix="best")
+        data_processor = DataProcessor(self.__model, self.__train_config, self.__file_struct_manager, is_cuda=True, for_train=True)
+        state_manager = StateManager(self.__file_struct_manager)
 
-        best_metric = None
+        start_epoch_idx = data_processor.get_last_epoch_idx() + 1 if data_processor.get_last_epoch_idx() > 0 else 0
 
-        last_epoch = data_processor.get_last_epoch_idx() + 1 if data_processor.get_last_epoch_idx() > 0 else 0
+        monitor = Monitor(self.__file_struct_manager, False, start_epoch_idx, self.__train_config.experiment_name())
+        for epoch_idx in range(start_epoch_idx, self.__epoch_num + start_epoch_idx):
+            data_processor.train_epoch(train_loader, val_loader, epoch_idx)
 
-        for epoch_idx in range(int(self.__config['data_producer']['epoch_num'])):
-            events = data_processor.train_epoch(train_loader, val_loader, epoch_idx + last_epoch)
             data_processor.save_state()
-            data_processor.save_weights()
+            self.__model.save_weights()
+            state_manager.pack()
 
-            metric = np.mean(data_processor.get_metrics()['validation']['val_loss'])
-
-            if best_metric is None:
-                best_metric = metric
-                state_manager.pack()
-            elif best_metric > metric:
-                print("-------------- Detect best metric --------------")
-                best_metric = metric
-                best_state_manager.pack()
-            else:
-                if events["lr_just_decreased"]:
-                    state_manager.clear_files()
-                    best_state_manager.unpack()
-                    data_processor.load_state(best_state_manager.get_files()['state_file'])
-                    data_processor.load_weights(best_state_manager.get_files()['weights_file'])
-                else:
-                    state_manager.pack()
-
-            data_processor.clear_metrics()
-
-
-class ProjectTrainer(Trainer):
-    def __init__(self, project: Project, config_id: int, logdir_path: str = None):
-        super().__init__(project.get_config_by_id(config_id), network_name=project.get_config_name_by_id(config_id), logdir_path=logdir_path)
+            monitor.update(self.__train_config.metrics_processor().get_metrics(), epoch_idx)
