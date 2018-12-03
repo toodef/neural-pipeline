@@ -2,6 +2,8 @@ import unittest
 
 from neural_pipeline.train_config.train_config import MetricsGroup
 
+__all__ = ['NeuralPipelineTest']
+
 
 class NeuralPipelineTest(unittest.TestCase):
     def test_metrics(self):

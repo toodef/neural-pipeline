@@ -12,18 +12,29 @@ class AbstractMetric(metaclass=ABCMeta):
         self._values = np.array([])
 
     @abstractmethod
-    def calc(self, output: Tensor, target: Tensor) -> np.ndarray:
+    def _calc(self, output: Tensor, target: Tensor) -> np.ndarray or float:
         """
         Calculate metric by output from model and target
         :param output: output from model
         :param target: ground truth
         """
 
+    def calc(self, output: Tensor, target: Tensor):
+        """
+        Calculate metric by output from model and target
+        :param output: output from model
+        :param target: ground truth
+        """
+        self._values = np.append(self._values, self._calc(output, target))
+
     def name(self):
         return self._name
 
     def get_values(self) -> np.ndarray:
         return self._values
+
+    def reset(self) -> None:
+        self._values = np.array([])
 
     @staticmethod
     def min_val() -> float:
@@ -82,34 +93,43 @@ class MetricsGroup:
         for group in self.__metrics_groups:
             group.calc(output, target)
 
+    def reset(self):
+        for metric in self.__metrics:
+            metric.reset()
+        for group in self.__metrics_groups:
+            group.reset()
+
 
 class AbstractMetricsProcessor(metaclass=ABCMeta):
     def __init__(self):
         self._metrics = []
         self._metrics_groups = []
 
-    def add_metric(self, metric: AbstractMetric):
+    def add_metric(self, metric: AbstractMetric) -> AbstractMetric:
         self._metrics.append(metric)
+        return metric
 
-    def add_metrics_group(self, group: MetricsGroup):
+    def add_metrics_group(self, group: MetricsGroup) -> MetricsGroup:
         self._metrics_groups.append(group)
+        return group
 
-    def calculate_metrics(self, output: Tensor, target: Tensor, is_train) -> None:
+    @abstractmethod
+    def calc_metrics(self, output: Tensor, target: Tensor, is_train: bool) -> None:
         """
         Calculate metrics by output from network and target
         :param output: output from model
         :param target: target
+        :param is_train: is metrics get from train
+        """
+
+    def reset_metrics(self) -> None:
+        """
+        Reset metrics values
         """
         for metric in self._metrics:
-            metric.calc(output, target)
-        for metrics_group in self._metrics_groups:
-            metrics_group.calc(output, target)
-
-    @abstractmethod
-    def clear_metrics(self) -> None:
-        """
-        Clear metrics values
-        """
+            metric.reset()
+        for group in self._metrics_groups:
+            group.reset()
 
     def get_metrics(self):
         return {'metrics': self._metrics, 'groups': self._metrics_groups}

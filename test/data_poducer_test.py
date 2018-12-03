@@ -2,6 +2,8 @@ import unittest
 
 from neural_pipeline.data_producer.data_producer import AbstractDataset, DataProducer
 
+__all__ = ['DataProducerTest']
+
 
 class SampleDataset(AbstractDataset):
     def __init__(self, numbers):

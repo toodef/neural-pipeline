@@ -27,11 +27,10 @@ class FileStructManager:
 
         self.__logdir_path = logdir_path
 
-        if not (os.path.exists(checkpoint_dir_path) and os.path.isfile(checkpoint_dir_path)):
+        if not (os.path.exists(checkpoint_dir_path) and os.path.isdir(checkpoint_dir_path)):
             raise self.FSMException("Checkpoint directory doesn't find [{}]".format(checkpoint_dir_path))
 
-        self.__checkpoint_dir = os.path.dirname(checkpoint_dir_path)
-        self.__data_dir = os.path.join(self.__checkpoint_dir, 'data')
+        self.__data_dir = checkpoint_dir_path
 
         self.__create_data_folder()
 

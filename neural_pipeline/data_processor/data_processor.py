@@ -5,7 +5,6 @@ import torch
 from tqdm import tqdm
 
 from ..data_processor.model import Model
-from ..data_processor.state_manager import StateManager
 from ..train_config.train_config import TrainConfig
 from ..utils.file_structure_manager import FileStructManager
 from ..utils.utils import dict_recursive_bypass
@@ -40,11 +39,10 @@ class DataProcessor:
             self.__optimizer = train_pipeline.optimizer()
 
             self.__epoch_num = 0
-            self.__val_loss_values = np.array([])
-            self.__train_loss_values = np.array([])
+            self.__val_loss_values, self.__train_loss_values = np.array([]), np.array([])
 
         if self.__is_cuda:
-            self.__model.to_cuda()
+            self.__model.model().cuda()
 
     def model(self):
         """
@@ -52,10 +50,9 @@ class DataProcessor:
         """
         return self.__model.model()
 
-    def predict(self, data, is_train=False, prev_pose: np.array = None) -> np.array:
+    def predict(self, data, is_train=False) -> np.array:
         """
         Make predict by data
-        :param prev_pose: previous position
         :param data: data in dict
         :param is_train: is data processor need train on data or just predict
         :return: processed output
@@ -63,8 +60,8 @@ class DataProcessor:
 
         def make_predict():
             if self.__is_cuda:
-                dict_recursive_bypass(data['data'], lambda v: v.to('cuda:0'))
-            return self.__model(data)
+                data['data'] = self._process_data(data['data'])
+            return self.__model(data['data'])
 
         if is_train:
             self.__model.model().train()
@@ -79,11 +76,11 @@ class DataProcessor:
     def process_batch(self, batch: {}, is_train) -> None:
         """
         Process one batch of data
-        :param batch: dict, contains data and target keys
+        :param batch: dict, contains 'data' and 'target' keys. The values for key must be instance of torch.Tensor or dict
         :param is_train: is data processor need to train on data or validate
         """
         if self.__is_cuda:
-            dict_recursive_bypass(batch['target'], lambda v: v.to('cuda:0'))
+            batch['target'] = self._process_data(batch['target'])
 
         if is_train:
             self.__optimizer.zero_grad()
@@ -91,15 +88,18 @@ class DataProcessor:
         self.__optimizer.zero_grad()
 
         res = self.predict(batch, is_train)
-        self.metrics_processor.calculate_metrics(res, batch['target'], is_train)
+        self.metrics_processor.calc_metrics(res, batch['target'], is_train)
 
         loss = self.__criterion(res, batch['target'])
         if is_train:
             loss.backward()
             self.__optimizer.step()
 
-        target_loss_storage = (self.__train_loss_values if is_train else self.__val_loss_values)
-        target_loss_storage = np.append(target_loss_storage, loss.data[0])
+        loss_arr = loss.data.cpu().numpy()
+        if is_train:
+            self.__train_loss_values = np.append(self.__train_loss_values, loss_arr)
+        else:
+            self.__val_loss_values = np.append(self.__val_loss_values, loss_arr)
 
     def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int, msg: str = None) -> {}:
         """
@@ -161,3 +161,18 @@ class DataProcessor:
 
         with open(self.__file_struct_manager.data_processor_state_file(), 'w') as out:
             json.dump({"last_epoch_idx": self.__epoch_num, 'lr': self.__learning_rate.value()}, out)
+
+        self.__model.save_weights()
+
+    def get_losses(self) -> {}:
+        return {'train': self.__val_loss_values, 'validation': self.__train_loss_values}
+
+    def reset_losses(self) -> None:
+        self.__val_loss_values, self.__train_loss_values = np.ndarray([]), np.ndarray([])
+
+    @staticmethod
+    def _process_data(data) -> torch.Tensor or dict:
+        if isinstance(data, dict):
+            return dict_recursive_bypass(data, lambda v: v.to('cuda:0'))
+        else:
+            return data.to('cuda:0')

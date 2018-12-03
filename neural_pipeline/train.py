@@ -5,7 +5,6 @@ from neural_pipeline.data_processor.data_processor import DataProcessor
 from neural_pipeline.train_config.train_config import TrainConfig
 from neural_pipeline.data_processor.state_manager import StateManager
 from neural_pipeline.data_producer.data_producer import DataProducer
-import numpy as np
 
 
 class Trainer:
@@ -37,7 +36,10 @@ class Trainer:
             data_processor.train_epoch(train_loader, val_loader, epoch_idx)
 
             data_processor.save_state()
-            self.__model.save_weights()
             state_manager.pack()
 
-            monitor.update(self.__train_config.metrics_processor().get_metrics(), epoch_idx)
+            monitor.update_metrics(epoch_idx, self.__train_config.metrics_processor().get_metrics())
+            monitor.update_losses(epoch_idx, data_processor.get_losses())
+
+            data_processor.reset_losses()
+            self.__train_config.metrics_processor().reset_metrics()

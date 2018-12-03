@@ -1,6 +1,6 @@
 import os
 
-from neural_pipeline.train_config import MetricsGroup
+from neural_pipeline.train_config import MetricsGroup, AbstractMetric
 from tensorboardX import SummaryWriter
 import numpy as np
 
@@ -42,88 +42,85 @@ class Monitor:
         self.__writer = SummaryWriter(dir)
         self.__txt_log_file = open(os.path.join(dir, "log.txt"), 'a' if is_continue else 'w')
 
-    def update(self, epoch_idx: int, metrics: {}) -> None:
+    def update_metrics(self, epoch_idx: int, metrics: {}) -> None:
         """
         Update monitor
         :param epoch_idx: current epoch index
-        :param metrics: metrics
+        :param metrics: metrics dict with keys 'metrics' and 'groups'
         """
         self.__epoch_idx = epoch_idx
-        self.__update_tensorboard(epoch_idx, metrics)
-        self.__update_console(epoch_idx, metrics)
+        self._update_metrics(epoch_idx, metrics['metrics'], metrics['groups'])
 
-    def __update_console(self, epoch_idx: int, metrics: {}) -> None:
+    def update_losses(self, epoch_idx: int, losses: {}) -> None:
+        """
+        Update monitor
+        :param epoch_idx: current epoch index
+        :param losses: losses values with keys 'train' and 'validation'
+        """
+        self.__epoch_idx = epoch_idx
+        self._update_losses(epoch_idx, losses['train'], losses['validation'])
+
+    def _update_losses(self, epoch_idx: int, train_loss: np.ndarray, val_loss: np.ndarray) -> None:
         """
         Update console
         :param epoch_idx: index of current epoch
-        :param metrics: metrics
         """
-        string = "Epoch: [{}]:\n".format(epoch_idx + 1)
-
-        for section in ['train', 'validation']:
-            string += section + ':\n'
-            for k, v in metrics[section].items():
-                if type(v) == dict:
-                    for gk, gv in v.items():
-                        if type(gv) == np.ndarray and gv.size > 0:
-                            string += ("; {}: [{:4f}, {:4f}, {:4f}]").format("{}_{}".format(k, gk), np.min(gv), np.mean(gv),
-                                                                             np.max(gv))
-                        else:
-                            string += ("; {}: {:5f}" if type(gv) in [np.float64, float, np.float32] else "; {}: {}").format(
-                                "{}_{}".format(k, gk), gv)
-                elif type(v) == np.ndarray and v.size > 0:
-                    string += ("; {}: [{:4f}, {:4f}, {:4f}]").format(k, np.min(v), np.mean(v), np.max(v))
-                else:
-                    string += ("; {}: {:5f}" if type(v) in [np.float64, float, np.float32] else "; {}: {}").format(k, v)
-            string += '\n'
+        string = "Epoch: [{}];".format(epoch_idx + 1)
+        string += " {}: [{:4f}, {:4f}, {:4f}];".format('train', np.min(train_loss), np.mean(train_loss), np.max(train_loss))
+        string += " {}: [{:4f}, {:4f}, {:4f}]".format('validation', np.min(val_loss), np.mean(val_loss), np.max(val_loss))
         print(string)
-
-    def __update_tensorboard(self, epoch_idx: int, metrics: {}) -> None:
-        """
-        Update console
-        :param epoch_idx: index of current epoch
-        :param metrics: metrics
-        """
-
-        def process_metric(metric, tag: str):
-            if isinstance(metric, MetricsGroup):
-                self.__writer.add_scalars(tag, {m.name(): np.mean(m.get_values()) for m in metric.metrics()}, global_step=epoch_idx + 1)
-                for m in metric.metrics():
-                    self.__writer.add_histogram('{}_{}'.format(tag, m.name()), np.clip(v, m.min_val(), m.max_val()).astype(np.float32),
-                                                global_step=epoch_idx + 1, bins=np.linspace(-0.2, 1.1, num=14).astype(np.float32))
-            else:
-                self.__writer.add_scalar(tag, float(np.mean(metric.get_values())), global_step=epoch_idx + 1)
-                self.__writer.add_histogram('{}_{}'.format(tag, metric.name()), np.clip(v, metric.min_val(), metric.max_val()).astype(np.float32),
-                                            global_step=epoch_idx + 1, bins=np.linspace(-0.2, 1.1, num=14).astype(np.float32))
 
         if self.__writer is None:
             return
 
-        for metric in metrics['metrics']:
+        self.__writer.add_scalars('loss', {'train': np.mean(train_loss), 'validation': np.mean(val_loss)},
+                                  global_step=epoch_idx + 1)
+
+        self.__writer.add_histogram('train/loss', np.clip(train_loss, -1, 1).astype(np.float32), global_step=epoch_idx + 1,
+                                    bins=np.linspace(-1, 1, num=11).astype(np.float32))
+        self.__writer.add_histogram('validation/loss', np.clip(val_loss, -1, 1).astype(np.float32), global_step=epoch_idx + 1,
+                                    bins=np.linspace(-1, 1, num=11).astype(np.float32))
+
+    def _update_metrics(self, epoch_idx: int, metrics: [AbstractMetric], metrics_groups: [MetricsGroup]) -> None:
+        """
+        Update console
+        :param epoch_idx: index of current epoch
+        :param metrics: metrics
+        """
+
+        def process_metric(cur_metric, parent_tag: str = None):
+            tag = lambda name: name if parent_tag is None else '{}/{}'.format(parent_tag, name)
+
+            if isinstance(cur_metric, MetricsGroup):
+                names_dict = {m.name(): np.mean(m.get_values()) for m in cur_metric.metrics()}
+                if len(names_dict) > 0:
+                    self.__writer.add_scalars(tag(cur_metric.name()), names_dict, global_step=epoch_idx + 1)
+                for m in cur_metric.metrics():
+                    self.__writer.add_histogram(tag(m.name()),
+                                                np.clip(m.get_values(), m.min_val(), m.max_val()).astype(np.float32),
+                                                global_step=epoch_idx + 1,
+                                                bins=np.linspace(m.min_val(), m.max_val(), num=11).astype(np.float32))
+            else:
+                if cur_metric.get_values().size > 0:
+                    self.__writer.add_scalar(tag(cur_metric.name()), float(np.mean(cur_metric.get_values())),
+                                             global_step=epoch_idx + 1)
+                    self.__writer.add_histogram(tag(cur_metric.name()),
+                                                np.clip(cur_metric.get_values(), cur_metric.min_val(), cur_metric.max_val()).astype(np.float32),
+                                                global_step=epoch_idx + 1,
+                                                bins=np.linspace(cur_metric.min_val(), cur_metric.max_val(), num=11).astype(
+                                                    np.float32))
+
+        if self.__writer is None:
+            return
+
+        for metric in metrics:
             process_metric(metric)
 
-        for section, values in metrics.items():
-            for k, v in values.items():
-                if type(v) == dict:
-                    for gk, gv in v.items():
-                        if type(gv) == np.ndarray:
-                            if gv.size > 0:
-                                self.__writer.add_histogram('hist_{}/{}'.format(section, "{}_{}".format(k, gk)),
-                                                            np.clip(gv, 0, 1).astype(np.float32), global_step=epoch_idx + 1,
-                                                            bins=np.linspace(-0.2, 1.1, num=14).astype(np.float32))
-                                self.__writer.add_scalars("plt_{}/{}".format(section, k),
-                                                          {gk: process_metric(gv) for gk, gv in v.items()}, global_step=epoch_idx + 1)
-                        else:
-                            self.__writer.add_scalars('plt_{}/{}'.format(section, k), {gk: process_metric(gv) for gk, gv in v.items()},
-                                                      global_step=epoch_idx + 1)
-                elif type(v) == np.ndarray:
-                    if v.size > 0:
-                        self.__writer.add_histogram('hist_{}/{}'.format(section, k), np.clip(v, 0, 1).astype(np.float32),
-                                                    global_step=epoch_idx + 1,
-                                                    bins=np.linspace(-0.2, 1.1, num=14).astype(np.float32))
-                        self.__writer.add_scalar('plt_{}/{}'.format(section, k), process_metric(v), global_step=epoch_idx + 1)
-                else:
-                    self.__writer.add_scalar('plt_{}/{}'.format(section, k), float(v), global_step=epoch_idx + 1)
+        for metrics_group in metrics_groups:
+            for metric in metrics_group.metrics():
+                process_metric(metric, metrics_group.name())
+            for group in metrics_group.groups():
+                process_metric(group, metrics_group.name())
 
     def write_to_txt_log(self, line: str, tag: str = None):
         self.__writer.add_text("log" if tag is None else tag, line, self.__epoch_idx)
