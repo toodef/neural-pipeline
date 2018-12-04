@@ -1,7 +1,6 @@
-from neural_pipeline.data_processor import Model
+from neural_pipeline.data_processor import Model, TrainDataProcessor
 from neural_pipeline.data_processor.monitoring import Monitor
 from neural_pipeline.utils.file_structure_manager import FileStructManager
-from neural_pipeline.data_processor.data_processor import DataProcessor
 from neural_pipeline.train_config.train_config import TrainConfig
 from neural_pipeline.data_processor.state_manager import StateManager
 from neural_pipeline.data_producer.data_producer import DataProducer
@@ -16,18 +15,31 @@ class Trainer:
         self.__model = model
 
         self.__is_cuda = True
-        self.__epoch_num = 2000
+        self.__epoch_num = 100
+        self.__need_resume = False
 
     def set_epoch_num(self, epoch_number: int) -> 'Trainer':
         self.__epoch_num = epoch_number
+        return self
+
+    def resume(self) -> 'Trainer':
+        """
+        Resume train from last checkpoint
+        """
+        self.__need_resume = True
         return self
 
     def train(self):
         train_loader = self.__train_producer.get_loader()
         val_loader = self.__validation_producer.get_loader()
 
-        data_processor = DataProcessor(self.__model, self.__train_config, self.__file_struct_manager, is_cuda=True, for_train=True)
+        data_processor = TrainDataProcessor(self.__model, self.__train_config, self.__file_struct_manager, is_cuda=True)
         state_manager = StateManager(self.__file_struct_manager)
+
+        if self.__need_resume:
+            state_manager.unpack()
+            data_processor.load_state()
+            state_manager.pack()
 
         start_epoch_idx = data_processor.get_last_epoch_idx() + 1 if data_processor.get_last_epoch_idx() > 0 else 0
 

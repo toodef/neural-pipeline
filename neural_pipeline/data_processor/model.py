@@ -28,11 +28,11 @@ class Model:
         """
         return self.__base_model
 
-    def load_weights(self, weights_file: str) -> None:
+    def load_weights(self) -> None:
         """
         Load weight from file
-        :param weights_file: path to weights file
         """
+        weights_file = self.__file_struct_manager.weights_file()
         print("Model inited by file: ", weights_file, end='; ')
         pretrained_weights = torch.load(weights_file)
         print("weights before: ", weights_file, end='; ')

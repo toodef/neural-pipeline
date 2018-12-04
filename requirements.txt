@@ -1,0 +1,4 @@
+tensorboardX
+numpy
+tqdm
+pytorch==4.1

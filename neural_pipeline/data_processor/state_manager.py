@@ -34,7 +34,7 @@ class StateManager:
         result_file = self.__construct_result_file()
 
         with ZipFile(result_file, 'r') as zipfile:
-            zipfile.extractall(self.__file_struct_manager.weights_dir())
+            zipfile.extractall(self.__file_struct_manager.checkpoint_dir())
 
     def clear_files(self) -> None:
         """
@@ -47,8 +47,6 @@ class StateManager:
         rm_file(self.__file_struct_manager.weights_file())
         rm_file(self.__file_struct_manager.optimizer_state_file())
         rm_file(self.__file_struct_manager.data_processor_state_file())
-
-        self.__files = {}
 
     def pack(self) -> None:
         """
@@ -83,12 +81,13 @@ class StateManager:
         """
         Get files pathes
         """
-        return {'weights_file': self.__file_struct_manager.weights_file(), 'state_file': self.__file_struct_manager.optimizer_state_file()}
+        return {'weights_file': self.__file_struct_manager.weights_file(),
+                'state_file': self.__file_struct_manager.optimizer_state_file()}
 
     def __construct_result_file(self) -> str:
         """
         Construct result file name
         :return: path to result file
         """
-        data_dir = self.__file_struct_manager.weights_dir()
+        data_dir = self.__file_struct_manager.checkpoint_dir()
         return os.path.join(data_dir, (self.__preffix + "_" if self.__preffix is not None else "") + "state.zip")
