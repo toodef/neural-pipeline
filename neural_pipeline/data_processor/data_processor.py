@@ -140,10 +140,14 @@ class TrainDataProcessor(DataProcessor):
         :return: dict of events
         :param stage_name: name of stage for print in tqdm bar like 'train_<stage_name>'
         """
-        for batch in tqdm(train_dataloader, desc="train" if stage_name is None else "train_" + stage_name, leave=False):
-            self.process_batch(batch, is_train=True)
-        for batch in tqdm(validation_dataloader, desc="validation" if stage_name is None else "validation_" + stage_name, leave=False):
-            self.process_batch(batch, is_train=False)
+        with tqdm(train_dataloader, desc="train" if stage_name is None else "train_" + stage_name, leave=False) as t:
+            for batch in t:
+                self.process_batch(batch, is_train=True)
+                t.set_postfix({'loss': '[{:4f}]'.format(self.__train_loss_values[-1])})
+        with tqdm(validation_dataloader, desc="validation" if stage_name is None else "validation_" + stage_name, leave=False) as t:
+            for batch in t:
+                self.process_batch(batch, is_train=False)
+                t.set_postfix({'loss': '[{:4f}]'.format(self.__val_loss_values[-1])})
 
         self.__epoch_num = epoch_idx
 

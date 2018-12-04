@@ -1,4 +1,4 @@
-tensorboardX
+tensorboardX==1.2
 numpy
 tqdm
 pytorch==4.1
