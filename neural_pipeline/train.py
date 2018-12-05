@@ -1,3 +1,5 @@
+from abc import ABCMeta, abstractmethod
+
 from neural_pipeline.data_processor import Model, TrainDataProcessor
 from neural_pipeline.data_processor.monitoring import Monitor
 from neural_pipeline.utils.file_structure_manager import FileStructManager
@@ -6,11 +8,36 @@ from neural_pipeline.data_processor.state_manager import StateManager
 from neural_pipeline.data_producer.data_producer import DataProducer
 
 
+class AbstractStage(metaclass=ABCMeta):
+    def __init__(self, name: str):
+        self._name = name
+
+    def name(self) -> str:
+        return self._name
+
+    @abstractmethod
+    def run(self) -> None:
+        """
+        Run stage
+        """
+
+
+class TarinStage(AbstractStage):
+    def __init__(self, train_producer: DataProducer):
+        super().__init__(name='train')
+        self._train_producer = train_producer
+
+    def run(self) -> None:
+        pass
+
+
 class Trainer:
     """
     Class, that provide model training
     """
-    def __init__(self, model: Model, train_config: TrainConfig, file_struct_manager: FileStructManager, train_producer: DataProducer, validation_producer: DataProducer=None):
+
+    def __init__(self, model: Model, train_config: TrainConfig, file_struct_manager: FileStructManager, train_producer: DataProducer,
+                 validation_producer: DataProducer = None):
         self.__train_config = train_config
         self.__file_struct_manager = file_struct_manager
         self.__train_producer = train_producer
