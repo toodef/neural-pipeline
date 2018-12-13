@@ -2,12 +2,12 @@ import json
 import numpy as np
 
 import torch
-from tqdm import tqdm
 
-from .model import Model
-from ..train_config.train_config import TrainConfig
-from ..utils.file_structure_manager import FileStructManager
-from ..utils.utils import dict_recursive_bypass
+from neural_pipeline.data_processor.model import Model
+from neural_pipeline.utils.file_structure_manager import FileStructManager
+from neural_pipeline.utils.utils import dict_recursive_bypass
+
+__all__ = ['DataProcessor', 'TrainDataProcessor']
 
 
 class DataProcessor:
@@ -68,10 +68,9 @@ class DataProcessor:
 
 
 class TrainDataProcessor(DataProcessor):
-    def __init__(self, model, train_pipeline: TrainConfig, file_struct_manager: FileStructManager, is_cuda=True):
+    def __init__(self, model, train_pipeline: 'TrainConfig', file_struct_manager: FileStructManager, is_cuda=True):
         super().__init__(model, file_struct_manager, is_cuda)
 
-        self.metrics_processor = train_pipeline.metrics_processor()
         self.__criterion = train_pipeline.loss()
 
         if self._is_cuda:
@@ -83,7 +82,7 @@ class TrainDataProcessor(DataProcessor):
         self.__epoch_num = 0
         self.__val_loss_values, self.__train_loss_values = np.array([]), np.array([])
 
-    def predict(self, data, is_train=False) -> np.array:
+    def predict(self, data, is_train=False) -> torch.Tensor or dict:
         """
         Make predict by data
         :param data: data in dict
@@ -105,11 +104,12 @@ class TrainDataProcessor(DataProcessor):
 
         return output
 
-    def process_batch(self, batch: {}, is_train: bool) -> None:
+    def process_batch(self, batch: {}, is_train: bool, metrics_processor: 'AbstractMetricsProcessor' = None) -> np.ndarray:
         """
         Process one batch of data
         :param batch: dict, contains 'data' and 'target' keys. The values for key must be instance of torch.Tensor or dict
-        :param is_train: is it is a train stage
+        :param is_train: is batch process for train
+        :param metrics_processor: metrics processor for collect metrics
         """
         if self._is_cuda:
             batch['target'] = self._process_data(batch['target'])
@@ -118,7 +118,8 @@ class TrainDataProcessor(DataProcessor):
             self.__optimizer.zero_grad()
         res = self.predict(batch, is_train)
 
-        self.metrics_processor.calc_metrics(res, batch['target'], is_train)
+        if metrics_processor is not None:
+            metrics_processor.calc_metrics(res, batch['target'], is_train)
 
         loss = self.__criterion(res, batch['target'])
         if is_train:
@@ -131,25 +132,7 @@ class TrainDataProcessor(DataProcessor):
         else:
             self.__val_loss_values = np.append(self.__val_loss_values, loss_arr)
 
-    def train_epoch(self, train_dataloader, validation_dataloader, epoch_idx: int, stage_name: str = None) -> {}:
-        """
-        Train one epoch
-        :param train_dataloader: dataloader with train dataset
-        :param validation_dataloader: dataloader with validation dataset
-        :param epoch_idx: index of epoch
-        :return: dict of events
-        :param stage_name: name of stage for print in tqdm bar like 'train_<stage_name>'
-        """
-        with tqdm(train_dataloader, desc="train" if stage_name is None else "train_" + stage_name, leave=False) as t:
-            for batch in t:
-                self.process_batch(batch, is_train=True)
-                t.set_postfix({'loss': '[{:4f}]'.format(self.__train_loss_values[-1])})
-        with tqdm(validation_dataloader, desc="validation" if stage_name is None else "validation_" + stage_name, leave=False) as t:
-            for batch in t:
-                self.process_batch(batch, is_train=False)
-                t.set_postfix({'loss': '[{:4f}]'.format(self.__val_loss_values[-1])})
-
-        self.__epoch_num = epoch_idx
+        return loss_arr
 
     def update_lr(self, lr: float) -> None:
         """

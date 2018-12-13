@@ -3,6 +3,8 @@ from torch.nn import Module
 
 from neural_pipeline.utils.file_structure_manager import FileStructManager
 
+__all__ = ['Model']
+
 
 class Model:
     """

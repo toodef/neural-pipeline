@@ -11,7 +11,7 @@ __all__ = ['UtilsTest']
 class UtilsTest(unittest.TestCase):
     def test_dict_recursive_bypass(self):
         d = {'data': np.array([1]), 'target': {'a': np.array([1]), 'b': np.array([1])}}
-        d = dict_recursive_bypass(d, lambda k, v: torch.from_numpy(v))
+        d = dict_recursive_bypass(d, lambda v: torch.from_numpy(v))
 
         self.assertTrue(isinstance(d['data'], Tensor))
         self.assertTrue(isinstance(d['target']['a'], Tensor))

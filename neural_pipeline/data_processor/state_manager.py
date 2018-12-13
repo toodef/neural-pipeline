@@ -3,6 +3,8 @@ from zipfile import ZipFile
 
 from neural_pipeline.utils.file_structure_manager import FileStructManager
 
+__all__ = ['StateManager']
+
 
 class StateManager:
     """

@@ -7,6 +7,8 @@ import numpy as np
 from neural_pipeline.data_processor.model import Model
 from neural_pipeline.utils.file_structure_manager import FileStructManager
 
+__all__ = ['Monitor']
+
 
 class Monitor:
     """

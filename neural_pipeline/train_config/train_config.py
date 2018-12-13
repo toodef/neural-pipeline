@@ -4,6 +4,12 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.nn import Module
 import numpy as np
+from tqdm import tqdm
+
+from neural_pipeline.data_producer.data_producer import DataProducer
+from neural_pipeline.data_processor.data_processor import TrainDataProcessor
+
+__all__ = ['AbstractMetric', 'MetricsGroup', 'AbstractMetricsProcessor', 'AbstractLearningRate', 'AbstractStage', 'TrainStage', 'ValidationStage', 'TrainConfig']
 
 
 class AbstractMetric(metaclass=ABCMeta):
@@ -12,20 +18,20 @@ class AbstractMetric(metaclass=ABCMeta):
         self._values = np.array([])
 
     @abstractmethod
-    def _calc(self, output: Tensor, target: Tensor) -> np.ndarray or float:
+    def calc(self, output: Tensor, target: Tensor) -> np.ndarray or float:
         """
         Calculate metric by output from model and target
         :param output: output from model
         :param target: ground truth
         """
 
-    def calc(self, output: Tensor, target: Tensor):
+    def _calc(self, output: Tensor, target: Tensor):
         """
         Calculate metric by output from model and target
         :param output: output from model
         :param target: ground truth
         """
-        self._values = np.append(self._values, self._calc(output, target))
+        self._values = np.append(self._values, self.calc(output, target))
 
     def name(self):
         return self._name
@@ -81,17 +87,16 @@ class MetricsGroup:
 
     def set_level(self, level: int):
         if level > 2:
-            raise self.MetricsGroupException("The metric group {} have {} level. There must be no more than 2 levels"
-                                             .format(self.__name, self.__lvl))
+            raise self.MetricsGroupException("The metric group {} have {} level. There must be no more than 2 levels".format(self.__name, self.__lvl))
         self.__lvl = level
         for group in self.__metrics_groups:
             group.set_level(self.__lvl + 1)
 
     def calc(self, output: Tensor, target: Tensor):
         for metric in self.__metrics:
-            metric.calc(output, target)
+            metric._calc(output, target)
         for group in self.__metrics_groups:
-            group.calc(output, target)
+            group._calc(output, target)
 
     def reset(self):
         for metric in self.__metrics:
@@ -114,13 +119,16 @@ class AbstractMetricsProcessor(metaclass=ABCMeta):
         return group
 
     @abstractmethod
-    def calc_metrics(self, output: Tensor, target: Tensor, is_train: bool) -> None:
+    def calc_metrics(self, output, target) -> None:
         """
         Calculate metrics by output from network and target
         :param output: output from model
         :param target: target
-        :param is_train: is metrics get from train
         """
+        for metric in self._metrics:
+            metric.calc(output, target)
+        for group in self._metrics_groups:
+            group.calc(output, target)
 
     def reset_metrics(self) -> None:
         """
@@ -154,9 +162,49 @@ class AbstractLearningRate:
         self._value = value
 
 
+class AbstractStage(metaclass=ABCMeta):
+    def __init__(self, name: str):
+        self._name = name
+
+    def name(self) -> str:
+        return self._name
+
+    @abstractmethod
+    def run(self, data_processor: TrainDataProcessor) -> None:
+        """
+        Run stage
+        """
+
+
+class TrainStage(AbstractStage):
+    def __init__(self, data_producer: DataProducer, metrics_processor: AbstractMetricsProcessor):
+        super().__init__(name='train')
+        self.data_loader = data_producer.get_loader()
+        self.metric_processor = metrics_processor
+
+    def run(self, data_processor: TrainDataProcessor) -> None:
+        with tqdm(self.data_loader, desc=self.name(), leave=False) as t:
+            for batch in t:
+                losses = data_processor.process_batch(batch, is_train=True)
+                t.set_postfix({'loss': '[{:4f}]'.format(np.mean(losses))})
+
+
+class ValidationStage(AbstractStage):
+    def __init__(self, data_producer: DataProducer, metrics_processor: AbstractMetricsProcessor):
+        super().__init__(name='validation')
+        self.data_loader = data_producer.get_loader()
+        self.metric_processor = metrics_processor
+
+    def run(self, data_processor: TrainDataProcessor) -> None:
+        with tqdm(self.data_loader, desc=self.name(), leave=False) as t:
+            for batch in t:
+                losses = data_processor.process_batch(batch, is_train=False)
+                t.set_postfix({'loss': '[{:4f}]'.format(np.mean(losses))})
+
+
 class TrainConfig:
-    def __init__(self, metrics_processor: AbstractMetricsProcessor, loss: Module, optimizer: Optimizer, experiment_name: str = None):
-        self.__metrics_processor = metrics_processor
+    def __init__(self, train_stages: [], loss: Module, optimizer: Optimizer, experiment_name: str = None):
+        self._train_stages = train_stages
         self.__loss = loss
         self.__experiment_name = experiment_name
         self.__optimizer = optimizer
@@ -165,9 +213,6 @@ class TrainConfig:
     def set_learning_rate(self, lr: AbstractLearningRate) -> 'TrainConfig':
         self.__learning_rate = lr
         return self
-
-    def metrics_processor(self) -> AbstractMetricsProcessor:
-        return self.__metrics_processor
 
     def loss(self):
         return self.__loss
@@ -180,3 +225,6 @@ class TrainConfig:
 
     def experiment_name(self):
         return self.__experiment_name
+
+    def stages(self) -> [AbstractStage]:
+        return self._train_stages
