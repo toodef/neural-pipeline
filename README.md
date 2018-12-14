@@ -1,1 +1,5 @@
-PyTorch pipeline for neural networks training and faster training
+Neural Pipeline based on PyTorch 0.4.1 and designed to standardize and facilitate the training process.
+
+It's contains:
+* Checkpoints management and train process resuming
+* Metrics processing and visualisation
