@@ -1,8 +1,6 @@
 import json
 import os
 
-import torch
-
 from neural_pipeline.data_processor.state_manager import StateManager
 from neural_pipeline.data_producer.data_producer import DataProducer
 from tqdm import tqdm
@@ -16,22 +14,22 @@ from neural_pipeline.data_processor.data_processor import DataProcessor
 
 
 class Predictor:
-    def __init__(self, model: Model, file_struct_manager: FileStructManager, data_producer: DataProducer):
-        self.__data_producer = data_producer
+    def __init__(self, model: Model, file_struct_manager: FileStructManager):
         self.__file_struct_manager = file_struct_manager
-        self.__model = model
-
-    def predict(self, callback: callable):
-        loader = self.__data_producer.get_loader()
-        data_processor = DataProcessor(self.__model, self.__file_struct_manager, is_cuda=True)
-
+        self.__data_processor = DataProcessor(model, self.__file_struct_manager, is_cuda=True)
         state_manager = StateManager(self.__file_struct_manager)
         state_manager.unpack()
-        data_processor.load()
+        self.__data_processor.load()
         state_manager.pack()
 
+    def predict(self, data):
+        return self.__data_processor.predict(data)
+
+    def predict_dataset(self, data_producer: DataProducer, callback: callable):
+        loader = data_producer.get_loader()
+
         for img in tqdm(loader):
-            callback(data_processor.predict(img))
+            callback(self.__data_processor.predict(img))
             del img
 
     def predict_by_tiles(self, callback: callable, tile_size: list, img_original_size: list = None):

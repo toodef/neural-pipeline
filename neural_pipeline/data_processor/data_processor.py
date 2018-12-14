@@ -80,7 +80,7 @@ class TrainDataProcessor(DataProcessor):
         self.__optimizer = train_pipeline.optimizer()
 
         self.__epoch_num = 0
-        self.__val_loss_values, self.__train_loss_values = np.array([]), np.array([])
+        self.__loss_values = np.array([])
 
     def predict(self, data, is_train=False) -> torch.Tensor or dict:
         """
@@ -119,7 +119,7 @@ class TrainDataProcessor(DataProcessor):
         res = self.predict(batch, is_train)
 
         if metrics_processor is not None:
-            metrics_processor.calc_metrics(res, batch['target'], is_train)
+            metrics_processor.calc_metrics(res, batch['target'])
 
         loss = self.__criterion(res, batch['target'])
         if is_train:
@@ -127,10 +127,7 @@ class TrainDataProcessor(DataProcessor):
             self.__optimizer.step()
 
         loss_arr = loss.data.cpu().numpy()
-        if is_train:
-            self.__train_loss_values = np.append(self.__train_loss_values, loss_arr)
-        else:
-            self.__val_loss_values = np.append(self.__val_loss_values, loss_arr)
+        self.__loss_values = np.append(self.__loss_values, loss_arr)
 
         return loss_arr
 
@@ -179,8 +176,8 @@ class TrainDataProcessor(DataProcessor):
 
         self._model.save_weights()
 
-    def get_losses(self) -> {}:
-        return {'train': self.__val_loss_values, 'validation': self.__train_loss_values}
+    def get_losses(self) -> np.ndarray:
+        return self.__loss_values
 
     def reset_losses(self) -> None:
-        self.__val_loss_values, self.__train_loss_values = np.ndarray([]), np.ndarray([])
+        self.__loss_values = np.ndarray([])

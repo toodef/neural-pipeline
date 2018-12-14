@@ -75,8 +75,8 @@ class Monitor:
         if self.__writer is None:
             return
 
-        self.__writer.add_scalars('loss', {'train': np.mean(train_loss), 'validation': np.mean(val_loss)},
-                                  global_step=epoch_idx + 1)
+        self.__writer.add_scalars('loss', {'train': np.mean(train_loss)}, global_step=epoch_idx + 1)
+        self.__writer.add_scalars('loss', {'validation': np.mean(val_loss)}, global_step=epoch_idx + 1)
 
         self.__writer.add_histogram('train/loss', np.clip(train_loss, -1, 1).astype(np.float32), global_step=epoch_idx + 1,
                                     bins=np.linspace(-1, 1, num=11).astype(np.float32))
@@ -94,23 +94,21 @@ class Monitor:
             tag = lambda name: name if parent_tag is None else '{}/{}'.format(parent_tag, name)
 
             if isinstance(cur_metric, MetricsGroup):
-                names_dict = {m.name(): np.mean(m.get_values()) for m in cur_metric.metrics()}
-                if len(names_dict) > 0:
-                    self.__writer.add_scalars(tag(cur_metric.name()), names_dict, global_step=epoch_idx + 1)
                 for m in cur_metric.metrics():
-                    self.__writer.add_histogram(tag(m.name()),
-                                                np.clip(m.get_values(), m.min_val(), m.max_val()).astype(np.float32),
-                                                global_step=epoch_idx + 1,
-                                                bins=np.linspace(m.min_val(), m.max_val(), num=11).astype(np.float32))
+                    if m.get_values().size > 0:
+                        self.__writer.add_scalars(tag(m.name()), {m.name(): np.mean(m.get_values())}, global_step=epoch_idx + 1)
+                        self.__writer.add_histogram(tag(m.name()) + '_hist',
+                                                    np.clip(m.get_values(), m.min_val(), m.max_val()).astype(np.float32),
+                                                    global_step=epoch_idx + 1,
+                                                    bins=np.linspace(m.min_val(), m.max_val(), num=11).astype(np.float32))
             else:
-                if cur_metric.get_values().size > 0:
-                    self.__writer.add_scalar(tag(cur_metric.name()), float(np.mean(cur_metric.get_values())),
-                                             global_step=epoch_idx + 1)
-                    self.__writer.add_histogram(tag(cur_metric.name()),
-                                                np.clip(cur_metric.get_values(), cur_metric.min_val(), cur_metric.max_val()).astype(np.float32),
+                values = cur_metric.get_values().astype(np.float32)
+                if values.size > 0:
+                    self.__writer.add_scalar(tag(cur_metric.name()), float(np.mean(values)), global_step=epoch_idx + 1)
+                    self.__writer.add_histogram(tag(cur_metric.name()) + '_hist',
+                                                np.clip(values, cur_metric.min_val(), cur_metric.max_val()).astype(np.float32),
                                                 global_step=epoch_idx + 1,
-                                                bins=np.linspace(cur_metric.min_val(), cur_metric.max_val(), num=11).astype(
-                                                    np.float32))
+                                                bins=np.linspace(cur_metric.min_val(), cur_metric.max_val(), num=11).astype(np.float32))
 
         if self.__writer is None:
             return

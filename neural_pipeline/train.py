@@ -51,6 +51,8 @@ class Trainer:
         start_epoch_idx = data_processor.get_last_epoch_idx() + 1 if data_processor.get_last_epoch_idx() > 0 else 0
 
         monitor = Monitor(self.__file_struct_manager, False, start_epoch_idx, self.__train_config.experiment_name())
+
+        losses = {}
         for epoch_idx in range(start_epoch_idx, self.__epoch_num + start_epoch_idx):
             for stage in self.__train_config.stages():
                 stage.run(data_processor)
@@ -58,25 +60,26 @@ class Trainer:
                 data_processor.save_state()
                 state_manager.pack()
 
-                self._update_monitor(monitor, data_processor, epoch_idx)
+                losses[stage.name()] = data_processor.get_losses()
+                if stage.metrics_processor() is not None:
+                    monitor.update_metrics(epoch_idx, stage.metrics_processor().get_metrics())
+
                 self._reset_metrics(data_processor)
+
+            monitor.update_losses(epoch_idx, losses)
+            losses = {}
 
     def _reset_metrics(self, data_processor: TrainDataProcessor) -> None:
         """
         Reset metrics. This method called after every epoch
         :param data_processor: data processor, that train model
         """
-        data_processor.reset_losses()
-        self.__iterate_by_stages(lambda stage: stage.metrics_processor().reset_metrics())
+        def clean_stage_metrics(stage):
+            if stage.metrics_processor() is not None:
+                stage.metrics_processor().reset_metrics()
 
-    def _update_monitor(self, monitor: Monitor, data_processor: TrainDataProcessor, epoch_idx: int) -> None:
-        """
-        Update monitor. This method call after every epoch
-        :param monitor: monitor
-        :param data_processor: data processor, that train model
-        :param epoch_idx: index of epoch, that was ended
-        """
-        monitor.update_losses(epoch_idx, data_processor.get_losses())
+        data_processor.reset_losses()
+        self.__iterate_by_stages(clean_stage_metrics)
 
     def __iterate_by_stages(self, func: callable):
         for stage in self.__train_config.stages():

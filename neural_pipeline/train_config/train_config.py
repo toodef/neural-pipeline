@@ -139,7 +139,7 @@ class AbstractMetricsProcessor(metaclass=ABCMeta):
         for group in self._metrics_groups:
             group.reset()
 
-    def get_metrics(self):
+    def get_metrics(self) -> {}:
         return {'metrics': self._metrics, 'groups': self._metrics_groups}
 
 
@@ -169,6 +169,9 @@ class AbstractStage(metaclass=ABCMeta):
     def name(self) -> str:
         return self._name
 
+    def metrics_processor(self) -> AbstractMetricsProcessor or None:
+        return None
+
     @abstractmethod
     def run(self, data_processor: TrainDataProcessor) -> None:
         """
@@ -180,26 +183,32 @@ class TrainStage(AbstractStage):
     def __init__(self, data_producer: DataProducer, metrics_processor: AbstractMetricsProcessor):
         super().__init__(name='train')
         self.data_loader = data_producer.get_loader()
-        self.metric_processor = metrics_processor
+        self._metrics_processor = metrics_processor
 
     def run(self, data_processor: TrainDataProcessor) -> None:
         with tqdm(self.data_loader, desc=self.name(), leave=False) as t:
             for batch in t:
-                losses = data_processor.process_batch(batch, is_train=True)
+                losses = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=True)
                 t.set_postfix({'loss': '[{:4f}]'.format(np.mean(losses))})
+
+    def metrics_processor(self) -> AbstractMetricsProcessor or None:
+        return self._metrics_processor
 
 
 class ValidationStage(AbstractStage):
     def __init__(self, data_producer: DataProducer, metrics_processor: AbstractMetricsProcessor):
         super().__init__(name='validation')
         self.data_loader = data_producer.get_loader()
-        self.metric_processor = metrics_processor
+        self._metrics_processor = metrics_processor
 
     def run(self, data_processor: TrainDataProcessor) -> None:
         with tqdm(self.data_loader, desc=self.name(), leave=False) as t:
             for batch in t:
-                losses = data_processor.process_batch(batch, is_train=False)
+                losses = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=False)
                 t.set_postfix({'loss': '[{:4f}]'.format(np.mean(losses))})
+
+    def metrics_processor(self) -> AbstractMetricsProcessor or None:
+        return self._metrics_processor
 
 
 class TrainConfig:
