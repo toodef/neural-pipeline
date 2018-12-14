@@ -43,7 +43,7 @@ class ConvBottleneck(nn.Module):
         return self.seq(x)
 
 
-class UNetModel(torch.nn.Module):
+class AlbUNet(torch.nn.Module):
     def __init__(self, base_model: torch.nn.Module, num_classes: int, weights_url: str = None):
         super().__init__()
         if not hasattr(self, 'decoder_block'):
@@ -254,7 +254,7 @@ def resnet18(classes_num: int, in_channels: int, pretrained: bool = True):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], in_channels)
-    return UNetModel(model, classes_num, weights_url=model_urls['resnet18'] if pretrained else None)
+    return AlbUnet(model, classes_num, weights_url=model_urls['resnet18'] if pretrained else None)
 
 
 def resnet34(classes_num: int, in_channels: int, pretrained: bool = True):
@@ -264,7 +264,7 @@ def resnet34(classes_num: int, in_channels: int, pretrained: bool = True):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [3, 4, 6, 3], in_channels)
-    return UNetModel(model, classes_num, weights_url=model_urls['resnet34'] if pretrained else None)
+    return AlbUnet(model, classes_num, weights_url=model_urls['resnet34'] if pretrained else None)
 
 
 def resnet50(classes_num: int, in_channels: int, pretrained: bool = True):
@@ -274,7 +274,7 @@ def resnet50(classes_num: int, in_channels: int, pretrained: bool = True):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 6, 3], in_channels)
-    return UNetModel(model, classes_num, weights_url=model_urls['resnet50'] if pretrained else None)
+    return AlbUnet(model, classes_num, weights_url=model_urls['resnet50'] if pretrained else None)
 
 
 def resnet101(classes_num: int, in_channels: int, pretrained: bool = True):
@@ -284,7 +284,7 @@ def resnet101(classes_num: int, in_channels: int, pretrained: bool = True):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 23, 3], in_channels)
-    return UNetModel(model, classes_num, weights_url=model_urls['resnet101'] if pretrained else None)
+    return AlbUnet(model, classes_num, weights_url=model_urls['resnet101'] if pretrained else None)
 
 
 def resnet152(classes_num: int, in_channels: int, pretrained: bool = True):
@@ -294,4 +294,4 @@ def resnet152(classes_num: int, in_channels: int, pretrained: bool = True):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 8, 36, 3], in_channels)
-    return UNetModel(model, classes_num, weights_url=model_urls['resnet152'] if pretrained else None)
+    return AlbUnet(model, classes_num, weights_url=model_urls['resnet152'] if pretrained else None)
