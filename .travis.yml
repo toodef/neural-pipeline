@@ -13,8 +13,7 @@ install:
 - pip install coveralls
 
 script:
-- coverage run -m unittest -v tests/test.py
-#- python -m unittest -v tests/test.py
+- coverage run --source=neural_pipeline -m unittest -v tests/test.py
 
 after_success:
     coveralls
