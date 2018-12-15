@@ -15,7 +15,7 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=['tests']),
     install_requires=['numpy', 'tensorboardX', 'tqdm', 'torch==0.4.1'],
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha'
+        'Development Status :: 2 - Pre-Alpha',
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
         'Intended Audience :: Developers',
