@@ -2,14 +2,19 @@ language: python
 
 matrix:
   include:
-    - python: 2.7
-    - python: 3.5
-    - python: 3.6
-      dist: xenial
-      sudo: true
+  - python: 3.5
+  - python: 3.6
+    dist: xenial
+    sudo: true
 
 install:
-  - pip install -r requirements.txt > /dev/null
+- pip install -r requirements.txt > /dev/null
 
 script:
-  - python -m unittest -v tests/test.py
+- python -m unittest -v tests/test.py
+
+deploy:
+  provider: pypi
+  user: toodef
+  password:
+    secure: ER7joRj5wL7/lwNBYRMZKTeQ93VO9ZV/fvYFOdEsDrNDWHEhDf/Pzjvc/KxGYHr32aCFXXdKt0gvErQ5D0VzKebleo83dQQcC5FXjEoQnQyplqcOUmJxrQ+thMTNC99vHf/YxgM7N6uVJNFLusP8zqGVGtenOSBkfGGYqN5ASUwqWOrCUnmuNtw98WSJbNS8VvpdxhBcdXntCqxBV+TGGFdGUtd+O/hQHD6JBjbS+KlMPkrdc5G0e6qAyQRvTyIX80foYUuomHIGcVlRKHT3rkT9jXSe8HBj71lCWv7kyv/qmtiEvZQaC8ZaTf8F0sdAme4ewv4vmehppJ00r9hM8uGFhV5DzRz30026k6oRZGDdJh/R7B97xqsBp0GXwCEEo1p8F3AfKgncr2E3N/2erVw5bL/rWsIBMifkH3RBbc69RALO7ASjpoNCscGma+PfNJZcee0TR10RsK3HRM4WXLoHLKU8sVKB3PzeCGBs8HqG1U2sZFUDozzuJRRpv+79WkvA1bTsCMpw8k8cZIOyznqkiUPnwKCL3QKNd+FW5ONsODmSB9kHGmkTubKUwPOWI0gWUsAT4S9eWOOYL03kchlqSJqIKBxzYvho55ITdAcWDQwGv90dYmL/gkX0jLRLzRyP2qGQApvpkHzlscTHuDkdaCdaW+wF+BfOb7fsDp0=
