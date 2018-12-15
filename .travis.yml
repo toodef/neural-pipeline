@@ -16,5 +16,5 @@ script:
 - coverage run -m unittest -v tests/test.py
 #- python -m unittest -v tests/test.py
 
-after_sucess:
-  coveralls
+after_success:
+    coveralls
