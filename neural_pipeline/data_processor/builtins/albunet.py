@@ -20,7 +20,6 @@ class UnetDecoderBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.layer = nn.Sequential(
-            # nn.Upsample(scale_factor=2),
             nn.Conv2d(in_channels, out_channels, 3, padding=1),
             nn.ReLU(inplace=True)
         )
