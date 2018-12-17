@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="neural-pipeline",
-    version="0.0.5",
+    version="0.0.6",
     author="Anton Fedotov",
     author_email="anton.fedotov.af@gmail.com.com",
     description="Neural Networks train pipeline based on PyTorch",
