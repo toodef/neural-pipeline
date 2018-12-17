@@ -1,4 +1,5 @@
 import os
+from abc import ABCMeta, abstractmethod
 
 from neural_pipeline.train_config import MetricsGroup, AbstractMetric
 from tensorboardX import SummaryWriter
@@ -7,10 +8,38 @@ import numpy as np
 from neural_pipeline.data_processor.model import Model
 from neural_pipeline.utils.file_structure_manager import FileStructManager
 
-__all__ = ['Monitor']
+__all__ = ['MonitorHub', 'TensorboardMonitor', 'AbstractMonitor']
 
 
-class Monitor:
+class AbstractMonitor(metaclass=ABCMeta):
+    @abstractmethod
+    def update_metrics(self, epoch_idx, metrics) -> None:
+        """
+        Update monitor
+        :param epoch_idx: current epoch index
+        :param metrics: metrics dict with keys 'metrics' and 'groups'
+        """
+
+    @abstractmethod
+    def update_losses(self, epoch_idx: int, losses: {}) -> None:
+        """
+        Update monitor
+        :param epoch_idx: current epoch index
+        :param losses: losses values dict with keys 'train' and 'validation'
+        """
+
+    def register_event(self, epoch_idx: int, text: str) -> None:
+        pass
+
+    def __enter__(self):
+        return self
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+
+class TensorboardMonitor(AbstractMonitor):
     """
     Class, that manage metrics end events monitoring. It worked with tensorboard and console. Monitor get metrics after epoch ends and visualise it. Metrics may be float or np.array values. If
     metric is np.array - it will be shown as histogram and scalars (scalar plots contains mean valuse from array).
@@ -108,7 +137,8 @@ class Monitor:
                     self.__writer.add_histogram(tag(cur_metric.name()) + '_hist',
                                                 np.clip(values, cur_metric.min_val(), cur_metric.max_val()).astype(np.float32),
                                                 global_step=epoch_idx + 1,
-                                                bins=np.linspace(cur_metric.min_val(), cur_metric.max_val(), num=11).astype(np.float32))
+                                                bins=np.linspace(cur_metric.min_val(), cur_metric.max_val(), num=11).astype(
+                                                    np.float32))
 
         if self.__writer is None:
             return
@@ -137,8 +167,39 @@ class Monitor:
         if self.__writer is not None:
             self.__writer.close()
 
-    def __enter__(self):
-        return self
-
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
+
+class MonitorHub(AbstractMonitor):
+    def __init__(self):
+        self.monitors = []
+
+    def add_monitor(self, monitor: AbstractMonitor):
+        self.monitors.append(monitor)
+
+    def update_metrics(self, epoch_idx: int, metrics: {}) -> None:
+        """
+        Update monitor
+        :param epoch_idx: current epoch index
+        :param metrics: metrics dict with keys 'metrics' and 'groups'
+        """
+        for m in self.monitors:
+            m.update_metrics(epoch_idx, metrics)
+
+    def update_losses(self, epoch_idx: int, losses: {}) -> None:
+        """
+        Update monitor
+        :param epoch_idx: current epoch index
+        :param losses: losses values with keys 'train' and 'validation'
+        """
+        for m in self.monitors:
+            m.update_metrics(epoch_idx, losses)
+
+    def register_event(self, epoch_idx: int, text: str) -> None:
+        for m in self.monitors:
+            m.register_event(epoch_idx, text)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for m in self.monitors:
+            m.__exit__()
