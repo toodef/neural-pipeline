@@ -67,7 +67,7 @@ class UtilsTest(unittest.TestCase):
         self.assertEqual(sfm.weights_file(), os.path.join(self.checkpoints_dir, 'weights.pth'))
         self.assertEqual(sfm.optimizer_state_dir(), self.checkpoints_dir)
         self.assertEqual(sfm.optimizer_state_file(), os.path.join(self.checkpoints_dir, 'state.pth'))
-        self.assertEqual(sfm.data_processor_state_file(), os.path.join(self.checkpoints_dir, 'dp_state.pth'))
+        self.assertEqual(sfm.data_processor_state_file(), os.path.join(self.checkpoints_dir, 'dp_state.json'))
         self.assertEqual(sfm.logdir_path(), self.logdir)
 
     def tearDown(self):
