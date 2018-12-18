@@ -33,7 +33,7 @@ class FileStructManager:
 
         self.__checkpoint_dir = checkpoint_dir_path
         self.__prefix = prefix
-        self.__create_data_folder()
+        self.__create_logdir()
 
     def checkpoint_dir(self) -> str:
         """
@@ -71,7 +71,7 @@ class FileStructManager:
         """
         return self.__logdir_path
 
-    def __create_data_folder(self) -> None:
-        if os.path.exists(self.__checkpoint_dir) and os.path.isdir(self.__checkpoint_dir):
+    def __create_logdir(self) -> None:
+        if os.path.exists(self.__logdir_path) and os.path.isdir(self.__logdir_path):
             return
-        os.mkdir(self.__checkpoint_dir)
+        os.mkdir(self.__logdir_path)
