@@ -72,6 +72,6 @@ class FileStructManager:
         return self.__logdir_path
 
     def __create_logdir(self) -> None:
-        if os.path.exists(self.__logdir_path) and os.path.isdir(self.__logdir_path):
+        if self.__logdir_path is None or os.path.exists(self.__logdir_path) and os.path.isdir(self.__logdir_path):
             return
         os.mkdir(self.__logdir_path)
