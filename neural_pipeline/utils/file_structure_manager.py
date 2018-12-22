@@ -13,27 +13,18 @@ class FileStructManager:
         def __str__(self):
             return self.__message
 
-    def __init__(self, checkpoint_dir_path: str, logdir_path: str=None, prefix: str = None):
+    def __init__(self, checkpoint_dir_path: str, logdir_path: str, prefix: str = None):
         """
         :param checkpoint_dir_path: path to directory with checkpoints
         :param logdir_path: logdir path. May be none if exists NN_LOGDIR environment variable. If nothig was defined - tensorboard will not work
         :param prefix: prefix of stored files
         """
 
-        if logdir_path is None:
-            if 'NN_LOGDIR' in os.environ:
-                logdir_path = os.environ['NN_LOGDIR']
-            else:
-                print("Logdir doesn't specified and NN_LOGDIR env variable also doesn't specified! Logs will not be writen!", file=sys.stderr)
-
         self.__logdir_path = logdir_path
-
-        if not (os.path.exists(checkpoint_dir_path) and os.path.isdir(checkpoint_dir_path)):
-            raise self.FSMException("Checkpoint directory doesn't find [{}]".format(checkpoint_dir_path))
-
         self.__checkpoint_dir = checkpoint_dir_path
+
+        self.__create_directories()
         self.__prefix = prefix
-        self.__create_logdir()
 
     def checkpoint_dir(self) -> str:
         """
@@ -71,7 +62,15 @@ class FileStructManager:
         """
         return self.__logdir_path
 
-    def __create_logdir(self) -> None:
-        if self.__logdir_path is None or os.path.exists(self.__logdir_path) and os.path.isdir(self.__logdir_path):
-            return
-        os.mkdir(self.__logdir_path)
+    def __create_directories(self) -> None:
+        if os.path.exists(self.__checkpoint_dir) and os.path.isdir(self.__checkpoint_dir):
+            if os.listdir(self.__checkpoint_dir):
+                raise self.FSMException("Checkpoint directory already exists [{}]".format(self.__checkpoint_dir))
+        else:
+            os.mkdir(self.__checkpoint_dir)
+
+        if os.path.exists(self.__logdir_path) and os.path.isdir(self.__logdir_path):
+            if os.listdir(self.__logdir_path):
+                raise self.FSMException("Logs directory already exists [{}]".format(self.__logdir_path))
+        else:
+            os.mkdir(self.__logdir_path)

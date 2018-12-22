@@ -44,24 +44,38 @@ class UtilsTest(unittest.TestCase):
             shutil.rmtree(self.checkpoints_dir, ignore_errors=True)
         if os.path.exists(self.logdir):
             shutil.rmtree(self.logdir, ignore_errors=True)
+
+        try:
+            FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
+        except FileStructManager.FSMException as err:
+            self.fail("Raise error when checkpoints and logs directories exists: [{}]".format(err))
+
+        self.assertTrue(os.path.exists(self.checkpoints_dir))
+        self.assertTrue(os.path.exists(self.logdir))
+
+        shutil.rmtree(self.logdir, ignore_errors=True)
+        try:
+            FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
+        except FileStructManager.FSMException as err:
+            self.fail("Raise error when checkpoints directory exists but empty: [{}]".format(err))
+
+        shutil.rmtree(self.checkpoints_dir, ignore_errors=True)
+        try:
+            FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
+        except FileStructManager.FSMException as err:
+            self.fail("Raise error when logs directory exists but empty: [{}]".format(err))
+
+        os.mkdir(os.path.join(self.checkpoints_dir, 'new_dir'))
+        with self.assertRaises(FileStructManager.FSMException):
+            FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
+        shutil.rmtree(self.checkpoints_dir, ignore_errors=True)
+        os.mkdir(os.path.join(self.logdir, 'new_dir'))
         with self.assertRaises(FileStructManager.FSMException):
             FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
 
-        os.mkdir(self.checkpoints_dir)
-
-        with captured_output() as (out, err):
-            FileStructManager(checkpoint_dir_path=self.checkpoints_dir)
-            self.assertTrue(len(err.getvalue().strip()) > 0)
-        os.environ['NN_LOGDIR'] = self.logdir
-        with captured_output() as (out, err):
-            FileStructManager(checkpoint_dir_path=self.checkpoints_dir)
-            self.assertTrue(len(err.getvalue().strip()) == 0)
-
-        sfm = None
-        try:
-            sfm = FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
-        except:
-            self.fail('FileStructManager raises exception for existing directory')
+        shutil.rmtree(self.logdir, ignore_errors=True)
+        shutil.rmtree(self.checkpoints_dir, ignore_errors=True)
+        sfm = FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
 
         self.assertEqual(sfm.checkpoint_dir(), self.checkpoints_dir)
         self.assertEqual(sfm.weights_file(), os.path.join(self.checkpoints_dir, 'weights.pth'))
