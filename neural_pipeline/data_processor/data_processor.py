@@ -2,6 +2,7 @@ import json
 import numpy as np
 
 import torch
+from torch.nn import Module
 
 from neural_pipeline.data_processor.model import Model
 from neural_pipeline.utils.file_structure_manager import FileStructManager
@@ -17,7 +18,7 @@ class DataProcessor:
     2) Provide monitoring (showing metrics to console and tesorboard)
     """
 
-    def __init__(self, model, file_struct_manager: FileStructManager, is_cuda=True):
+    def __init__(self, model: Module, file_struct_manager: FileStructManager, is_cuda=True):
         """
         :param model: model object
         :param file_struct_manager: file structure manager
@@ -68,7 +69,7 @@ class DataProcessor:
 
 
 class TrainDataProcessor(DataProcessor):
-    def __init__(self, model, train_pipeline: 'TrainConfig', file_struct_manager: FileStructManager, is_cuda=True):
+    def __init__(self, model: Module, train_pipeline: 'TrainConfig', file_struct_manager: FileStructManager, is_cuda=True):
         super().__init__(model, file_struct_manager, is_cuda)
 
         self.__criterion = train_pipeline.loss()
