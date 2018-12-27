@@ -69,16 +69,16 @@ class DataProcessor:
 
 
 class TrainDataProcessor(DataProcessor):
-    def __init__(self, model: Module, train_pipeline: 'TrainConfig', file_struct_manager: FileStructManager, is_cuda=True):
+    def __init__(self, model: Module, train_config: 'TrainConfig', file_struct_manager: FileStructManager, is_cuda=True):
         super().__init__(model, file_struct_manager, is_cuda)
 
-        self.__criterion = train_pipeline.loss()
+        self.__criterion = train_config.loss()
 
         if self._is_cuda:
             self.__criterion.to('cuda:0')
 
-        self.__learning_rate = train_pipeline.learning_rate()
-        self.__optimizer = train_pipeline.optimizer()
+        self.__learning_rate = train_config.learning_rate()
+        self.__optimizer = train_config.optimizer()
 
         self.__epoch_num = 0
         self.__loss_values = np.array([])
@@ -100,7 +100,6 @@ class TrainDataProcessor(DataProcessor):
             self._model.model().train()
             output = make_predict()
         else:
-            self._model.model().eval()
             output = super().predict(data)
 
         return output
