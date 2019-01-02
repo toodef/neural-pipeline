@@ -167,19 +167,29 @@ class TrainDataProcessorTest(unittest.TestCase):
         self.assertIsNotNone(loss.module.grad)
         self.assertTrue(np.array_equal(res, loss.res.data.numpy()))
 
-    # def test_continue_from_checkpoint(self):
-    #     def on_node(n1, n2):
-    #         self.assertTrue(np.array_equal(n1.numpy(), n2.numpy()))
-    #
-    #     fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
-    #     model = SimpleModel().train()
-    #     dp = DataProcessor(model=model, file_struct_manager=fsm, is_cuda=False)
-    #     before_state_dict = model.state_dict().copy()
-    #     dp._model.save_weights()
-    #     dp.load()
-    #     after_state_dict = model.state_dict().copy()
-    #
-    #     dict_pair_recursive_bypass(before_state_dict, after_state_dict, on_node)
+    def test_continue_from_checkpoint(self):
+        def on_node(n1, n2):
+            self.assertTrue(np.array_equal(n1.numpy(), n2.numpy()))
+
+        fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
+        model = SimpleModel().train()
+        loss = SimpleLoss()
+
+        for optim in [torch.optim.SGD(model.parameters(), lr=0.1), torch.optim.Adam(model.parameters(), lr=0.1)]:
+            train_config = TrainConfig([], loss, optim)
+
+            dp_before = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
+            before_state_dict = model.state_dict().copy()
+            dp_before.update_lr(0.023)
+            dp_before.save_state()
+
+            dp_after = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
+            dp_after.load()
+            after_state_dict = model.state_dict().copy()
+
+            dict_pair_recursive_bypass(before_state_dict, after_state_dict, on_node)
+            self.assertEqual(dp_before.get_lr(), dp_after.get_lr())
+            self.assertEqual(dp_after.get_last_epoch_idx(), 0)
 
     def tearDown(self):
         shutil.rmtree('checkpoints')

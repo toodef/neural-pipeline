@@ -217,20 +217,12 @@ class TrainConfig:
         self.__loss = loss
         self.__experiment_name = experiment_name
         self.__optimizer = optimizer
-        self.__learning_rate = AbstractLearningRate()
-
-    def set_learning_rate(self, lr: AbstractLearningRate) -> 'TrainConfig':
-        self.__learning_rate = lr
-        return self
 
     def loss(self):
         return self.__loss
 
     def optimizer(self):
         return self.__optimizer
-
-    def learning_rate(self):
-        return self.__learning_rate
 
     def experiment_name(self):
         return self.__experiment_name

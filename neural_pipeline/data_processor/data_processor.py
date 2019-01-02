@@ -77,7 +77,6 @@ class TrainDataProcessor(DataProcessor):
         if self._is_cuda:
             self.__criterion.to('cuda:0')
 
-        self.__learning_rate = train_config.learning_rate()
         self.__optimizer = train_config.optimizer()
 
         self.__epoch_num = 0
@@ -133,11 +132,19 @@ class TrainDataProcessor(DataProcessor):
 
     def update_lr(self, lr: float) -> None:
         """
-        Provide learning rate decay for optimizer
+        Update learning rate straight to optimizer
         :param lr: target learning rate
         """
         for param_group in self.__optimizer.param_groups:
             param_group['lr'] = lr
+
+    def get_lr(self) -> float:
+        """
+        Get learning rate from optimizer
+        :param lr: target learning rate
+        """
+        for param_group in self.__optimizer.param_groups:
+            return param_group['lr']
 
     def get_last_epoch_idx(self):
         return self.__epoch_num
@@ -162,8 +169,6 @@ class TrainDataProcessor(DataProcessor):
         with open(self._file_struct_manager.data_processor_state_file(), 'r') as in_file:
             dp_state = json.load(in_file)
             self.__epoch_num = dp_state['last_epoch_idx']
-            self.update_lr(dp_state['lr'])
-            self.__learning_rate.set_value(dp_state['lr'])
 
     def save_state(self) -> None:
         """
@@ -172,7 +177,7 @@ class TrainDataProcessor(DataProcessor):
         torch.save(self.__optimizer.state_dict(), self._file_struct_manager.optimizer_state_file())
 
         with open(self._file_struct_manager.data_processor_state_file(), 'w') as out:
-            json.dump({"last_epoch_idx": self.__epoch_num, 'lr': self.__learning_rate.value()}, out)
+            json.dump({"last_epoch_idx": self.__epoch_num}, out)
 
         self._model.save_weights()
 
