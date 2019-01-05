@@ -12,15 +12,26 @@ class StateManager:
     All states pack to zip file. It contains few files: model weights, optimizer state, data processor state
     """
 
+    class SMException(Exception):
+        def __init__(self, message: str):
+            self.__message = message
+
+        def __str__(self):
+            return self.__message
+
     def __init__(self, file_struct_manager: FileStructManager, prefix: str = None):
         """
         :param file_struct_manager: file structure manager
         :param prefix: prefix of saved and loaded files
         """
-        self.__file_struct_manager = file_struct_manager
+        self._file_struct_manager = file_struct_manager
 
-        weights_file = self.__file_struct_manager.weights_file()
-        state_file = self.__file_struct_manager.optimizer_state_file()
+        weights_file = self._file_struct_manager.weights_file()
+        state_file = self._file_struct_manager.optimizer_state_file()
+
+        checkpoints_dir = self._file_struct_manager.checkpoint_dir()
+        if not (os.path.exists(checkpoints_dir) and os.path.isdir(checkpoints_dir)):
+            raise self.SMException("Checkpoints dir doesn't exists: [{}]".format(checkpoints_dir))
 
         if os.path.exists(weights_file) and os.path.exists(state_file) and os.path.isfile(weights_file) and os.path.isfile(state_file):
             self.__preffix = "prev_start"
@@ -33,27 +44,34 @@ class StateManager:
         """
         Unpack state file
         """
-        result_file = self.__construct_result_file()
+        result_file = self._construct_result_file()
 
         with ZipFile(result_file, 'r') as zipfile:
-            zipfile.extractall(self.__file_struct_manager.checkpoint_dir())
+            zipfile.extractall(self._file_struct_manager.checkpoint_dir())
+
+        weights_file = self._file_struct_manager.weights_file()
+        state_file = self._file_struct_manager.optimizer_state_file()
+        dp_state_file = self._file_struct_manager.data_processor_state_file()
+        self._check_files([weights_file, state_file, dp_state_file])
 
     def clear_files(self) -> None:
         """
         Clear unpacked files
         """
+
         def rm_file(file: str):
             if os.path.exists(file) and os.path.isfile(file):
                 os.remove(file)
 
-        rm_file(self.__file_struct_manager.weights_file())
-        rm_file(self.__file_struct_manager.optimizer_state_file())
-        rm_file(self.__file_struct_manager.data_processor_state_file())
+        rm_file(self._file_struct_manager.weights_file())
+        rm_file(self._file_struct_manager.optimizer_state_file())
+        rm_file(self._file_struct_manager.data_processor_state_file())
 
     def pack(self) -> None:
         """
         Pack all files in zip
         """
+
         def rm_file(file: str):
             if os.path.exists(file) and os.path.isfile(file):
                 os.remove(file)
@@ -64,10 +82,12 @@ class StateManager:
             if os.path.exists(file) and os.path.isfile(file):
                 os.rename(file, target)
 
-        weights_file = self.__file_struct_manager.weights_file()
-        state_file = self.__file_struct_manager.optimizer_state_file()
-        dp_state_file = self.__file_struct_manager.data_processor_state_file()
-        result_file = self.__construct_result_file()
+        weights_file = self._file_struct_manager.weights_file()
+        state_file = self._file_struct_manager.optimizer_state_file()
+        dp_state_file = self._file_struct_manager.data_processor_state_file()
+
+        self._check_files([weights_file, state_file, dp_state_file])
+        result_file = self._construct_result_file()
 
         rename_file(result_file)
         with ZipFile(result_file, 'w') as zipfile:
@@ -75,21 +95,28 @@ class StateManager:
             zipfile.write(state_file, os.path.basename(state_file))
             zipfile.write(dp_state_file, os.path.basename(dp_state_file))
 
-        rm_file(weights_file)
-        rm_file(state_file)
-        rm_file(dp_state_file)
+        self.clear_files()
 
     def get_files(self) -> {}:
         """
         Get files pathes
         """
-        return {'weights_file': self.__file_struct_manager.weights_file(),
-                'state_file': self.__file_struct_manager.optimizer_state_file()}
+        return {'weights_file': self._file_struct_manager.weights_file(),
+                'state_file': self._file_struct_manager.optimizer_state_file()}
 
-    def __construct_result_file(self) -> str:
+    def _construct_result_file(self) -> str:
         """
         Construct result file name
         :return: path to result file
         """
-        data_dir = self.__file_struct_manager.checkpoint_dir()
+        data_dir = self._file_struct_manager.checkpoint_dir()
         return os.path.join(data_dir, (self.__preffix + "_" if self.__preffix is not None else "") + "state.zip")
+
+    def _check_files(self, files):
+        failed = []
+        for f in files:
+            if not (os.path.exists(f) and os.path.isfile(f)):
+                failed.append(f)
+
+        if len(failed) > 0:
+            raise self.SMException("Some files doesn't exists: [{}]".format(';'.join(files)))
