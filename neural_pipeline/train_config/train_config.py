@@ -96,7 +96,7 @@ class MetricsGroup:
         for metric in self.__metrics:
             metric._calc(output, target)
         for group in self.__metrics_groups:
-            group._calc(output, target)
+            group.calc(output, target)
 
     def reset(self):
         for metric in self.__metrics:
