@@ -13,9 +13,9 @@ from neural_pipeline.data_processor.data_processor import DataProcessor
 
 
 class Predictor:
-    def __init__(self, model: Model, file_struct_manager: FileStructManager):
+    def __init__(self, model: Model, file_struct_manager: FileStructManager, is_cuda: bool = True):
         self.__file_struct_manager = file_struct_manager
-        self.__data_processor = DataProcessor(model, self.__file_struct_manager, is_cuda=True)
+        self.__data_processor = DataProcessor(model, self.__file_struct_manager, is_cuda=is_cuda)
         state_manager = StateManager(self.__file_struct_manager)
         state_manager.unpack()
         self.__data_processor.load()

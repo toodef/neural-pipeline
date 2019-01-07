@@ -11,7 +11,7 @@ from tests.data_processor_test import SimpleModel, SimpleLoss
 from tests.data_producer_test import TestDataProducer
 
 
-class TrainTest(unittest.TestCase):
+class PredictTest(unittest.TestCase):
     logdir = 'logs'
     checkpoints_dir = 'tensorboard_logs'
 
@@ -27,4 +27,4 @@ class TrainTest(unittest.TestCase):
         Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1), 'exp'), fsm, is_cuda=False)\
             .set_epoch_num(1).train()
 
-        Predictor(model, fsm).predict({'data': torch.rand(1, 3)})
+        Predictor(model, fsm, is_cuda=False).predict({'data': torch.rand(1, 3)})
