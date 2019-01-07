@@ -1,3 +1,5 @@
+import os
+import shutil
 import unittest
 
 import torch
@@ -28,3 +30,9 @@ class PredictTest(unittest.TestCase):
             .set_epoch_num(1).train()
 
         Predictor(model, fsm, is_cuda=False).predict({'data': torch.rand(1, 3)})
+
+    def tearDown(self):
+        if os.path.exists(self.logdir):
+            shutil.rmtree(self.logdir, ignore_errors=True)
+        if os.path.exists(self.checkpoints_dir):
+            shutil.rmtree(self.checkpoints_dir, ignore_errors=True)
