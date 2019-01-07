@@ -11,5 +11,10 @@ It's contains:
 # Installation:
 `pip install neural-pipeline`
 
+# Examples:
+All examples contains in `examples` folder
+
+`img_classification.ipynb` - MNIST classification train example
+
 
 
