@@ -42,10 +42,8 @@ class TrainTest(unittest.TestCase):
                                                 for _ in list(range(20))]]), metrics_processor),
                   ValidationStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
                                                      for _ in list(range(20))]]), metrics_processor)]
-        trainer = Trainer(model,
-                          TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1), 'exp'),
-                          fsm, is_cuda=False).set_epoch_num(1)
-        trainer.train()
+        Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1), 'exp'), fsm, is_cuda=False)\
+            .set_epoch_num(1).train()
 
     def tearDown(self):
         if os.path.exists(self.logdir):

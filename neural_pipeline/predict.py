@@ -9,7 +9,6 @@ import torch.nn.functional as F
 
 from neural_pipeline.data_processor import Model
 from neural_pipeline.utils.file_structure_manager import FileStructManager
-# from neural_pipeline.data_producer.builtins.segmentation import Dataset, TiledDataset, CirclesMaskInterpreter
 from neural_pipeline.data_processor.data_processor import DataProcessor
 
 

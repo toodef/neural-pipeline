@@ -5,6 +5,7 @@ from .data_producer_test import *
 from .train_config_test import *
 from .utils_test import *
 from .train_test import *
+from .predict_test import *
 
 if __name__ == '__main__':
     unittest.main()
