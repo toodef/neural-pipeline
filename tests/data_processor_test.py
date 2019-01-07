@@ -106,7 +106,7 @@ class TrainDataProcessorTest(unittest.TestCase):
     def test_initialisation(self):
         fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
         model = SimpleModel()
-        train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
+        train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1), 'exp')
         try:
             TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
         except:
@@ -115,7 +115,7 @@ class TrainDataProcessorTest(unittest.TestCase):
     def test_prediction_output(self):
         fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
         model = SimpleModel()
-        train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
+        train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1), 'exp')
         dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
         self.assertFalse(model.fc.weight.is_cuda)
         res = dp.predict({'data': torch.rand(1, 3)}, is_train=False)
@@ -134,7 +134,7 @@ class TrainDataProcessorTest(unittest.TestCase):
     def test_predict(self):
         fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
         model = SimpleModel().train()
-        train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
+        train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1), 'exp')
         dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
         self.assertFalse(model.fc.weight.is_cuda)
         self.assertTrue(model.training)
@@ -146,7 +146,7 @@ class TrainDataProcessorTest(unittest.TestCase):
     def test_train(self):
         fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
         model = SimpleModel().train()
-        train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
+        train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1), 'exp')
         dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
 
         self.assertFalse(model.fc.weight.is_cuda)
@@ -160,7 +160,7 @@ class TrainDataProcessorTest(unittest.TestCase):
             dp.process_batch({'data': torch.rand(1, 3), 'target': torch.rand(1)}, is_train=True)
 
         loss = SimpleLoss()
-        train_config = TrainConfig([], loss, torch.optim.SGD(model.parameters(), lr=0.1))
+        train_config = TrainConfig([], loss, torch.optim.SGD(model.parameters(), lr=0.1), 'exp')
         dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
         res = dp.process_batch({'data': torch.rand(1, 3), 'target': torch.rand(1)}, is_train=True)
         self.assertTrue(model.training)
@@ -177,7 +177,7 @@ class TrainDataProcessorTest(unittest.TestCase):
         loss = SimpleLoss()
 
         for optim in [torch.optim.SGD(model.parameters(), lr=0.1), torch.optim.Adam(model.parameters(), lr=0.1)]:
-            train_config = TrainConfig([], loss, optim)
+            train_config = TrainConfig([], loss, optim, 'exp')
 
             dp_before = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
             before_state_dict = model.state_dict().copy()

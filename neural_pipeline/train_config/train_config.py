@@ -9,7 +9,7 @@ from tqdm import tqdm
 from neural_pipeline.data_producer.data_producer import DataProducer
 from neural_pipeline.data_processor.data_processor import TrainDataProcessor
 
-__all__ = ['AbstractMetric', 'MetricsGroup', 'AbstractMetricsProcessor', 'AbstractLearningRate', 'AbstractStage', 'TrainStage', 'ValidationStage', 'TrainConfig']
+__all__ = ['AbstractMetric', 'MetricsGroup', 'MetricsProcessor', 'AbstractLearningRate', 'AbstractStage', 'TrainStage', 'ValidationStage', 'TrainConfig']
 
 
 class AbstractMetric(metaclass=ABCMeta):
@@ -105,7 +105,7 @@ class MetricsGroup:
             group.reset()
 
 
-class AbstractMetricsProcessor(metaclass=ABCMeta):
+class MetricsProcessor:
     def __init__(self):
         self._metrics = []
         self._metrics_groups = []
@@ -118,7 +118,6 @@ class AbstractMetricsProcessor(metaclass=ABCMeta):
         self._metrics_groups.append(group)
         return group
 
-    @abstractmethod
     def calc_metrics(self, output, target) -> None:
         """
         Calculate metrics by output from network and target
@@ -169,7 +168,7 @@ class AbstractStage(metaclass=ABCMeta):
     def name(self) -> str:
         return self._name
 
-    def metrics_processor(self) -> AbstractMetricsProcessor or None:
+    def metrics_processor(self) -> MetricsProcessor or None:
         return None
 
     @abstractmethod
@@ -180,7 +179,7 @@ class AbstractStage(metaclass=ABCMeta):
 
 
 class TrainStage(AbstractStage):
-    def __init__(self, data_producer: DataProducer, metrics_processor: AbstractMetricsProcessor):
+    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor):
         super().__init__(name='train')
         self.data_loader = data_producer.get_loader()
         self._metrics_processor = metrics_processor
@@ -191,12 +190,12 @@ class TrainStage(AbstractStage):
                 losses = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=True)
                 t.set_postfix({'loss': '[{:4f}]'.format(np.mean(losses))})
 
-    def metrics_processor(self) -> AbstractMetricsProcessor or None:
+    def metrics_processor(self) -> MetricsProcessor or None:
         return self._metrics_processor
 
 
 class ValidationStage(AbstractStage):
-    def __init__(self, data_producer: DataProducer, metrics_processor: AbstractMetricsProcessor):
+    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor):
         super().__init__(name='validation')
         self.data_loader = data_producer.get_loader()
         self._metrics_processor = metrics_processor
@@ -207,12 +206,12 @@ class ValidationStage(AbstractStage):
                 losses = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=False)
                 t.set_postfix({'loss': '[{:4f}]'.format(np.mean(losses))})
 
-    def metrics_processor(self) -> AbstractMetricsProcessor or None:
+    def metrics_processor(self) -> MetricsProcessor or None:
         return self._metrics_processor
 
 
 class TrainConfig:
-    def __init__(self, train_stages: [], loss: Module, optimizer: Optimizer, experiment_name: str = None):
+    def __init__(self, train_stages: [], loss: Module, optimizer: Optimizer, experiment_name: str):
         self._train_stages = train_stages
         self.__loss = loss
         self.__experiment_name = experiment_name

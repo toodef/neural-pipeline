@@ -12,21 +12,21 @@ __all__ = ['MonitorHub', 'TensorboardMonitor', 'AbstractMonitor']
 
 
 class AbstractMonitor(metaclass=ABCMeta):
-    @abstractmethod
     def update_metrics(self, epoch_idx, metrics) -> None:
         """
         Update monitor
         :param epoch_idx: current epoch index
         :param metrics: metrics dict with keys 'metrics' and 'groups'
         """
+        pass
 
-    @abstractmethod
     def update_losses(self, epoch_idx: int, losses: {}) -> None:
         """
         Update monitor
         :param epoch_idx: current epoch index
         :param losses: losses values dict with keys 'train' and 'validation'
         """
+        pass
 
     def register_event(self, epoch_idx: int, text: str) -> None:
         pass
@@ -34,9 +34,17 @@ class AbstractMonitor(metaclass=ABCMeta):
     def __enter__(self):
         return self
 
-    @abstractmethod
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
+
+
+class ConsoleMonitor(AbstractMonitor):
+    def update_losses(self, epoch_idx: int, losses: {}):
+        string = "Epoch: [{}];".format(epoch_idx + 1)
+        train_loss, val_loss = losses['train'], losses['validation']
+        string += " {}: [{:4f}, {:4f}, {:4f}];".format('train', np.min(train_loss), np.mean(train_loss), np.max(train_loss))
+        string += " {}: [{:4f}, {:4f}, {:4f}]".format('validation', np.min(val_loss), np.mean(val_loss), np.max(val_loss))
+        print(string)
 
 
 class TensorboardMonitor(AbstractMonitor):
@@ -88,21 +96,11 @@ class TensorboardMonitor(AbstractMonitor):
         :param epoch_idx: current epoch index
         :param losses: losses values with keys 'train' and 'validation'
         """
-        self.__epoch_idx = epoch_idx
-        self._update_losses(epoch_idx, losses['train'], losses['validation'])
-
-    def _update_losses(self, epoch_idx: int, train_loss: np.ndarray, val_loss: np.ndarray) -> None:
-        """
-        Update console
-        :param epoch_idx: index of current epoch
-        """
-        string = "Epoch: [{}];".format(epoch_idx + 1)
-        string += " {}: [{:4f}, {:4f}, {:4f}];".format('train', np.min(train_loss), np.mean(train_loss), np.max(train_loss))
-        string += " {}: [{:4f}, {:4f}, {:4f}]".format('validation', np.min(val_loss), np.mean(val_loss), np.max(val_loss))
-        print(string)
-
         if self.__writer is None:
             return
+
+        self.__epoch_idx = epoch_idx
+        train_loss, val_loss = losses['train'], losses['validation']
 
         self.__writer.add_scalars('loss', {'train': np.mean(train_loss)}, global_step=epoch_idx + 1)
         self.__writer.add_scalars('loss', {'validation': np.mean(val_loss)}, global_step=epoch_idx + 1)
@@ -164,8 +162,12 @@ class TensorboardMonitor(AbstractMonitor):
     def close(self):
         if self.__txt_log_file is not None:
             self.__txt_log_file.close()
+            self.__txt_log_file = None
+            del self.__txt_log_file
         if self.__writer is not None:
             self.__writer.close()
+            self.__writer = None
+            del self.__writer
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -194,7 +196,7 @@ class MonitorHub(AbstractMonitor):
         :param losses: losses values with keys 'train' and 'validation'
         """
         for m in self.monitors:
-            m.update_metrics(epoch_idx, losses)
+            m.update_losses(epoch_idx, losses)
 
     def register_event(self, epoch_idx: int, text: str) -> None:
         for m in self.monitors:
@@ -202,4 +204,4 @@ class MonitorHub(AbstractMonitor):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         for m in self.monitors:
-            m.__exit__()
+            m.__exit__(exc_type, exc_val, exc_tb)

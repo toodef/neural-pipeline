@@ -29,7 +29,7 @@ class DataProcessor:
         self._model = Model(model, file_struct_manager)
 
         if self._is_cuda:
-            self._model.model().cuda()
+            self.model().cuda()
 
     def model(self):
         """
@@ -49,7 +49,7 @@ class DataProcessor:
                 data['data'] = self._process_data(data['data'])
             return self._model(data['data'])
 
-        self._model.model().eval()
+        self.model().eval()
         with torch.no_grad():
             output = make_predict()
         return output
@@ -96,7 +96,7 @@ class TrainDataProcessor(DataProcessor):
             return self._model(data['data'])
 
         if is_train:
-            self._model.model().train()
+            self.model().train()
             output = make_predict()
         else:
             output = super().predict(data)
