@@ -67,10 +67,10 @@ class FileStructManager:
             if os.listdir(self.__checkpoint_dir):
                 raise self.FSMException("Checkpoint directory already exists [{}]".format(self.__checkpoint_dir))
         else:
-            os.mkdir(self.__checkpoint_dir)
+            os.makedirs(self.__checkpoint_dir, exist_ok=True)
 
         if os.path.exists(self.__logdir_path) and os.path.isdir(self.__logdir_path):
             if os.listdir(self.__logdir_path):
                 raise self.FSMException("Logs directory already exists [{}]".format(self.__logdir_path))
         else:
-            os.mkdir(self.__logdir_path)
+            os.makedirs(self.__logdir_path, exist_ok=True)
