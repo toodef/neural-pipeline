@@ -15,7 +15,7 @@ It's contains:
 
 # Getting started:
 ## Documentation
-[See the full documentation there](https://toodef.github.io/neural-pipeline/build/html/index.html)
+[See the full documentation there](https://neural-pipeline.readthedocs.io/en/master/)
 
 ## See the examples
 [MNIST classification train example](https://github.com/toodef/neural-pipeline/blob/master/examples/img_classification.ipynb`img_classification.ipynb`)
