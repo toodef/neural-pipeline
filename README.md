@@ -5,6 +5,7 @@ Neural Pipeline based on PyTorch 0.4.1 and designed to standardize and facilitat
 [![PyPI version](https://badge.fury.io/py/neural-pipeline.svg)](https://badge.fury.io/py/neural-pipeline)
 [![PyPI Downloads/Month](https://pepy.tech/badge/neural-pipeline/month)](https://pepy.tech/project/neural-pipeline)
 [![PyPI Downloads](https://pepy.tech/badge/neural-pipeline)](https://pepy.tech/project/neural-pipeline)
+[![Documentation Status](https://readthedocs.org/projects/neural-pipeline/badge/?version=master)](https://neural-pipeline.readthedocs.io/en/master/?badge=master)
 
 It's contains:
 * Checkpoints management and train process resuming
