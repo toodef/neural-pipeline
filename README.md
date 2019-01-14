@@ -13,10 +13,11 @@ It's contains:
 # Installation:
 `pip install neural-pipeline`
 
-# Examples:
-All examples contains in `examples` folder
+# Getting started:
+##[See the full documentation there](https://toodef.github.io/neural-pipeline/build/html/index.html)
 
-`img_classification.ipynb` - MNIST classification train example
+## See the examples
+[MNIST classification train example](https://github.com/toodef/neural-pipeline/blob/master/examples/img_classification.ipynb`img_classification.ipynb`)
 
 
 
