@@ -6,7 +6,8 @@ train
 *.log
 result
 workdir
-docs/build/doctrees
+doctrees/
+.buildinfo
 docs/source/_*
 dist
 /build
