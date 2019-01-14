@@ -11,11 +11,3 @@ Welcome to Neural Pipeline's documentation!
    :caption: Contents:
 
    api/index
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
