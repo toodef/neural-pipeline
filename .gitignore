@@ -6,3 +6,9 @@ train
 *.log
 result
 workdir
+docs/build
+docs/source/_*
+dist
+build
+neural_pipeline.egg-info
+
