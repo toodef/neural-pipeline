@@ -14,7 +14,8 @@ It's contains:
 `pip install neural-pipeline`
 
 # Getting started:
-##[See the full documentation there](https://toodef.github.io/neural-pipeline/build/html/index.html)
+## Documentation
+[See the full documentation there](https://toodef.github.io/neural-pipeline/build/html/index.html)
 
 ## See the examples
 [MNIST classification train example](https://github.com/toodef/neural-pipeline/blob/master/examples/img_classification.ipynb`img_classification.ipynb`)
