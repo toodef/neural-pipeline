@@ -6,9 +6,9 @@ train
 *.log
 result
 workdir
-docs/build
+docs/build/doctrees
 docs/source/_*
 dist
-build
+/build
 neural_pipeline.egg-info
 

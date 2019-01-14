@@ -1,0 +1,387 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>neural_pipeline.data_processor.data_processor &mdash; Neural Pipeline 0.0.6 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Neural Pipeline
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Neural Pipeline</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>neural_pipeline.data_processor.data_processor</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for neural_pipeline.data_processor.data_processor</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="k">import</span> <span class="n">Module</span>
+
+<span class="kn">from</span> <span class="nn">neural_pipeline.data_processor.model</span> <span class="k">import</span> <span class="n">Model</span>
+<span class="kn">from</span> <span class="nn">neural_pipeline.utils.file_structure_manager</span> <span class="k">import</span> <span class="n">FileStructManager</span>
+<span class="kn">from</span> <span class="nn">neural_pipeline.utils.utils</span> <span class="k">import</span> <span class="n">dict_recursive_bypass</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DataProcessor&#39;</span><span class="p">,</span> <span class="s1">&#39;TrainDataProcessor&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="DataProcessor"><a class="viewcode-back" href="../../../api/data_processor.html#neural_pipeline.data_processor.data_processor.DataProcessor">[docs]</a><span class="k">class</span> <span class="nc">DataProcessor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class, that get data from data_conveyor and process it:</span>
+<span class="sd">    1) Train or predict data</span>
+<span class="sd">    2) Provide monitoring (showing metrics to console and tesorboard)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Module</span><span class="p">,</span> <span class="n">file_struct_manager</span><span class="p">:</span> <span class="n">FileStructManager</span><span class="p">,</span> <span class="n">is_cuda</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param model: model object</span>
+<span class="sd">        :param file_struct_manager: file structure manager</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_cuda</span> <span class="o">=</span> <span class="n">is_cuda</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_file_struct_manager</span> <span class="o">=</span> <span class="n">file_struct_manager</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">file_struct_manager</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_cuda</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">()</span><span class="o">.</span><span class="n">cuda</span><span class="p">()</span>
+
+<div class="viewcode-block" id="DataProcessor.model"><a class="viewcode-back" href="../../../api/data_processor.html#neural_pipeline.data_processor.data_processor.DataProcessor.model">[docs]</a>    <span class="k">def</span> <span class="nf">model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">model</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DataProcessor.predict"><a class="viewcode-back" href="../../../api/data_processor.html#neural_pipeline.data_processor.data_processor.DataProcessor.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Make predict by data</span>
+<span class="sd">        :param data: data in dict</span>
+<span class="sd">        :return: processed output</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">make_predict</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_cuda</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_data</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">()</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">make_predict</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">output</span></div>
+
+<div class="viewcode-block" id="DataProcessor.load"><a class="viewcode-back" href="../../../api/data_processor.html#neural_pipeline.data_processor.data_processor.DataProcessor.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load from checkpoint</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">load_weights</span><span class="p">()</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_process_data</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="ow">or</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">dict_recursive_bypass</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;cuda:0&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;cuda:0&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TrainDataProcessor"><a class="viewcode-back" href="../../../api/data_processor.html#neural_pipeline.data_processor.data_processor.TrainDataProcessor">[docs]</a><span class="k">class</span> <span class="nc">TrainDataProcessor</span><span class="p">(</span><span class="n">DataProcessor</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Module</span><span class="p">,</span> <span class="n">train_config</span><span class="p">:</span> <span class="s1">&#39;TrainConfig&#39;</span><span class="p">,</span> <span class="n">file_struct_manager</span><span class="p">:</span> <span class="n">FileStructManager</span><span class="p">,</span> <span class="n">is_cuda</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">file_struct_manager</span><span class="p">,</span> <span class="n">is_cuda</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__criterion</span> <span class="o">=</span> <span class="n">train_config</span><span class="o">.</span><span class="n">loss</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_cuda</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__criterion</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;cuda:0&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__optimizer</span> <span class="o">=</span> <span class="n">train_config</span><span class="o">.</span><span class="n">optimizer</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__epoch_num</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__loss_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+
+<div class="viewcode-block" id="TrainDataProcessor.predict"><a class="viewcode-back" href="../../../api/data_processor.html#neural_pipeline.data_processor.data_processor.TrainDataProcessor.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">is_train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="ow">or</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Make predict by data</span>
+<span class="sd">        :param data: data in dict</span>
+<span class="sd">        :param is_train: is data processor need train on data or just predict</span>
+<span class="sd">        :return: processed output</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">make_predict</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_cuda</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_data</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">is_train</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">()</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">make_predict</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">output</span></div>
+
+<div class="viewcode-block" id="TrainDataProcessor.process_batch"><a class="viewcode-back" href="../../../api/data_processor.html#neural_pipeline.data_processor.data_processor.TrainDataProcessor.process_batch">[docs]</a>    <span class="k">def</span> <span class="nf">process_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="p">{},</span> <span class="n">is_train</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">metrics_processor</span><span class="p">:</span> <span class="s1">&#39;AbstractMetricsProcessor&#39;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Process one batch of data</span>
+<span class="sd">        :param batch: dict, contains &#39;data&#39; and &#39;target&#39; keys. The values for key must be instance of torch.Tensor or dict</span>
+<span class="sd">        :param is_train: is batch process for train</span>
+<span class="sd">        :param metrics_processor: metrics processor for collect metrics</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_cuda</span><span class="p">:</span>
+            <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_data</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">is_train</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">is_train</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">metrics_processor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">metrics_processor</span><span class="o">.</span><span class="n">calc_metrics</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">])</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__criterion</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">is_train</span><span class="p">:</span>
+            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+        <span class="n">loss_arr</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__loss_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__loss_values</span><span class="p">,</span> <span class="n">loss_arr</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">loss_arr</span></div>
+
+<div class="viewcode-block" id="TrainDataProcessor.update_lr"><a class="viewcode-back" href="../../../api/data_processor.html#neural_pipeline.data_processor.data_processor.TrainDataProcessor.update_lr">[docs]</a>    <span class="k">def</span> <span class="nf">update_lr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update learning rate straight to optimizer</span>
+<span class="sd">        :param lr: target learning rate</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">param_group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">:</span>
+            <span class="n">param_group</span><span class="p">[</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span></div>
+
+<div class="viewcode-block" id="TrainDataProcessor.get_lr"><a class="viewcode-back" href="../../../api/data_processor.html#neural_pipeline.data_processor.data_processor.TrainDataProcessor.get_lr">[docs]</a>    <span class="k">def</span> <span class="nf">get_lr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get learning rate from optimizer</span>
+<span class="sd">        :param lr: target learning rate</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">param_group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">param_group</span><span class="p">[</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">get_last_epoch_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__epoch_num</span>
+
+<div class="viewcode-block" id="TrainDataProcessor.get_state"><a class="viewcode-back" href="../../../api/data_processor.html#neural_pipeline.data_processor.data_processor.TrainDataProcessor.get_state">[docs]</a>    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">{}:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get model and optimizer state dicts</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;weights&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">model</span><span class="p">()</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="s1">&#39;optimizer&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__optimizer</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()}</span></div>
+
+<div class="viewcode-block" id="TrainDataProcessor.load"><a class="viewcode-back" href="../../../api/data_processor.html#neural_pipeline.data_processor.data_processor.TrainDataProcessor.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Data processor inited by file: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file_struct_manager</span><span class="o">.</span><span class="n">optimizer_state_file</span><span class="p">(),</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;; &#39;</span><span class="p">)</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file_struct_manager</span><span class="o">.</span><span class="n">optimizer_state_file</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;state dict len before:&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="p">),</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;; &#39;</span><span class="p">)</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__optimizer</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()}</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;state dict len after:&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="p">),</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;; &#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__optimizer</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;done&#39;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file_struct_manager</span><span class="o">.</span><span class="n">data_processor_state_file</span><span class="p">(),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">in_file</span><span class="p">:</span>
+            <span class="n">dp_state</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">in_file</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__epoch_num</span> <span class="o">=</span> <span class="n">dp_state</span><span class="p">[</span><span class="s1">&#39;last_epoch_idx&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TrainDataProcessor.save_state"><a class="viewcode-back" href="../../../api/data_processor.html#neural_pipeline.data_processor.data_processor.TrainDataProcessor.save_state">[docs]</a>    <span class="k">def</span> <span class="nf">save_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save state of optimizer and perform epochs number</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__optimizer</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file_struct_manager</span><span class="o">.</span><span class="n">optimizer_state_file</span><span class="p">())</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file_struct_manager</span><span class="o">.</span><span class="n">data_processor_state_file</span><span class="p">(),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">({</span><span class="s2">&quot;last_epoch_idx&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__epoch_num</span><span class="p">},</span> <span class="n">out</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">save_weights</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">get_losses</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__loss_values</span>
+
+    <span class="k">def</span> <span class="nf">reset_losses</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__loss_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">([])</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Anton Fedotov
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
