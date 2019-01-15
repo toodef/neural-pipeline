@@ -8,9 +8,9 @@ __all__ = ['Model']
 
 class Model:
     """
-    Wrapper for :mod:`torch.nn.Module`. This class provide initialisation, call and serialisation for it
+    Wrapper for :class:`torch.nn.Module`. This class provide initialisation, call and serialisation for it
 
-    :param base_model: :mod:`torch.nn.Module` object
+    :param base_model: :class:`torch.nn.Module` object
     :param file_struct_manager: file structure manager
     """
     def __init__(self, base_model: Module, file_struct_manager: FileStructManager):
@@ -19,9 +19,9 @@ class Model:
 
     def model(self) -> Module:
         """
-        Get internal :mod:`torch.nn.Module` object
+        Get internal :class:`torch.nn.Module` object
 
-        :return: internal Module
+        :return: internal :class:`torch.nn.Module` object
         """
         return self._base_model
 

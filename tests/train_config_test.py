@@ -51,13 +51,13 @@ class TrainConfigTest(unittest.TestCase):
         metrics_group_lv2 = MetricsGroup('lv2')
         metrics_group_lv1.add(metrics_group_lv2)
         self.assertTrue(metrics_group_lv1.have_groups())
-        self.assertRaises(MetricsGroup.MetricsGroupException, lambda: metrics_group_lv2.add(MetricsGroup('lv3')))
+        self.assertRaises(MetricsGroup.MGException, lambda: metrics_group_lv2.add(MetricsGroup('lv3')))
 
         metrics_group_lv1 = MetricsGroup('lvl')
         metrics_group_lv2 = MetricsGroup('lv2')
         metrics_group_lv3 = MetricsGroup('lv2')
         metrics_group_lv2.add(metrics_group_lv3)
-        self.assertRaises(MetricsGroup.MetricsGroupException, lambda: metrics_group_lv1.add(metrics_group_lv2))
+        self.assertRaises(MetricsGroup.MGException, lambda: metrics_group_lv1.add(metrics_group_lv2))
 
     def test_metrics_group_calculation(self):
         metrics_group_lv1 = MetricsGroup('lvl').add(SimpleMetric())

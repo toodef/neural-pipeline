@@ -126,7 +126,7 @@ class TrainDataProcessor(DataProcessor):
 
         :param batch: dict, contains 'data' and 'target' keys. The values for key must be instance of torch.Tensor or dict
         :param is_train: is batch process for train
-        :param metrics_processor: metrics processor for collect metrics
+        :param metrics_processor: metrics processor for collect metrics after batch is processed
         """
         if self._is_cuda:
             batch['target'] = self._pass_data_to_device(batch['target'])
