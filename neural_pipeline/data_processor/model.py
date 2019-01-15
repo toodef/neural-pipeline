@@ -8,31 +8,26 @@ __all__ = ['Model']
 
 class Model:
     """
-    Model is a neural network architecture. This class provide initialisation, call and serialisation for it
+    Wrapper for :mod:`torch.nn.Module`. This class provide initialisation, call and serialisation for it
+
+    :param base_model: :mod:`torch.nn.Module` object
+    :param file_struct_manager: file structure manager
     """
-
-    class ModelException(Exception):
-        def __init__(self, message):
-            super(Model.ModelException, self).__init__(message)
-            self.__message = message
-
-        def __str__(self):
-            return self.__message
-
     def __init__(self, base_model: Module, file_struct_manager: FileStructManager):
         self._base_model = base_model
         self._fsm = file_struct_manager
 
     def model(self) -> Module:
         """
-        Return torch.Module
-        :return: module
+        Get internal :mod:`torch.nn.Module` object
+
+        :return: internal Module
         """
         return self._base_model
 
     def load_weights(self) -> None:
         """
-        Load weight from file
+        Load weight from checkpoint
         """
         weights_file = self._fsm.weights_file()
         print("Model inited by file: ", weights_file, end='; ')
@@ -51,9 +46,13 @@ class Model:
     def __call__(self, x):
         """
         Call torch.nn.Module __call__ method
-        :param x: data
+
+        :param x: model input data
         """
         return self._base_model(x)
 
-    def to_cuda(self):
+    def to_cuda(self) -> None:
+        """
+        Pass model to CUDA device
+        """
         self._base_model.to('cuda')
