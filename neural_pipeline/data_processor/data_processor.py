@@ -13,16 +13,13 @@ __all__ = ['DataProcessor', 'TrainDataProcessor']
 
 class DataProcessor:
     """
-    Class, that get data from data_conveyor and process it:
-    1) Train or predict data
-    2) Provide monitoring (showing metrics to console and tesorboard)
-    """
+    DataProcessor manage: model, data processing, device choosing
 
+    :param model: model, that will be used for process data
+    :param file_struct_manager: file structure manager
+    :param is_cuda: is processing will be in CUDA device
+    """
     def __init__(self, model: Module, file_struct_manager: FileStructManager, is_cuda=True):
-        """
-        :param model: model object
-        :param file_struct_manager: file structure manager
-        """
         self._is_cuda = is_cuda
         self._file_struct_manager = file_struct_manager
 
@@ -31,22 +28,24 @@ class DataProcessor:
         if self._is_cuda:
             self.model().cuda()
 
-    def model(self):
+    def model(self) -> Module:
         """
-        Get model
+        Get current module
         """
         return self._model.model()
 
     def predict(self, data) -> object:
         """
         Make predict by data
-        :param data: data in dict
+
+        :param data: data in dict with key `data`
         :return: processed output
+        :rtype: the model output type
         """
 
         def make_predict():
             if self._is_cuda:
-                data['data'] = self._process_data(data['data'])
+                data['data'] = self._pass_data_to_device(data['data'])
             return self._model(data['data'])
 
         self.model().eval()
@@ -56,12 +55,17 @@ class DataProcessor:
 
     def load(self) -> None:
         """
-        Load from checkpoint
+        Load model weights from checkpoint
         """
         self._model.load_weights()
 
     @staticmethod
-    def _process_data(data) -> torch.Tensor or dict:
+    def _pass_data_to_device(data: torch.Tensor or dict) -> torch.Tensor or dict:
+        """
+        Internal method, that pass data to specified device
+        :param data: data as dict or torch.Tensor
+        :return: processed on target device
+        """
         if isinstance(data, dict):
             return dict_recursive_bypass(data, lambda v: v.to('cuda:0'))
         else:
@@ -69,6 +73,17 @@ class DataProcessor:
 
 
 class TrainDataProcessor(DataProcessor):
+    """
+    TrainDataProcessor is make all of DataProcessor but produce training process.
+
+    This store losses values in array, that updated every call of :func:`process_batch`
+
+    :param model: model, that will be used for process data
+    :param train_config: train config
+    :param file_struct_manager: file structure manager
+    :param is_cuda: is processing will be in CUDA device
+    """
+
     def __init__(self, model: Module, train_config: 'TrainConfig', file_struct_manager: FileStructManager, is_cuda=True):
         super().__init__(model, file_struct_manager, is_cuda)
 
@@ -84,15 +99,17 @@ class TrainDataProcessor(DataProcessor):
 
     def predict(self, data, is_train=False) -> torch.Tensor or dict:
         """
-        Make predict by data
+        Make predict by data. If ``is_train`` was ``True``
+
         :param data: data in dict
         :param is_train: is data processor need train on data or just predict
         :return: processed output
+        :rtype: model return type
         """
 
         def make_predict():
             if self._is_cuda:
-                data['data'] = self._process_data(data['data'])
+                data['data'] = self._pass_data_to_device(data['data'])
             return self._model(data['data'])
 
         if is_train:
@@ -106,12 +123,13 @@ class TrainDataProcessor(DataProcessor):
     def process_batch(self, batch: {}, is_train: bool, metrics_processor: 'AbstractMetricsProcessor' = None) -> np.ndarray:
         """
         Process one batch of data
+
         :param batch: dict, contains 'data' and 'target' keys. The values for key must be instance of torch.Tensor or dict
         :param is_train: is batch process for train
         :param metrics_processor: metrics processor for collect metrics
         """
         if self._is_cuda:
-            batch['target'] = self._process_data(batch['target'])
+            batch['target'] = self._pass_data_to_device(batch['target'])
 
         if is_train:
             self.__optimizer.zero_grad()
@@ -133,6 +151,7 @@ class TrainDataProcessor(DataProcessor):
     def update_lr(self, lr: float) -> None:
         """
         Update learning rate straight to optimizer
+
         :param lr: target learning rate
         """
         for param_group in self.__optimizer.param_groups:
@@ -141,7 +160,6 @@ class TrainDataProcessor(DataProcessor):
     def get_lr(self) -> float:
         """
         Get learning rate from optimizer
-        :param lr: target learning rate
         """
         for param_group in self.__optimizer.param_groups:
             return param_group['lr']
@@ -152,10 +170,15 @@ class TrainDataProcessor(DataProcessor):
     def get_state(self) -> {}:
         """
         Get model and optimizer state dicts
+
+        :return: dict with keys [weights, optimizer]
         """
         return {'weights': self._model.model().state_dict(), 'optimizer': self.__optimizer.state_dict()}
 
-    def load(self):
+    def load(self) -> None:
+        """
+        Load state of model, optimizer and TrainDataProcessor from checkpoint
+        """
         super().load()
 
         print("Data processor inited by file: ", self._file_struct_manager.optimizer_state_file(), end='; ')
@@ -182,7 +205,15 @@ class TrainDataProcessor(DataProcessor):
         self._model.save_weights()
 
     def get_losses(self) -> np.ndarray:
+        """
+        Get current losses
+
+        :return: array of losses
+        """
         return self.__loss_values
 
     def reset_losses(self) -> None:
+        """
+        Reset array of losses
+        """
         self.__loss_values = np.ndarray([])
