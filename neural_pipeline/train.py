@@ -4,7 +4,7 @@ from neural_pipeline.data_processor import TrainDataProcessor
 from neural_pipeline.utils.file_structure_manager import FileStructManager
 from neural_pipeline.train_config.train_config import TrainConfig
 from neural_pipeline.data_processor.state_manager import StateManager
-from neural_pipeline.monitoring import MonitorHub, TensorboardMonitor, ConsoleMonitor
+from neural_pipeline.monitoring import MonitorHub, ConsoleMonitor
 
 
 class Trainer:

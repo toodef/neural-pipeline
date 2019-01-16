@@ -8,7 +8,7 @@ import numpy as np
 from neural_pipeline.data_processor.model import Model
 from neural_pipeline.utils.file_structure_manager import FileStructManager
 
-__all__ = ['MonitorHub', 'TensorboardMonitor', 'AbstractMonitor']
+__all__ = ['MonitorHub', 'TensorboardMonitor', 'AbstractMonitor', 'ConsoleMonitor']
 
 
 class AbstractMonitor(metaclass=ABCMeta):

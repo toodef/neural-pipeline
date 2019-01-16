@@ -1,1 +1,1 @@
-from .train_config import AbstractMetric, MetricsGroup, MetricsProcessor, AbstractStage, TrainStage, TrainStage, TrainConfig
+from .train_config import AbstractMetric, MetricsGroup, MetricsProcessor, AbstractStage, TrainStage, ValidationStage, TrainConfig

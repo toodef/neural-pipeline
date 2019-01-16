@@ -4,7 +4,16 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.nn import Module
 import numpy as np
-from tqdm import tqdm
+
+try:
+    from IPython import get_ipython
+    ip = get_ipython()
+    if ip is not None:
+        from tqdm import tqdm_notebook as tqdm
+    else:
+        from tqdm import tqdm
+except ImportError:
+    from tqdm import tqdm
 
 from neural_pipeline.data_producer.data_producer import DataProducer
 from neural_pipeline.data_processor.data_processor import TrainDataProcessor
@@ -285,7 +294,7 @@ class TrainStage(AbstractStage):
     :param data_producer: :class:`DataProducer` object
     :param metrics_processor: :class:`MetricsProcessor`
     """
-    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor):
+    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor = None):
         super().__init__(name='train')
         self.data_loader = data_producer.get_loader()
         self._metrics_processor = metrics_processor
@@ -312,7 +321,7 @@ class ValidationStage(AbstractStage):
     :param data_producer: :class:`DataProducer` object
     :param metrics_processor: :class:`MetricsProcessor`
     """
-    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor):
+    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor = None):
         super().__init__(name='validation')
         self.data_loader = data_producer.get_loader()
         self._metrics_processor = metrics_processor
@@ -341,6 +350,7 @@ class TrainConfig:
     :param optimizer: optimizer object
     :param experiment_name: name of experiment for difference from another experiments (e.g. visualisation)
     """
+
     def __init__(self, train_stages: [], loss: Module, optimizer: Optimizer, experiment_name: str):
         self._train_stages = train_stages
         self.__loss = loss
