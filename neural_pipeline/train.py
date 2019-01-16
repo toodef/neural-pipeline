@@ -73,13 +73,13 @@ class Trainer:
                 for stage in self.__train_config.stages():
                     stage.run(data_processor)
 
-                    data_processor.save_state()
-                    state_manager.pack()
-
                     losses[stage.name()] = data_processor.get_losses()
                     if stage.metrics_processor() is not None:
                         self.monitor_hub.update_metrics(epoch_idx, stage.metrics_processor().get_metrics())
                     self._reset_metrics(data_processor)
+
+                data_processor.save_state()
+                state_manager.pack()
 
                 self.monitor_hub.update_losses(epoch_idx, losses)
                 losses = {}
