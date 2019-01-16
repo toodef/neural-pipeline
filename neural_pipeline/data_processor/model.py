@@ -32,10 +32,10 @@ class Model:
         weights_file = self._fsm.weights_file()
         print("Model inited by file: ", weights_file, end='; ')
         pretrained_weights = torch.load(weights_file)
-        print("weights before: ", weights_file, end='; ')
+        print("weights before:", len(pretrained_weights), end='; ')
         pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self._base_model.state_dict()}
         self._base_model.load_state_dict(pretrained_weights)
-        print("weights after: ", weights_file)
+        print("weights after:", len(pretrained_weights))
 
     def save_weights(self) -> None:
         """
