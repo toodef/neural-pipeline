@@ -29,6 +29,7 @@ class PredictTest(unittest.TestCase):
         Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1), 'exp'), fsm, is_cuda=False)\
             .set_epoch_num(1).train()
 
+        fsm = FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None, is_continue=True)
         Predictor(model, fsm, is_cuda=False).predict({'data': torch.rand(1, 3)})
 
     def tearDown(self):

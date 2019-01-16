@@ -5,6 +5,11 @@ import sys
 class FileStructManager:
     """
     This class manage data directory. It's get path to config and provide info about folder and interface for work with it
+
+    :param checkpoint_dir_path: path to directory with checkpoints
+    :param logdir_path: logdir path. May be none if exists NN_LOGDIR environment variable. If nothig was defined - tensorboard will not work
+    :param prefix: prefix of stored files
+    :param is_continue: is FileStructManager used for continue training or predict
     """
     class FSMException(Exception):
         def __init__(self, message: str):
@@ -13,17 +18,12 @@ class FileStructManager:
         def __str__(self):
             return self.__message
 
-    def __init__(self, checkpoint_dir_path: str, logdir_path: str, prefix: str = None):
-        """
-        :param checkpoint_dir_path: path to directory with checkpoints
-        :param logdir_path: logdir path. May be none if exists NN_LOGDIR environment variable. If nothig was defined - tensorboard will not work
-        :param prefix: prefix of stored files
-        """
-
+    def __init__(self, checkpoint_dir_path: str, logdir_path: str, prefix: str = None, is_continue: bool = False):
         self.__logdir_path = logdir_path
         self.__checkpoint_dir = checkpoint_dir_path
 
-        self.__create_directories()
+        if not is_continue:
+            self.__create_directories()
         self.__prefix = prefix
 
     def checkpoint_dir(self) -> str:
