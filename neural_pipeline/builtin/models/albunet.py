@@ -41,7 +41,6 @@ class ConvBottleneck(nn.Module):
         x = torch.cat([dec, enc], dim=1)
         return self.seq(x)
 
-
 class AlbUNet(torch.nn.Module):
     def __init__(self, base_model: torch.nn.Module, num_classes: int, weights_url: str = None):
         super().__init__()
