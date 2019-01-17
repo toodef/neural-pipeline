@@ -14,6 +14,7 @@
 
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath('../../'))
 
 # -- Project information -----------------------------------------------------
@@ -22,11 +23,16 @@ project = 'Neural Pipeline'
 copyright = '2019, Anton Fedotov'
 author = 'Anton Fedotov'
 
-# The short X.Y version
-version = '0.0'
-# The full version, including alpha/beta/rc tags
-release = '0.0.9'
+import importlib.util
 
+spec = importlib.util.spec_from_file_location("neural_pipeline", os.path.join('..', '..', 'neural_pipeline', '__init__.py'))
+neural_pipeline = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(neural_pipeline)
+
+# The short X.Y version
+version = neural_pipeline.__version__
+# The full version, including alpha/beta/rc tags
+release = version
 
 # -- General configuration ---------------------------------------------------
 
@@ -73,7 +79,6 @@ exclude_patterns = []
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -108,7 +113,6 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'NeuralPipelinedoc'
 
-
 # -- Options for LaTeX output ------------------------------------------------
 
 latex_elements = {
@@ -137,7 +141,6 @@ latex_documents = [
      'Anton Fedotov', 'manual'),
 ]
 
-
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
@@ -146,7 +149,6 @@ man_pages = [
     (master_doc, 'neuralpipeline', 'Neural Pipeline Documentation',
      [author], 1)
 ]
-
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -158,7 +160,6 @@ texinfo_documents = [
      author, 'NeuralPipeline', 'One line description of project.',
      'Miscellaneous'),
 ]
-
 
 # -- Options for Epub output -------------------------------------------------
 
@@ -176,7 +177,6 @@ epub_title = project
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
-
 
 # -- Extension configuration -------------------------------------------------
 

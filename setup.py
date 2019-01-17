@@ -1,11 +1,13 @@
 import setuptools
+import neural_pipeline
+
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="neural-pipeline",
-    version="0.0.9",
+    version=neural_pipeline.__version__,
     author="Anton Fedotov",
     author_email="anton.fedotov.af@gmail.com.com",
     description="Neural Pipeline based on PyTorch 0.4.1 and designed to standardize and facilitate the training process",

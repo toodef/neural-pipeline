@@ -1,4 +1,4 @@
-__version__ = '0.0.6'
+__version__ = '0.0.9'
 
 from . import data_producer
 from . import data_processor
