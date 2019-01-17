@@ -23,11 +23,15 @@ project = 'Neural Pipeline'
 copyright = '2019, Anton Fedotov'
 author = 'Anton Fedotov'
 
-import importlib.util
+# import importlib.util
+#
+# spec = importlib.util.spec_from_file_location("neural_pipeline",
+#                                               os.path.join(os.path.dirname(os.path.abspath(__file__)),
+#                                                            '..', '..', 'neural_pipeline', '__init__.py'))
+# neural_pipeline = importlib.util.module_from_spec(spec)
+# spec.loader.exec_module(neural_pipeline)
 
-spec = importlib.util.spec_from_file_location("neural_pipeline", os.path.join('..', '..', 'neural_pipeline', '__init__.py'))
-neural_pipeline = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(neural_pipeline)
+import neural_pipeline
 
 # The short X.Y version
 version = neural_pipeline.__version__
