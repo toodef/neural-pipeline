@@ -16,10 +16,22 @@ class AbstractMonitor(metaclass=ABCMeta):
     def update_losses(self, epoch_idx: int, losses: {}) -> None:
         """
         Update monitor
+
         :param epoch_idx: current epoch index
-        :param losses: losses values dict with keys 'train' and 'validation'
+        :param losses: losses values dict with keys is names of stages in train pipeline (e.g. [train, validation])
         """
         pass
+
+    @staticmethod
+    def _iterate_by_losses(losses: {}, callback: callable) -> None:
+        """
+        Internal method for unify iteration by losses dict
+
+        :param losses: dic of losses
+        :param callback: callable, that call for every loss value and get params loss_name and loss_values: ``callback(name: str, values: np.ndarray)``
+        """
+        for m, v in losses.items():
+            callback(m, v)
 
     def register_event(self, epoch_idx: int, text: str) -> None:
         pass
@@ -32,12 +44,23 @@ class AbstractMonitor(metaclass=ABCMeta):
 
 
 class ConsoleMonitor(AbstractMonitor):
-    def update_losses(self, epoch_idx: int, losses: {}):
-        string = "Epoch: [{}];".format(epoch_idx + 1)
-        train_loss, val_loss = losses['train'], losses['validation']
-        string += " {}: [{:4f}, {:4f}, {:4f}];".format('train', np.min(train_loss), np.mean(train_loss), np.max(train_loss))
-        string += " {}: [{:4f}, {:4f}, {:4f}]".format('validation', np.min(val_loss), np.mean(val_loss), np.max(val_loss))
-        print(string)
+    class ResStr:
+        def __init__(self, start: str):
+            self.res = start
+
+        def append(self, string: str):
+            self.res += string
+
+        def __str__(self):
+            return self.res[:len(self.res) - 1]
+
+    def update_losses(self, epoch_idx: int, losses: {}) -> None:
+        def on_loss(name: str, values: np.ndarray, string) -> None:
+            string.append(" {}: [{:4f}, {:4f}, {:4f}];".format(name, np.min(values), np.mean(values), np.max(values)))
+
+        res_string = self.ResStr("Epoch: [{}];".format(epoch_idx + 1))
+        self._iterate_by_losses(losses, lambda m, v: on_loss(m, v, res_string))
+        print(res_string)
 
 
 class MonitorHub(AbstractMonitor):

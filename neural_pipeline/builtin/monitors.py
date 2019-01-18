@@ -60,15 +60,13 @@ class TensorboardMonitor(AbstractMonitor):
             return
 
         self.__epoch_idx = epoch_idx
-        train_loss, val_loss = losses['train'], losses['validation']
 
-        self.__writer.add_scalars('loss', {'train': np.mean(train_loss)}, global_step=epoch_idx + 1)
-        self.__writer.add_scalars('loss', {'validation': np.mean(val_loss)}, global_step=epoch_idx + 1)
+        def on_loss(name: str, values: np.ndarray) -> None:
+            self.__writer.add_scalars('loss', {name: np.mean(values)}, global_step=epoch_idx + 1)
+            self.__writer.add_histogram('{}/loss_hist'.format(name), np.clip(values, -1, 1).astype(np.float32), global_step=epoch_idx + 1,
+                                        bins=np.linspace(-1, 1, num=11).astype(np.float32))
 
-        self.__writer.add_histogram('train/loss', np.clip(train_loss, -1, 1).astype(np.float32), global_step=epoch_idx + 1,
-                                    bins=np.linspace(-1, 1, num=11).astype(np.float32))
-        self.__writer.add_histogram('validation/loss', np.clip(val_loss, -1, 1).astype(np.float32), global_step=epoch_idx + 1,
-                                    bins=np.linspace(-1, 1, num=11).astype(np.float32))
+        self._iterate_by_losses(losses, on_loss)
 
     def _update_metrics(self, epoch_idx: int, metrics: [AbstractMetric], metrics_groups: [MetricsGroup]) -> None:
         """

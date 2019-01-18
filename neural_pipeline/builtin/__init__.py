@@ -1,2 +1,2 @@
-from .monitoring import TensorboardMonitor
+from .monitors import TensorboardMonitor
 from .models import albunet
