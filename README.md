@@ -1,4 +1,4 @@
-Neural Pipeline based on PyTorch 0.4.1 and designed to standardize and facilitate the training process.
+Neural networks training pipeline based on PyTorch 0.4.1 and designed to standardize and facilitate the training process.
 
 [![Build Status](https://travis-ci.org/toodef/neural-pipeline.svg?branch=master)](https://travis-ci.org/toodef/neural-pipeline)
 [![Coverage Status](https://coveralls.io/repos/github/toodef/neural-pipeline/badge.svg?branch=master)](https://coveralls.io/github/toodef/neural-pipeline?branch=master)
@@ -6,7 +6,7 @@ Neural Pipeline based on PyTorch 0.4.1 and designed to standardize and facilitat
 
 It's contains:
 * Checkpoints management and train process resuming
-* Metrics processing and visualisation
+* Metrics processing and visualisation by builtins ([tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard)) or custom monitors
 
 # Installation:
 [![PyPI version](https://badge.fury.io/py/neural-pipeline.svg)](https://badge.fury.io/py/neural-pipeline)
@@ -14,6 +14,9 @@ It's contains:
 [![PyPI Downloads](https://pepy.tech/badge/neural-pipeline)](https://pepy.tech/project/neural-pipeline)
 
 `pip install neural-pipeline`
+
+##### Install latest version before it's published on PyPi
+`pip install -U git+https://github.com/toodef/neural-pipeline`
 
 # Getting started:
 ### Documentation

@@ -15,7 +15,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/toodef/neural-pipeline",
     packages=setuptools.find_packages(exclude=['tests']),
-    install_requires=['numpy', 'tensorboardX', 'tqdm', 'torch==0.4.1'],
+    install_requires=['numpy', 'tqdm', 'torch==0.4.1'],
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Programming Language :: Python :: 3',
