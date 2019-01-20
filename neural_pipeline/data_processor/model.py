@@ -8,7 +8,7 @@ __all__ = ['Model']
 
 class Model:
     """
-    Wrapper for :class:`torch.nn.Module`. This class provide initialisation, call and serialisation for it
+    Wrapper for :class:`torch.nn.Module`. This class provide initialization, call and serialization for it
 
     :param base_model: :class:`torch.nn.Module` object
     :param file_struct_manager: file structure manager
