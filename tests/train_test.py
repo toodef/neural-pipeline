@@ -1,6 +1,7 @@
 import os
 import shutil
 import unittest
+from random import randint
 
 import torch
 
@@ -81,6 +82,10 @@ class TrainTest(unittest.TestCase):
             if i % 3 == 0:
                 self.assertAlmostEqual(value, old_val * 0.5, delta=1e-6)
             old_val = value
+
+        val = randint(1, 1000)
+        lr.set_value(val)
+        self.assertEqual(val, lr.value())
 
     def test_lr_decaying(self):
         fsm = FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)

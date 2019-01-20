@@ -181,7 +181,7 @@ class TrainDataProcessor(DataProcessor):
         """
         super().load()
 
-        print("Data processor inited by file: ", self._file_struct_manager.optimizer_state_file(), end='; ')
+        print("Data processor inited by file:", self._file_struct_manager.optimizer_state_file(), end='; ')
         state = torch.load(self._file_struct_manager.optimizer_state_file())
         print('state dict len before:', len(state), end='; ')
         state = {k: v for k, v in state.items() if k in self.__optimizer.state_dict()}
