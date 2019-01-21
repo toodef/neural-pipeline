@@ -25,7 +25,8 @@ It's contains:
 [See the full documentation there](https://neural-pipeline.readthedocs.io/en/master/)
 
 ### See the examples
-MNIST classification train example - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/src/img_classification.py)
+* MNIST classification example - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/src/img_classification.py)
+* Segmentation example - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_segmentation.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_segmentation.py)
 
 
 
