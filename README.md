@@ -16,6 +16,9 @@ It's contains:
 
 `pip install neural-pipeline`
 
+##### For `builtin` module using install:
+`pip install tensorboardX`
+
 ##### Install latest version before it's published on PyPi
 `pip install -U git+https://github.com/toodef/neural-pipeline`
 

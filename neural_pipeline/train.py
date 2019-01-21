@@ -160,8 +160,6 @@ class Trainer:
 
                     if stage.metrics_processor() is not None:
                         self.monitor_hub.update_metrics(epoch_idx, stage.metrics_processor().get_metrics())
-                    if stage.get_losses() is not None:
-                        self.monitor_hub.update_losses(epoch_idx, {stage.name(): stage.get_losses()})
 
                 self._data_processor.save_state()
                 state_manager.pack()
@@ -170,6 +168,12 @@ class Trainer:
 
                 for clbk in self._on_epoch_end:
                     clbk()
+
+                losses = {}
+                for stage in self.__train_config.stages():
+                    if stage.get_losses() is not None:
+                        losses[stage.name()] = stage.get_losses()
+                self.monitor_hub.update_losses(epoch_idx, losses)
 
                 self.__iterate_by_stages(lambda s: s.on_epoch_end())
 
