@@ -108,6 +108,9 @@ class TensorboardMonitor(AbstractMonitor):
             for group in metrics_group.groups():
                 process_metric(group, metrics_group.name())
 
+    def update_scalar(self, name:str, value: float, epoch_idx: int = None):
+        self.__writer.add_scalar(name, value, global_step=(epoch_idx if epoch_idx is not None else self.__epoch_idx) + 1)
+
     def write_to_txt_log(self, line: str, tag: str = None):
         self.__writer.add_text("log" if tag is None else tag, line, self.__epoch_idx)
         line = "Epoch [{}]".format(self.__epoch_idx) + ": " + line

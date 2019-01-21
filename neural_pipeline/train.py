@@ -60,7 +60,6 @@ class DecayingLR(LearningRate):
         """
         metric_val = self._target_value_clbk()
         if metric_val is None:
-            self._cur_step += 1
             return self._value
 
         if self._cur_min_target_val is None:
@@ -113,6 +112,8 @@ class Trainer:
                                                   is_cuda=self.__is_cuda)
         self._lr = LearningRate(self._data_processor.get_lr())
 
+        self._on_epoch_end = []
+
     def set_epoch_num(self, epoch_number: int) -> 'Trainer':
         """
         Define number of training epoch
@@ -154,21 +155,23 @@ class Trainer:
 
         with self.monitor_hub:
             for epoch_idx in range(start_epoch_idx, self.__epoch_num + start_epoch_idx):
-                losses = {}
                 for stage in self.__train_config.stages():
                     stage.run(self._data_processor)
 
-                    losses[stage.name()] = self._data_processor.get_losses()
                     if stage.metrics_processor() is not None:
                         self.monitor_hub.update_metrics(epoch_idx, stage.metrics_processor().get_metrics())
-                    self._reset_metrics(self._data_processor)
+                    if stage.get_losses() is not None:
+                        self.monitor_hub.update_losses(epoch_idx, {stage.name(): stage.get_losses()})
 
                 self._data_processor.save_state()
                 state_manager.pack()
 
-                self.monitor_hub.update_losses(epoch_idx, losses)
-
                 self._data_processor.update_lr(self._lr.value())
+
+                for clbk in self._on_epoch_end:
+                    clbk()
+
+                self.__iterate_by_stages(lambda s: s.on_epoch_end())
 
     def data_processor(self) -> TrainDataProcessor:
         """
@@ -178,18 +181,15 @@ class Trainer:
         """
         return self._data_processor
 
-    def _reset_metrics(self, data_processor: TrainDataProcessor) -> None:
+    def add_on_epoch_end_callback(self, callback: callable) -> 'Trainer':
         """
-        Reset metrics. This method called after every epoch
-        :param data_processor: data processor, that train model
+        Add callback, that will be called after every epoch end
+
+        :param callback: method, that will be called. This method may not get any parameters
+        :return: self object
         """
-
-        def clean_stage_metrics(stage):
-            if stage.metrics_processor() is not None:
-                stage.metrics_processor().reset_metrics()
-
-        data_processor.reset_losses()
-        self.__iterate_by_stages(clean_stage_metrics)
+        self._on_epoch_end.append(callback)
+        return self
 
     def __iterate_by_stages(self, func: callable):
         for stage in self.__train_config.stages():

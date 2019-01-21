@@ -7,6 +7,7 @@ import numpy as np
 
 try:
     from IPython import get_ipython
+
     ip = get_ipython()
     if ip is not None:
         from tqdm import tqdm_notebook as tqdm
@@ -27,6 +28,7 @@ class AbstractMetric(metaclass=ABCMeta):
 
     :param name: name of metric. Name wil be used in monitors, so be careful in use unsupported characters
     """
+
     def __init__(self, name: str):
         self._name = name
         self._values = np.array([])
@@ -96,10 +98,12 @@ class MetricsGroup:
 
     :param name: group name. Name wil be used in monitors, so be careful in use unsupported characters
     """
+
     class MGException(Exception):
         """
         Exception for MetricsGroup
         """
+
         def __init__(self, msg: str):
             self.__msg = msg
 
@@ -198,6 +202,7 @@ class MetricsProcessor:
     """
     Collection for all :class:`AbstractMetric`'s and :class:`MetricsGroup`'s
     """
+
     def __init__(self):
         self._metrics = []
         self._metrics_groups = []
@@ -261,6 +266,7 @@ class AbstractStage(metaclass=ABCMeta):
 
     :param name: name of stage
     """
+
     def __init__(self, name: str):
         self._name = name
 
@@ -286,59 +292,102 @@ class AbstractStage(metaclass=ABCMeta):
         Run stage
         """
 
+    def get_losses(self) -> np.ndarray or None:
+        """
+        Get losses from this stage
 
-class TrainStage(AbstractStage):
+        :return: array of losses or None if this stage doesn't need losses
+        """
+        return None
+
+    def on_epoch_end(self) -> None:
+        """
+        Callback for train epoch end
+        """
+        pass
+
+
+class StandardStage(AbstractStage):
+    """
+    Standard stage for train process.
+
+    When call :meth:`run` it's iterate :meth:`process_batch` of data processor by data loader
+
+    After stop iteration ValidationStage accumulate losses from :class:`DataProcessor`.
+
+    :param data_producer: :class:`DataProducer` object
+    :param metrics_processor: :class:`MetricsProcessor`
+    """
+
+    def __init__(self, stage_name: str, is_train: bool, data_producer: DataProducer, metrics_processor: MetricsProcessor = None):
+        super().__init__(name=stage_name)
+        self.data_loader = data_producer.get_loader()
+        self._metrics_processor = metrics_processor
+        self._losses = None
+        self._is_train = is_train
+
+    def run(self, data_processor: TrainDataProcessor) -> None:
+        """
+        Run stage. This iterate by DataProducer and show progress in stdout
+
+        :param data_processor: :class:`DataProcessor` object
+        """
+        with tqdm(self.data_loader, desc=self.name(), leave=False) as t:
+            self._losses = None
+            for batch in t:
+                cur_loss = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=self._is_train)
+                if self._losses is None:
+                    self._losses = cur_loss
+                else:
+                    self._losses = np.append(self._losses, cur_loss)
+                t.set_postfix({'loss': '[{:4f}]'.format(np.mean(self._losses))})
+
+    def metrics_processor(self) -> MetricsProcessor or None:
+        return self._metrics_processor
+
+    def get_losses(self) -> np.ndarray:
+        """
+        Get losses from this stage
+
+        :return: array of losses
+        """
+        return self._losses
+
+    def on_epoch_end(self) -> None:
+        self._losses = None
+        self.metrics_processor().reset_metrics()
+
+
+class TrainStage(StandardStage):
     """
     Standard training stage
 
-    :param data_producer: :class:`DataProducer` object
-    :param metrics_processor: :class:`MetricsProcessor`
-    """
-    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor = None):
-        super().__init__(name='train')
-        self.data_loader = data_producer.get_loader()
-        self._metrics_processor = metrics_processor
+    When call :meth:`run` it's iterate :meth:`process_batch` of data processor by data loader with ``is_tran=True`` flag.
 
-    def run(self, data_processor: TrainDataProcessor) -> None:
-        """
-        Run stage. This iterate by DataProducer and show progress in stdout
-
-        :param data_processor: :class:`DataProcessor` object
-        """
-        with tqdm(self.data_loader, desc=self.name(), leave=False) as t:
-            for batch in t:
-                losses = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=True)
-                t.set_postfix({'loss': '[{:4f}]'.format(np.mean(losses))})
-
-    def metrics_processor(self) -> MetricsProcessor or None:
-        return self._metrics_processor
-
-
-class ValidationStage(AbstractStage):
-    """
-    Standard validation stage
+    After stop iteration ValidationStage accumulate losses from :class:`DataProcessor`.
 
     :param data_producer: :class:`DataProducer` object
     :param metrics_processor: :class:`MetricsProcessor`
     """
+
     def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor = None):
-        super().__init__(name='validation')
-        self.data_loader = data_producer.get_loader()
-        self._metrics_processor = metrics_processor
+        super().__init__('train', True, data_producer, metrics_processor)
 
-    def run(self, data_processor: TrainDataProcessor) -> None:
-        """
-        Run stage. This iterate by DataProducer and show progress in stdout
 
-        :param data_processor: :class:`DataProcessor` object
-        """
-        with tqdm(self.data_loader, desc=self.name(), leave=False) as t:
-            for batch in t:
-                losses = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=False)
-                t.set_postfix({'loss': '[{:4f}]'.format(np.mean(losses))})
+class ValidationStage(StandardStage):
+    """
+    Standard validation stage.
 
-    def metrics_processor(self) -> MetricsProcessor or None:
-        return self._metrics_processor
+    When call :meth:`run` it's iterate :meth:`process_batch` of data processor by data loader with ``is_tran=False`` flag.
+
+    After stop iteration ValidationStage accumulate losses from :class:`DataProcessor`.
+
+    :param data_producer: :class:`DataProducer` object
+    :param metrics_processor: :class:`MetricsProcessor`
+    """
+
+    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor = None):
+        super().__init__('validation', False, data_producer, metrics_processor)
 
 
 class TrainConfig:

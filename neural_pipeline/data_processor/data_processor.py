@@ -76,8 +76,6 @@ class TrainDataProcessor(DataProcessor):
     """
     TrainDataProcessor is make all of DataProcessor but produce training process.
 
-    This store losses values in array, that updated every call of :func:`process_batch`
-
     :param model: model, that will be used for process data
     :param train_config: train config
     :param file_struct_manager: file structure manager
@@ -95,7 +93,6 @@ class TrainDataProcessor(DataProcessor):
         self.__optimizer = train_config.optimizer()
 
         self.__epoch_num = 0
-        self.__loss_values = np.array([])
 
     def predict(self, data, is_train=False) -> torch.Tensor or dict:
         """
@@ -127,6 +124,7 @@ class TrainDataProcessor(DataProcessor):
         :param batch: dict, contains 'data' and 'target' keys. The values for key must be instance of torch.Tensor or dict
         :param is_train: is batch process for train
         :param metrics_processor: metrics processor for collect metrics after batch is processed
+        :return: array of losses with shape (N, ...) where N is batch size
         """
         if self._is_cuda:
             batch['target'] = self._pass_data_to_device(batch['target'])
@@ -143,10 +141,7 @@ class TrainDataProcessor(DataProcessor):
             loss.backward()
             self.__optimizer.step()
 
-        loss_arr = loss.data.cpu().numpy()
-        self.__loss_values = np.append(self.__loss_values, loss_arr)
-
-        return loss_arr
+        return loss.data.cpu().numpy()
 
     def update_lr(self, lr: float) -> None:
         """
@@ -203,17 +198,3 @@ class TrainDataProcessor(DataProcessor):
             json.dump({"last_epoch_idx": self.__epoch_num}, out)
 
         self._model.save_weights()
-
-    def get_losses(self) -> np.ndarray:
-        """
-        Get current losses
-
-        :return: array of losses
-        """
-        return self.__loss_values
-
-    def reset_losses(self) -> None:
-        """
-        Reset array of losses
-        """
-        self.__loss_values = np.ndarray([])
