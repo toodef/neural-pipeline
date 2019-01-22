@@ -80,7 +80,7 @@ class DataProducer:
 
     def get_data(self, dataset_idx: int, data_idx: int) -> object:
         if self._need_pass_indices:
-            return self.__datasets[dataset_idx][data_idx], str(dataset_idx) + "_" + str(data_idx)
+            return dict(self.__datasets[dataset_idx][data_idx], **{'data_idx': str(dataset_idx) + "_" + str(data_idx)})
         else:
             return self.__datasets[dataset_idx][data_idx]
 

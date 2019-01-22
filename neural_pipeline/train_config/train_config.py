@@ -379,49 +379,56 @@ class TrainStage(StandardStage):
 
     :param data_producer: :class:`DataProducer` object
     :param metrics_processor: :class:`MetricsProcessor`
+    :param name: name of stage. By default 'train'
     """
 
-    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor = None):
-        super().__init__('train', True, data_producer, metrics_processor)
-        self.hnm = False
-        self.hnm_is_now = False
+    class _HardNegativesTrainStage(StandardStage):
+        def __init__(self, stage_name: str, data_producer: DataProducer, part: float):
+            super().__init__(stage_name, True, data_producer)
+            self._part = part
+
+        def exec(self, data_processor: TrainDataProcessor, losses: np.ndarray, indices: []) -> None:
+            num_losses = int(losses.size * self._part)
+            idxs = np.argpartition(losses, -num_losses)[-num_losses:]
+            self._run(self.data_producer.get_loader([indices[i] for i in idxs]), self.name(), data_processor)
+
+    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor = None, name: str = 'train'):
+        super().__init__(name, True, data_producer, metrics_processor)
+        self.hnm = None
         self.hn_indices = []
 
-    def hard_negative_mining(self, is_enable) -> 'TrainStage':
+    def enable_hard_negative_mining(self, part: float) -> 'TrainStage':
         """
-        Enable or disable hard negative mining. Hard negative mining get
+        Enable hard negative mining. Hard negatives was taken by losses values
 
-        :param is_enable:
-        :return:
+        :param part: part of data that repeat after train stage
+        :return: self object
         """
-        self.hnm = is_enable
-        self.data_producer._pass_indices(is_enable)
+        self.hnm = self._HardNegativesTrainStage(self.name() + '_hnm', self.data_producer, part)
+        self.data_producer._pass_indices(True)
+        return self
+
+    def disable_hard_negative_mining(self) -> 'TrainStage':
+        """
+        Enable hard negative mining. Hard negatives was taken by losses values
+
+        :param part: part of data that repeat after train stage
+        :return: self object
+        """
+        self.hnm = None
+        self.data_producer._pass_indices(False)
         return self
 
     def run(self, data_processor: TrainDataProcessor) -> None:
         super().run(data_processor)
-        if self.hnm:
-            num_losses = self._losses.size // 10
-            indices = np.argpartition(self._losses, -num_losses)[-num_losses:]
-            self.hnm_is_now = True
-            self._run(self.data_producer.get_loader([self.hn_indices[i] for i in indices]), self.name() + "_hnm", data_processor)
-            self.hnm_is_now = False
+        if self.hnm is not None:
+            self.hnm.exec(data_processor, self._losses, self.hn_indices)
             self.hn_indices = []
 
     def _process_batch(self, batch, data_processor: TrainDataProcessor):
-        if self.hnm and not self.hnm_is_now:
-            self.hn_indices.append(batch[1])
-            batch = batch[0]
-
-        if self.hnm_is_now:
-            cur_loss = data_processor.process_batch(batch, metrics_processor=None, is_train=self._is_train)
-        else:
-            cur_loss = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=self._is_train)
-
-        if self._losses is None:
-            self._losses = cur_loss
-        else:
-            self._losses = np.append(self._losses, cur_loss)
+        if self.hnm is not None:
+            self.hn_indices.append(batch['data_idx'])
+        super()._process_batch(batch, data_processor)
 
 
 class ValidationStage(StandardStage):
@@ -434,10 +441,11 @@ class ValidationStage(StandardStage):
 
     :param data_producer: :class:`DataProducer` object
     :param metrics_processor: :class:`MetricsProcessor`
+    :param name: name of stage. By default 'validation'
     """
 
-    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor = None):
-        super().__init__('validation', False, data_producer, metrics_processor)
+    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor = None, name: str = 'Validation'):
+        super().__init__(name, False, data_producer, metrics_processor)
 
 
 class TrainConfig:
