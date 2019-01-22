@@ -4,6 +4,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.nn import Module
 import numpy as np
+from torch.utils.data import DataLoader
 
 try:
     from IPython import get_ipython
@@ -321,7 +322,8 @@ class StandardStage(AbstractStage):
 
     def __init__(self, stage_name: str, is_train: bool, data_producer: DataProducer, metrics_processor: MetricsProcessor = None):
         super().__init__(name=stage_name)
-        self.data_loader = data_producer.get_loader()
+        self.data_loader = None
+        self.data_producer = data_producer
         self._metrics_processor = metrics_processor
         self._losses = None
         self._is_train = is_train
@@ -332,15 +334,24 @@ class StandardStage(AbstractStage):
 
         :param data_processor: :class:`DataProcessor` object
         """
-        with tqdm(self.data_loader, desc=self.name(), leave=False) as t:
+        if self.data_loader is None:
+            self.data_loader = self.data_producer.get_loader()
+
+        self._run(self.data_loader, self.name(), data_processor)
+
+    def _run(self, data_loader: DataLoader, name: str, data_processor: TrainDataProcessor):
+        with tqdm(data_loader, desc=name, leave=False) as t:
             self._losses = None
             for batch in t:
-                cur_loss = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=self._is_train)
-                if self._losses is None:
-                    self._losses = cur_loss
-                else:
-                    self._losses = np.append(self._losses, cur_loss)
+                self._process_batch(batch, data_processor)
                 t.set_postfix({'loss': '[{:4f}]'.format(np.mean(self._losses))})
+
+    def _process_batch(self, batch, data_processor: TrainDataProcessor):
+        cur_loss = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=self._is_train)
+        if self._losses is None:
+            self._losses = cur_loss
+        else:
+            self._losses = np.append(self._losses, cur_loss)
 
     def metrics_processor(self) -> MetricsProcessor or None:
         return self._metrics_processor
@@ -372,6 +383,40 @@ class TrainStage(StandardStage):
 
     def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor = None):
         super().__init__('train', True, data_producer, metrics_processor)
+        self.hnm = False
+        self.hnm_is_now = False
+        self.hn_indices = []
+
+    def hard_negative_mining(self, is_enable) -> 'TrainStage':
+        """
+        Enable or disable hard negative mining. Hard negative mining get
+
+        :param is_enable:
+        :return:
+        """
+        self.hnm = is_enable
+        self.data_producer._pass_indices(is_enable)
+        return self
+
+    def run(self, data_processor: TrainDataProcessor) -> None:
+        super().run(data_processor)
+        if self.hnm:
+            num_losses = self._losses.size // 10
+            indices = np.argpartition(self._losses, -num_losses)[-num_losses:]
+            print("all losses:", len(self._losses), 'num_losses:', num_losses, 'indices:', len(indices))
+            self.hnm_is_now = True
+            self._run(self.data_producer.get_loader([self.hn_indices[i] for i in indices]), self.name() + "_hnm", data_processor)
+            self.hnm_is_now = False
+
+    def _process_batch(self, batch, data_processor: TrainDataProcessor):
+        if self.hnm and not self.hnm_is_now:
+            self.hn_indices.append(batch[1])
+            batch = batch[0]
+        cur_loss = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=self._is_train)
+        if self._losses is None:
+            self._losses = cur_loss
+        else:
+            self._losses = np.append(self._losses, cur_loss)
 
 
 class ValidationStage(StandardStage):

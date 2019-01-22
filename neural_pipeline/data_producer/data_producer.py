@@ -1,6 +1,8 @@
+import itertools
+from random import shuffle
+
 from torch.utils.data import DataLoader
 from abc import ABCMeta, abstractmethod
-
 
 __all__ = ['AbstractDataset', 'DataProducer']
 
@@ -16,38 +18,79 @@ class AbstractDataset(metaclass=ABCMeta):
 
 
 class DataProducer:
+    """
+    Data Producer. Accumulate one or more datasets and pass it's data by batches for processing.
+    This use PyTorch builtin :class:`DataLoader` for increase performance of data delivery.
+
+    :param datasets: list of datasets. Every dataset might be iterable (contans methods ``__getitem__`` and ``__len__``)
+    :param batch_size: size of output batch
+    :param num_workers: number of processes, that load data from datasets and pass it for output
+    """
+
     def __init__(self, datasets: [AbstractDataset], batch_size: int = 1, num_workers: int = 0):
         self.__datasets = datasets
         self.__batch_size = batch_size
         self.__num_workers = num_workers
 
-        self.__need_shuffle = False
-        self.__pin_memory = False
+        self._shuffle_datasets_order = False
+        self._glob_shuffle = False
+        self._pin_memory = False
 
-        self.__update_datasets_idx_space()
+        self._need_pass_indices = False
 
-    def need_shuffle_datasets(self, is_need: bool) -> object:
+        self._update_datasets_idx_space()
+
+    def shuffle_datasets_order(self, is_need: bool) -> 'DataProducer':
         """
-        Is need to shuffle datasets order
-        :param is_need: is need? a?
+        Is need to shuffle datasets order. Shuffling performs after every 0 index access
+
+        :param is_need: is need
         :return self object
         """
-        self.__need_shuffle = is_need
+        self._shuffle_datasets_order = is_need
         return self
 
-    def need_pin_memory(self, is_need: bool) -> 'DataProducer':
+    def global_shuffle(self, is_need: bool) -> 'DataProducer':
         """
-        Is need to pin memory on loading
+        Is need global shuffling. If global shuffling enable - batches will compile from random indices of all datasets. In this case datasets order shuffling was ignoring
+
+        :param is_need: is need global shuffling
+        :return: self object
+        """
+        self._glob_shuffle = is_need
+        return self
+
+    def pin_memory(self, is_need: bool) -> 'DataProducer':
+        """
+        Is need to pin memory on loading. Pinning memory was increase data loading performance (especially when data loads to GPU) but incompatible with swap
+
         :param is_need: is need
         :return: self object
         """
-        self.__pin_memory = is_need
+        self._pin_memory = is_need
         return self
+
+    def _pass_indices(self, need_pass: bool) -> None:
+        """
+        Pass indices of data in every batch. By default disabled
+
+        :param need_pass: is need to pass indices
+        """
+        self._need_pass_indices = need_pass
+
+    def get_data(self, dataset_idx: int, data_idx: int) -> object:
+        if self._need_pass_indices:
+            return self.__datasets[dataset_idx][data_idx], str(dataset_idx) + "_" + str(data_idx)
+        else:
+            return self.__datasets[dataset_idx][data_idx]
 
     def __len__(self):
         return self.__overall_len
 
     def __getitem__(self, item):
+        if item == 0 and (not self._glob_shuffle) and self._shuffle_datasets_order:
+            self._update_datasets_idx_space()
+
         dataset_idx = 0
         data_idx = item
         for i in range(len(self.__datasets)):
@@ -55,14 +98,40 @@ class DataProducer:
                 dataset_idx = i + 1
                 data_idx = item - self.__datatsets_idx_space[i] - 1
 
-        dataset = self.__datasets[dataset_idx]
-        return dataset[data_idx]
+        return self.get_data(dataset_idx, data_idx)
 
-    def get_loader(self) -> DataLoader:
-        return DataLoader(self, batch_size=self.__batch_size, num_workers=self.__num_workers, shuffle=True,
-                          pin_memory=self.__pin_memory)
+    def get_loader(self, indices: [int] = None) -> DataLoader:
+        """
+        Get PyTorch :class:`DataLoader` object, that aggregate :class:`DataProducer`
 
-    def __update_datasets_idx_space(self):
+        :return: :class:`DataLoader` object
+        """
+        if indices is not None:
+            return self._get_loader_by_indices(indices)
+        return DataLoader(self, batch_size=self.__batch_size, num_workers=self.__num_workers,
+                          shuffle=self._glob_shuffle, pin_memory=self._pin_memory)
+
+    def _get_loader_by_indices(self, indices: [int]) -> DataLoader:
+        class ByIndices(DataProducer):
+            def __init__(self, datasets: [AbstractDataset], indices: []):
+                super().__init__(datasets)
+                self.shuffle_datasets_order(False)
+                self.indices = list(itertools.chain(*indices))
+
+            def __getitem__(self, item):
+                dataset_idx, data_idx = self.indices[item].split('_')
+                return self.get_data(int(dataset_idx), int(data_idx))
+
+            def __len__(self):
+                return len(self.indices)
+
+        return DataLoader(ByIndices(self.__datasets, indices), batch_size=self.__batch_size, num_workers=self.__num_workers,
+                          shuffle=self._glob_shuffle, pin_memory=self._pin_memory)
+
+    def _update_datasets_idx_space(self):
+        if self._shuffle_datasets_order:
+            shuffle(self.__datasets)
+
         datasets_len = [len(d) for d in self.__datasets]
         self.__overall_len = sum(datasets_len)
         self.__datatsets_idx_space = []

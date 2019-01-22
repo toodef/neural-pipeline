@@ -145,7 +145,7 @@ if __name__ == '__main__':
 
     model = resnet18(classes_num=1, in_channels=3, pretrained=True)
 
-    train_stage = TrainStage(train_data_producer, SegmentationMetricsProcessor('train'))
+    train_stage = TrainStage(train_data_producer, SegmentationMetricsProcessor('train')).hard_negative_mining(True)
     val_metrics_processor = SegmentationMetricsProcessor('validation')
     val_stage = ValidationStage(val_data_producer, val_metrics_processor)
 
@@ -154,11 +154,11 @@ if __name__ == '__main__':
 
     file_struct_manager = FileStructManager(checkpoint_dir_path=r"data/checkpoints", logdir_path=r"data/logs")
 
-    trainer = Trainer(model, train_config, file_struct_manager).set_epoch_num(1000)
+    trainer = Trainer(model, train_config, file_struct_manager).set_epoch_num(200)
 
     monitor = TensorboardMonitor(file_struct_manager, is_continue=False, network_name='PortraitSegmentation')
     trainer.monitor_hub.add_monitor(monitor)
 
     trainer.enable_lr_decaying(coeff=0.5, patience=10, target_val_clbk=lambda: np.mean(train_stage.get_losses()))
-    trainer.add_on_epoch_end_callback(lambda: monitor.update_scalar('params\lr', trainer.data_processor().get_lr()))
+    trainer.add_on_epoch_end_callback(lambda: monitor.update_scalar('params/lr', trainer.data_processor().get_lr()))
     trainer.train()

@@ -7,7 +7,7 @@ Neural networks training pipeline based on PyTorch 0.4.1 and designed to standar
 It's contains:
 * Checkpoints management and train process resuming
 * Metrics processing and visualisation by builtins ([tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard)) or custom monitors
-* Training best practices (e.g. learning rate decaying)
+* Training best practices (e.g. learning rate decaying and hard negative mining)
 
 # Installation:
 [![PyPI version](https://badge.fury.io/py/neural-pipeline.svg)](https://badge.fury.io/py/neural-pipeline)
