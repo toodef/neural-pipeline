@@ -403,16 +403,21 @@ class TrainStage(StandardStage):
         if self.hnm:
             num_losses = self._losses.size // 10
             indices = np.argpartition(self._losses, -num_losses)[-num_losses:]
-            print("all losses:", len(self._losses), 'num_losses:', num_losses, 'indices:', len(indices))
             self.hnm_is_now = True
             self._run(self.data_producer.get_loader([self.hn_indices[i] for i in indices]), self.name() + "_hnm", data_processor)
             self.hnm_is_now = False
+            self.hn_indices = []
 
     def _process_batch(self, batch, data_processor: TrainDataProcessor):
         if self.hnm and not self.hnm_is_now:
             self.hn_indices.append(batch[1])
             batch = batch[0]
-        cur_loss = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=self._is_train)
+
+        if self.hnm_is_now:
+            cur_loss = data_processor.process_batch(batch, metrics_processor=None, is_train=self._is_train)
+        else:
+            cur_loss = data_processor.process_batch(batch, metrics_processor=self.metrics_processor(), is_train=self._is_train)
+
         if self._losses is None:
             self._losses = cur_loss
         else:
