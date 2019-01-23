@@ -145,7 +145,7 @@ if __name__ == '__main__':
 
     model = resnet18(classes_num=1, in_channels=3, pretrained=True)
 
-    train_stage = TrainStage(train_data_producer, SegmentationMetricsProcessor('train')).hard_negative_mining(True)
+    train_stage = TrainStage(train_data_producer, SegmentationMetricsProcessor('train')).enable_hard_negative_mining(0.1)
     val_metrics_processor = SegmentationMetricsProcessor('validation')
     val_stage = ValidationStage(val_data_producer, val_metrics_processor)
 

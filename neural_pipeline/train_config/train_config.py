@@ -366,7 +366,9 @@ class StandardStage(AbstractStage):
 
     def on_epoch_end(self) -> None:
         self._losses = None
-        self.metrics_processor().reset_metrics()
+        metrics_processor = self.metrics_processor()
+        if metrics_processor is not None:
+            metrics_processor.reset_metrics()
 
 
 class TrainStage(StandardStage):
@@ -410,9 +412,8 @@ class TrainStage(StandardStage):
 
     def disable_hard_negative_mining(self) -> 'TrainStage':
         """
-        Enable hard negative mining. Hard negatives was taken by losses values
+        Enable hard negative mining.
 
-        :param part: part of data that repeat after train stage
         :return: self object
         """
         self.hnm = None

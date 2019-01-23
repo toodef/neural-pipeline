@@ -5,7 +5,12 @@ import torch
 from torch.nn import functional as F
 from torch import Tensor
 
-from neural_pipeline.train_config.train_config import MetricsGroup, AbstractMetric
+from neural_pipeline import Trainer
+from neural_pipeline.data_producer import DataProducer
+from neural_pipeline.train_config.train_config import MetricsGroup, AbstractMetric, TrainStage, MetricsProcessor, TrainConfig
+from neural_pipeline.utils.file_structure_manager import FileStructManager
+from tests.common import UseResources
+from tests.data_processor_test import SimpleModel, SimpleLoss
 
 __all__ = ['TrainConfigTest']
 
@@ -18,7 +23,16 @@ class SimpleMetric(AbstractMetric):
         return F.pairwise_distance(output, target, p=2).numpy()
 
 
-class TrainConfigTest(unittest.TestCase):
+class FakeMetricsProcessor(MetricsProcessor):
+    def __init__(self):
+        super().__init__()
+        self.call_num = 0
+
+    def calc_metrics(self, output, target):
+        self.call_num += 1
+
+
+class TrainConfigTest(unittest.TestCase, UseResources):
     def test_metric(self):
         metric = SimpleMetric()
 
@@ -80,6 +94,18 @@ class TrainConfigTest(unittest.TestCase):
         metrics_group_lv1.reset()
         self.assertEqual(metrics_group_lv1.metrics()[0].get_values().size, 0)
         self.assertEqual(metrics_group_lv2.metrics()[0].get_values().size, 0)
+
+    def test_train_stage(self):
+        data_producer = DataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)} for _ in list(range(20))]])
+        metrics_processor = FakeMetricsProcessor()
+        train_stage = TrainStage(data_producer, metrics_processor).enable_hard_negative_mining(0.1)
+
+        fsm = FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
+        model = SimpleModel()
+        Trainer(model, TrainConfig([train_stage], SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1), 'exp'), fsm, is_cuda=False) \
+            .set_epoch_num(1).train()
+
+        self.assertEqual(metrics_processor.call_num, len(data_producer))
 
 
 if __name__ == '__main__':
