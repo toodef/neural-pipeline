@@ -405,7 +405,7 @@ class TrainStage(StandardStage):
         :return: self object
         """
         self.hnm = self._HardNegativesTrainStage(self.name() + '_hnm', self.data_producer, part)
-        self.data_producer._pass_indices(True)
+        self.data_producer.pass_indices(True)
         return self
 
     def disable_hard_negative_mining(self) -> 'TrainStage':
@@ -416,7 +416,7 @@ class TrainStage(StandardStage):
         :return: self object
         """
         self.hnm = None
-        self.data_producer._pass_indices(False)
+        self.data_producer.pass_indices(False)
         return self
 
     def run(self, data_processor: TrainDataProcessor) -> None:

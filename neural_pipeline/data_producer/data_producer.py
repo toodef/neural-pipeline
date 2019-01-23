@@ -70,17 +70,21 @@ class DataProducer:
         self._pin_memory = is_need
         return self
 
-    def _pass_indices(self, need_pass: bool) -> None:
+    def pass_indices(self, need_pass: bool) -> 'DataProducer':
         """
         Pass indices of data in every batch. By default disabled
 
         :param need_pass: is need to pass indices
         """
         self._need_pass_indices = need_pass
+        return self
 
     def get_data(self, dataset_idx: int, data_idx: int) -> object:
         if self._need_pass_indices:
-            return dict(self.__datasets[dataset_idx][data_idx], **{'data_idx': str(dataset_idx) + "_" + str(data_idx)})
+            data = self.__datasets[dataset_idx][data_idx]
+            if not isinstance(data, dict):
+                data = {'data': data}
+            return dict(data, **{'data_idx': str(dataset_idx) + "_" + str(data_idx)})
         else:
             return self.__datasets[dataset_idx][data_idx]
 
@@ -100,10 +104,12 @@ class DataProducer:
 
         return self.get_data(dataset_idx, data_idx)
 
-    def get_loader(self, indices: [int] = None) -> DataLoader:
+    def get_loader(self, indices: [str] = None) -> DataLoader:
         """
-        Get PyTorch :class:`DataLoader` object, that aggregate :class:`DataProducer`
+        Get PyTorch :class:`DataLoader` object, that aggregate :class:`DataProducer`.
+        If ``indices`` is specified - DataLoader wil output data only by this indices. In this case indices will not passed.
 
+        :param indices: list of indices. Each item of list is a string in format '{}_{}'.format(dataset_idx, data_idx)
         :return: :class:`DataLoader` object
         """
         if indices is not None:
