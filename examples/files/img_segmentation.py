@@ -22,11 +22,12 @@ from albumentations import Compose, HorizontalFlip, VerticalFlip, RandomRotate90
 
 from neural_pipeline import Trainer
 from neural_pipeline.builtin.models.albunet import resnet18
+from neural_pipeline.builtin.monitors.mpl import MPLMonitor
 from neural_pipeline.data_producer import AbstractDataset, DataProducer
 from neural_pipeline.monitoring import LogMonitor
 from neural_pipeline.train_config import AbstractMetric, MetricsProcessor, MetricsGroup, TrainStage, ValidationStage, TrainConfig
 from neural_pipeline.utils.file_structure_manager import FileStructManager
-from neural_pipeline.builtin import TensorboardMonitor
+from neural_pipeline.builtin.monitors.tensorboard import TensorboardMonitor
 
 ###################################
 # Define dataset and augmentations
@@ -60,7 +61,7 @@ class PicsartDataset(AbstractDataset):
         images_pathes = sorted(images_pathes, key=lambda p: int(os.path.splitext(p)[0]))
         self.__image_pathes = []
         self.__aug = aug
-        for p in images_pathes[:10]:
+        for p in images_pathes:
             name = os.path.splitext(p)[0]
             mask_img = os.path.join(masks_dir, name + '.png')
             if os.path.exists(mask_img):
@@ -155,11 +156,12 @@ if __name__ == '__main__':
 
     file_struct_manager = FileStructManager(checkpoint_dir_path=r"data/checkpoints", logdir_path=r"data/logs")
 
-    trainer = Trainer(model, train_config, file_struct_manager).set_epoch_num(2)
+    trainer = Trainer(model, train_config, file_struct_manager).set_epoch_num(200)
 
     tensorboard = TensorboardMonitor(file_struct_manager, is_continue=False, network_name='PortraitSegmentation')
     log = LogMonitor(file_struct_manager, 'logs.json')
-    trainer.monitor_hub.add_monitor(tensorboard).add_monitor(log)
+    mpl_monitor = MPLMonitor()
+    trainer.monitor_hub.add_monitor(tensorboard).add_monitor(log).add_monitor(mpl_monitor)
 
     trainer.enable_lr_decaying(coeff=0.5, patience=10, target_val_clbk=lambda: np.mean(train_stage.get_losses()))
     trainer.add_on_epoch_end_callback(lambda: tensorboard.update_scalar('params/lr', trainer.data_processor().get_lr()))

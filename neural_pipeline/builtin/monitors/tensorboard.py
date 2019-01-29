@@ -12,6 +12,7 @@ from neural_pipeline.train_config import AbstractMetric, MetricsGroup
 from neural_pipeline.utils.file_structure_manager import FileStructManager
 
 import warnings
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
