@@ -95,6 +95,13 @@ class LogMonitor(AbstractMonitor):
             for group in metrics_group.groups():
                 self._process_metric(group, metrics_group.name())
 
+    def update_losses(self, losses: {}) -> None:
+        def on_loss(name: str, values: np.ndarray):
+            store = self._cur_storage([name, 'loss'])
+            store.append(float(np.mean(values)))
+
+        self._iterate_by_losses(losses, on_loss)
+
     def _process_metric(self, cur_metric, parent_tag: str = None):
         if isinstance(cur_metric, MetricsGroup):
             for m in cur_metric.metrics():
