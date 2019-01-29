@@ -23,6 +23,7 @@ from albumentations import Compose, HorizontalFlip, VerticalFlip, RandomRotate90
 from neural_pipeline import Trainer
 from neural_pipeline.builtin.models.albunet import resnet18
 from neural_pipeline.data_producer import AbstractDataset, DataProducer
+from neural_pipeline.monitoring import LogMonitor
 from neural_pipeline.train_config import AbstractMetric, MetricsProcessor, MetricsGroup, TrainStage, ValidationStage, TrainConfig
 from neural_pipeline.utils.file_structure_manager import FileStructManager
 from neural_pipeline.builtin import TensorboardMonitor
@@ -156,9 +157,10 @@ if __name__ == '__main__':
 
     trainer = Trainer(model, train_config, file_struct_manager).set_epoch_num(200)
 
-    monitor = TensorboardMonitor(file_struct_manager, is_continue=False, network_name='PortraitSegmentation')
-    trainer.monitor_hub.add_monitor(monitor)
+    tensorboard = TensorboardMonitor(file_struct_manager, is_continue=False, network_name='PortraitSegmentation')
+    log = LogMonitor(file_struct_manager, 'logs.json')
+    trainer.monitor_hub.add_monitor(tensorboard).add_monitor(log)
 
     trainer.enable_lr_decaying(coeff=0.5, patience=10, target_val_clbk=lambda: np.mean(train_stage.get_losses()))
-    trainer.add_on_epoch_end_callback(lambda: monitor.update_scalar('params/lr', trainer.data_processor().get_lr()))
+    trainer.add_on_epoch_end_callback(lambda: tensorboard.update_scalar('params/lr', trainer.data_processor().get_lr()))
     trainer.train()

@@ -149,17 +149,18 @@ class Trainer:
             self._data_processor.load()
             state_manager.pack()
 
-        start_epoch_idx = self._data_processor.get_last_epoch_idx() + 1 if self._data_processor.get_last_epoch_idx() > 0 else 0
+        start_epoch_idx = 1
 
         self.monitor_hub.add_monitor(ConsoleMonitor())
 
         with self.monitor_hub:
             for epoch_idx in range(start_epoch_idx, self.__epoch_num + start_epoch_idx):
+                self.monitor_hub.set_epoch_num(epoch_idx)
                 for stage in self.__train_config.stages():
                     stage.run(self._data_processor)
 
                     if stage.metrics_processor() is not None:
-                        self.monitor_hub.update_metrics(epoch_idx, stage.metrics_processor().get_metrics())
+                        self.monitor_hub.update_metrics(stage.metrics_processor().get_metrics())
 
                 self._data_processor.save_state()
                 state_manager.pack()
@@ -173,7 +174,7 @@ class Trainer:
                 for stage in self.__train_config.stages():
                     if stage.get_losses() is not None:
                         losses[stage.name()] = stage.get_losses()
-                self.monitor_hub.update_losses(epoch_idx, losses)
+                self.monitor_hub.update_losses(losses)
 
                 self.__iterate_by_stages(lambda s: s.on_epoch_end())
 

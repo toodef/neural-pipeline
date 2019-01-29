@@ -1,23 +1,38 @@
+import json
+import os
 from abc import ABCMeta
 import numpy as np
+
+from neural_pipeline.train_config import MetricsGroup
+from neural_pipeline.utils.file_structure_manager import FileStructManager
 
 __all__ = ['MonitorHub', 'AbstractMonitor', 'ConsoleMonitor']
 
 
 class AbstractMonitor(metaclass=ABCMeta):
-    def update_metrics(self, epoch_idx, metrics) -> None:
+    def __init__(self):
+        self.epoch_num = 0
+
+    def set_epoch_num(self, epoch_num: int) -> None:
         """
-        Update monitor
-        :param epoch_idx: current epoch index
+        Set current epoch num
+
+        :param epoch_num: num of current epoch
+        """
+        self.epoch_num = epoch_num
+
+    def update_metrics(self, metrics: {}) -> None:
+        """
+        Update metrics on   monitor
+
         :param metrics: metrics dict with keys 'metrics' and 'groups'
         """
         pass
 
-    def update_losses(self, epoch_idx: int, losses: {}) -> None:
+    def update_losses(self, losses: {}) -> None:
         """
-        Update monitor
+        Update losses on monitor
 
-        :param epoch_idx: current epoch index
         :param losses: losses values dict with keys is names of stages in train pipeline (e.g. [train, validation])
         """
         pass
@@ -33,7 +48,7 @@ class AbstractMonitor(metaclass=ABCMeta):
         for m, v in losses.items():
             callback(m, v)
 
-    def register_event(self, epoch_idx: int, text: str) -> None:
+    def register_event(self, text: str) -> None:
         pass
 
     def __enter__(self):
@@ -54,43 +69,106 @@ class ConsoleMonitor(AbstractMonitor):
         def __str__(self):
             return self.res[:len(self.res) - 1]
 
-    def update_losses(self, epoch_idx: int, losses: {}) -> None:
+    def update_losses(self, losses: {}) -> None:
         def on_loss(name: str, values: np.ndarray, string) -> None:
             string.append(" {}: [{:4f}, {:4f}, {:4f}];".format(name, np.min(values), np.mean(values), np.max(values)))
 
-        res_string = self.ResStr("Epoch: [{}];".format(epoch_idx + 1))
+        res_string = self.ResStr("Epoch: [{}];".format(self.epoch_num))
         self._iterate_by_losses(losses, lambda m, v: on_loss(m, v, res_string))
         print(res_string)
 
 
-class MonitorHub(AbstractMonitor):
+class LogMonitor(AbstractMonitor):
+    def __init__(self, fsm: FileStructManager, file_path: str):
+        super().__init__()
+
+        self._file_path = os.path.join(fsm.logdir_path(), file_path)
+        self._storage = {}
+
+    def update_metrics(self, metrics: {}) -> None:
+        for metric in metrics['metrics']:
+            self._process_metric(metric)
+
+        for metrics_group in metrics['groups']:
+            for metric in metrics_group.metrics():
+                self._process_metric(metric, metrics_group.name())
+            for group in metrics_group.groups():
+                self._process_metric(group, metrics_group.name())
+
+    def _process_metric(self, cur_metric, parent_tag: str = None):
+        if isinstance(cur_metric, MetricsGroup):
+            for m in cur_metric.metrics():
+                if m.get_values().size > 0:
+                    store = self._cur_storage([parent_tag, cur_metric.name(), m.name()])
+                    store.append(float(np.mean(m.get_values())))
+        else:
+            values = cur_metric.get_values().astype(np.float32)
+            if values.size > 0:
+                store = self._cur_storage([parent_tag, cur_metric.name()])
+                store.append(float(np.mean(values)))
+
+    def _flush_metrics(self) -> None:
+        with open(self._file_path, 'w') as out:
+            json.dump(self._storage, out)
+
+    def _cur_storage(self, names: [str]):
+        res = self._storage
+        for i, n in enumerate(names):
+            if n is None:
+                continue
+            if n not in res:
+                res[n] = {} if i < (len(names) - 1) else []
+            res = res[n]
+        return res
+
+    def close(self):
+        self._flush_metrics()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
+class MonitorHub:
     def __init__(self):
         self.monitors = []
 
-    def add_monitor(self, monitor: AbstractMonitor):
-        self.monitors.append(monitor)
-
-    def update_metrics(self, epoch_idx: int, metrics: {}) -> None:
+    def set_epoch_num(self, epoch_num: int) -> None:
         """
-        Update monitor
-        :param epoch_idx: current epoch index
+        Set current epoch num
+
+        :param epoch_num: num of current epoch
+        """
+        for m in self.monitors:
+            m.set_epoch_num(epoch_num)
+
+    def add_monitor(self, monitor: AbstractMonitor) -> 'MonitorHub':
+        self.monitors.append(monitor)
+        return self
+
+    def update_metrics(self, metrics: {}) -> None:
+        """
+        Update metrics in all monitors
+
         :param metrics: metrics dict with keys 'metrics' and 'groups'
         """
         for m in self.monitors:
-            m.update_metrics(epoch_idx, metrics)
+            m.update_metrics(metrics)
 
-    def update_losses(self, epoch_idx: int, losses: {}) -> None:
+    def update_losses(self, losses: {}) -> None:
         """
         Update monitor
-        :param epoch_idx: current epoch index
+
         :param losses: losses values with keys 'train' and 'validation'
         """
         for m in self.monitors:
-            m.update_losses(epoch_idx, losses)
+            m.update_losses(losses)
 
-    def register_event(self, epoch_idx: int, text: str) -> None:
+    def register_event(self, text: str) -> None:
         for m in self.monitors:
-            m.register_event(epoch_idx, text)
+            m.register_event(text)
+
+    def __enter__(self):
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         for m in self.monitors:

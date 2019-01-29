@@ -445,7 +445,7 @@ class ValidationStage(StandardStage):
     :param name: name of stage. By default 'validation'
     """
 
-    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor = None, name: str = 'Validation'):
+    def __init__(self, data_producer: DataProducer, metrics_processor: MetricsProcessor = None, name: str = 'validation'):
         super().__init__(name, False, data_producer, metrics_processor)
 
 

@@ -118,19 +118,6 @@ class DataProducer:
                           shuffle=self._glob_shuffle, pin_memory=self._pin_memory)
 
     def _get_loader_by_indices(self, indices: [int]) -> DataLoader:
-        class ByIndices(DataProducer):
-            def __init__(self, datasets: [AbstractDataset], indices: []):
-                super().__init__(datasets)
-                self.shuffle_datasets_order(False)
-                self.indices = list(itertools.chain(*indices))
-
-            def __getitem__(self, item):
-                dataset_idx, data_idx = self.indices[item].split('_')
-                return self.get_data(int(dataset_idx), int(data_idx))
-
-            def __len__(self):
-                return len(self.indices)
-
         return DataLoader(ByIndices(self.__datasets, indices), batch_size=self.__batch_size, num_workers=self.__num_workers,
                           shuffle=self._glob_shuffle, pin_memory=self._pin_memory)
 
@@ -145,3 +132,17 @@ class DataProducer:
         for dataset_len in datasets_len:
             self.__datatsets_idx_space.append(dataset_len + cur_len - 1)
             cur_len += dataset_len
+
+
+class ByIndices(DataProducer):
+    def __init__(self, datasets: [AbstractDataset], indices: []):
+        super().__init__(datasets)
+        self.shuffle_datasets_order(False)
+        self.indices = list(itertools.chain(*indices))
+
+    def __getitem__(self, item):
+        dataset_idx, data_idx = self.indices[item].split('_')
+        return self.get_data(int(dataset_idx), int(data_idx))
+
+    def __len__(self):
+        return len(self.indices)
