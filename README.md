@@ -5,9 +5,11 @@ Neural networks training pipeline based on PyTorch 0.4.1 and designed to standar
 [![Maintainability](https://api.codeclimate.com/v1/badges/1feaafcc614adf27c30f/maintainability)](https://codeclimate.com/github/toodef/neural-pipeline/maintainability)
 
 It's contains:
+* Flexible and customizable training process
 * Checkpoints management and train process resuming
-* Metrics processing and visualisation by builtins ([tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard)) or custom monitors
+* Metrics processing and visualisation by builtins ([tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard), [Matplotlib](https://matplotlib.org)) or custom monitors
 * Training best practices (e.g. learning rate decaying and hard negative mining)
+* Metrics logging and comparision
 
 # Installation:
 [![PyPI version](https://badge.fury.io/py/neural-pipeline.svg)](https://badge.fury.io/py/neural-pipeline)
