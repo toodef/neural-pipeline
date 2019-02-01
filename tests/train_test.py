@@ -32,7 +32,7 @@ class TrainTest(unittest.TestCase):
 
         trainer = Trainer(model,
                           TrainConfig([], torch.nn.L1Loss(), torch.optim.SGD(model.model().parameters(), lr=1)),
-                          fsm, is_cuda=False)
+                          fsm)
         with self.assertRaises(Trainer.TrainerException):
             trainer.train()
 
@@ -44,7 +44,7 @@ class TrainTest(unittest.TestCase):
                                                 for _ in list(range(20))]]), metrics_processor),
                   ValidationStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
                                                      for _ in list(range(20))]]), metrics_processor)]
-        Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1)), fsm, is_cuda=False) \
+        Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1)), fsm) \
             .set_epoch_num(1).train()
 
     def test_decaynig_lr(self):
@@ -96,7 +96,7 @@ class TrainTest(unittest.TestCase):
                   ValidationStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
                                                      for _ in list(range(20))]]), metrics_processor)]
         trainer = Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=0.1)),
-                          fsm, is_cuda=False).set_epoch_num(10)
+                          fsm).set_epoch_num(10)
 
         def target_value_clbk() -> float:
             return 1

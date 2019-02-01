@@ -36,20 +36,20 @@ class DataProcessorTest(unittest.TestCase):
         fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
         model = SimpleModel()
         try:
-            DataProcessor(model=model, file_struct_manager=fsm, is_cuda=False)
+            DataProcessor(model=model, file_struct_manager=fsm)
         except:
             self.fail('DataProcessor initialisation raises exception')
 
     def test_prediction_output(self):
         fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
         model = SimpleModel()
-        dp = DataProcessor(model=model, file_struct_manager=fsm, is_cuda=False)
+        dp = DataProcessor(model=model, file_struct_manager=fsm)
         self.assertFalse(model.fc.weight.is_cuda)
         res = dp.predict({'data': torch.rand(1, 3)})
         self.assertIs(type(res), torch.Tensor)
 
         model = NonStandardIOModel()
-        dp = DataProcessor(model=model, file_struct_manager=fsm, is_cuda=False)
+        dp = DataProcessor(model=model, file_struct_manager=fsm)
         self.assertFalse(model.fc.weight.is_cuda)
         res = dp.predict({'data': {'data1': torch.rand(1, 3), 'data2': torch.rand(1, 3)}})
         self.assertIs(type(res), dict)
@@ -61,7 +61,7 @@ class DataProcessorTest(unittest.TestCase):
     def test_predict(self):
         fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
         model = SimpleModel().train()
-        dp = DataProcessor(model=model, file_struct_manager=fsm, is_cuda=False)
+        dp = DataProcessor(model=model, file_struct_manager=fsm)
         self.assertFalse(model.fc.weight.is_cuda)
         self.assertTrue(model.training)
         res = dp.predict({'data': torch.rand(1, 3)})
@@ -75,7 +75,7 @@ class DataProcessorTest(unittest.TestCase):
 
         fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
         model = SimpleModel().train()
-        dp = DataProcessor(model=model, file_struct_manager=fsm, is_cuda=False)
+        dp = DataProcessor(model=model, file_struct_manager=fsm)
         before_state_dict = model.state_dict().copy()
         dp._model.save_weights()
         dp.load()
@@ -105,7 +105,7 @@ class TrainDataProcessorTest(unittest.TestCase):
         model = SimpleModel()
         train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
         try:
-            TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
+            TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm)
         except:
             self.fail('DataProcessor initialisation raises exception')
 
@@ -113,13 +113,13 @@ class TrainDataProcessorTest(unittest.TestCase):
         fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
         model = SimpleModel()
         train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
-        dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
+        dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm)
         self.assertFalse(model.fc.weight.is_cuda)
         res = dp.predict({'data': torch.rand(1, 3)}, is_train=False)
         self.assertIs(type(res), torch.Tensor)
 
         model = NonStandardIOModel()
-        dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
+        dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm)
         self.assertFalse(model.fc.weight.is_cuda)
         res = dp.predict({'data': {'data1': torch.rand(1, 3), 'data2': torch.rand(1, 3)}}, is_train=False)
         self.assertIs(type(res), dict)
@@ -132,7 +132,7 @@ class TrainDataProcessorTest(unittest.TestCase):
         fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
         model = SimpleModel().train()
         train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
-        dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
+        dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm)
         self.assertFalse(model.fc.weight.is_cuda)
         self.assertTrue(model.training)
         res = dp.predict({'data': torch.rand(1, 3)})
@@ -144,7 +144,7 @@ class TrainDataProcessorTest(unittest.TestCase):
         fsm = FileStructManager(checkpoint_dir_path='checkpoints', logdir_path='data', prefix=None)
         model = SimpleModel().train()
         train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
-        dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
+        dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm)
 
         self.assertFalse(model.fc.weight.is_cuda)
         self.assertTrue(model.training)
@@ -158,7 +158,7 @@ class TrainDataProcessorTest(unittest.TestCase):
 
         loss = SimpleLoss()
         train_config = TrainConfig([], loss, torch.optim.SGD(model.parameters(), lr=0.1))
-        dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
+        dp = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm)
         res = dp.process_batch({'data': torch.rand(1, 3), 'target': torch.rand(1)}, is_train=True)
         self.assertTrue(model.training)
         self.assertTrue(loss.module.requires_grad)
@@ -176,12 +176,12 @@ class TrainDataProcessorTest(unittest.TestCase):
         for optim in [torch.optim.SGD(model.parameters(), lr=0.1), torch.optim.Adam(model.parameters(), lr=0.1)]:
             train_config = TrainConfig([], loss, optim)
 
-            dp_before = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
+            dp_before = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm)
             before_state_dict = model.state_dict().copy()
             dp_before.update_lr(0.023)
             dp_before.save_state()
 
-            dp_after = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm, is_cuda=False)
+            dp_after = TrainDataProcessor(model=model, train_config=train_config, file_struct_manager=fsm)
             dp_after.load()
             after_state_dict = model.state_dict().copy()
 
