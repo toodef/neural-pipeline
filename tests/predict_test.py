@@ -26,7 +26,7 @@ class PredictTest(unittest.TestCase):
                                                 for _ in list(range(20))]]), metrics_processor),
                   ValidationStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
                                                      for _ in list(range(20))]]), metrics_processor)]
-        Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1), 'exp'), fsm, is_cuda=False)\
+        Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1)), fsm, is_cuda=False)\
             .set_epoch_num(1).train()
 
         fsm = FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None, is_continue=True)

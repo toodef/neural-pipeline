@@ -456,13 +456,11 @@ class TrainConfig:
     :param train_stages: list of stages for train loop
     :param loss: loss criterion
     :param optimizer: optimizer object
-    :param experiment_name: name of experiment for difference from another experiments (e.g. visualisation)
     """
 
-    def __init__(self, train_stages: [], loss: Module, optimizer: Optimizer, experiment_name: str):
+    def __init__(self, train_stages: [], loss: Module, optimizer: Optimizer):
         self._train_stages = train_stages
         self.__loss = loss
-        self.__experiment_name = experiment_name
         self.__optimizer = optimizer
 
     def loss(self) -> Module:
@@ -480,14 +478,6 @@ class TrainConfig:
         :return: optimizer object
         """
         return self.__optimizer
-
-    def experiment_name(self) -> str:
-        """
-        Get experiment name
-
-        :return: experiment name
-        """
-        return self.__experiment_name
 
     def stages(self) -> [AbstractStage]:
         """

@@ -57,6 +57,6 @@ if __name__ == '__main__':
     validation_dataset = DataProducer([MNISTDataset('data/dataset', False)], batch_size=4, num_workers=2)
 
     train_config = TrainConfig([TrainStage(train_dataset), ValidationStage(validation_dataset)], NLLLoss(),
-                               torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.5), 'train_mnist')
+                               torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.5))
 
     Trainer(model, train_config, fsm, is_cuda=True).set_epoch_num(50).train()

@@ -61,7 +61,7 @@ class PicsartDataset(AbstractDataset):
         images_pathes = sorted(images_pathes, key=lambda p: int(os.path.splitext(p)[0]))
         self.__image_pathes = []
         self.__aug = aug
-        for p in images_pathes:
+        for p in images_pathes[:20]:
             name = os.path.splitext(p)[0]
             mask_img = os.path.join(masks_dir, name + '.png')
             if os.path.exists(mask_img):
@@ -152,11 +152,11 @@ if __name__ == '__main__':
     val_stage = ValidationStage(val_data_producer, val_metrics_processor)
 
     train_config = TrainConfig([train_stage, val_stage], torch.nn.BCEWithLogitsLoss(),
-                               torch.optim.Adam(model.parameters(), lr=1e-4), experiment_name='PortraitSegmentation')
+                               torch.optim.Adam(model.parameters(), lr=1e-4))
 
     file_struct_manager = FileStructManager(checkpoint_dir_path=r"data/checkpoints", logdir_path=r"data/logs")
 
-    trainer = Trainer(model, train_config, file_struct_manager).set_epoch_num(200)
+    trainer = Trainer(model, train_config, file_struct_manager).set_epoch_num(4)
 
     tensorboard = TensorboardMonitor(file_struct_manager, is_continue=False, network_name='PortraitSegmentation')
     log = LogMonitor(file_struct_manager, 'logs.json')
