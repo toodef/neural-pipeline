@@ -113,6 +113,8 @@ class Trainer:
 
         self._on_epoch_end = []
 
+        self._best_state_rule = None
+
     def set_epoch_num(self, epoch_number: int) -> 'Trainer':
         """
         Define number of training epoch
@@ -142,6 +144,10 @@ class Trainer:
             raise self.TrainerException("There's no sages for training")
 
         state_manager = StateManager(self.__file_struct_manager)
+        best_state_manager = None
+        cur_best_state = None
+        if self._best_state_rule is not None:
+            best_state_manager = StateManager(self.__file_struct_manager, 'best')
 
         if self.__need_resume:
             state_manager.unpack()
@@ -162,20 +168,40 @@ class Trainer:
                         self.monitor_hub.update_metrics(stage.metrics_processor().get_metrics())
 
                 self._data_processor.save_state()
-                state_manager.pack()
+
+                new_best_state = self._save_state(state_manager, best_state_manager, cur_best_state)
+                if new_best_state is not None:
+                    cur_best_state = new_best_state
 
                 self._data_processor.update_lr(self._lr.value())
 
                 for clbk in self._on_epoch_end:
                     clbk()
 
-                losses = {}
-                for stage in self.__train_config.stages():
-                    if stage.get_losses() is not None:
-                        losses[stage.name()] = stage.get_losses()
-                self.monitor_hub.update_losses(losses)
-
+                self._update_losses()
                 self.__iterate_by_stages(lambda s: s.on_epoch_end())
+
+    def _save_state(self, state_manager: StateManager, best_state_manager: StateManager or None,
+                    cur_best_state: float or None) -> float or None:
+        if self._best_state_rule is not None:
+            new_best_state = self._best_state_rule()
+            if cur_best_state is None:
+                state_manager.pack()
+                return new_best_state
+            else:
+                if new_best_state <= cur_best_state:
+                    best_state_manager.pack()
+                    return new_best_state
+
+        state_manager.pack()
+        return None
+
+    def _update_losses(self):
+        losses = {}
+        for stage in self.__train_config.stages():
+            if stage.get_losses() is not None:
+                losses[stage.name()] = stage.get_losses()
+        self.monitor_hub.update_losses(losses)
 
     def data_processor(self) -> TrainDataProcessor:
         """
@@ -184,6 +210,14 @@ class Trainer:
         :return: data processor
         """
         return self._data_processor
+
+    def enable_best_states_storing(self, rule: callable) -> 'Trainer':
+        self._best_state_rule = rule
+        return self
+
+    def disable_best_states_storing(self):
+        self._best_state_rule = None
+        return self
 
     def add_on_epoch_end_callback(self, callback: callable) -> 'Trainer':
         """

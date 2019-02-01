@@ -162,6 +162,7 @@ if __name__ == '__main__':
     log = LogMonitor(file_struct_manager, 'logs.json')
     mpl_monitor = MPLMonitor()
     trainer.monitor_hub.add_monitor(tensorboard).add_monitor(log).add_monitor(mpl_monitor)
+    trainer.enable_best_states_storing(lambda: np.mean(train_stage.get_losses()))
 
     trainer.enable_lr_decaying(coeff=0.5, patience=10, target_val_clbk=lambda: np.mean(train_stage.get_losses()))
     trainer.add_on_epoch_end_callback(lambda: tensorboard.update_scalar('params/lr', trainer.data_processor().get_lr()))
