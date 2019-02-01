@@ -29,6 +29,9 @@ It's contains:
 [![Documentation Status](https://readthedocs.org/projects/neural-pipeline/badge/?version=master)](https://neural-pipeline.readthedocs.io/en/master/?badge=master)
 [See the full documentation there](https://neural-pipeline.readthedocs.io/en/master/)
 
+Data flow scheme:
+[Data flow](docs/img/data_flow.svg)
+
 ### See the examples
 * MNIST classification example - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/src/img_classification.py)
 * Segmentation example - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_segmentation.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_segmentation.py)
