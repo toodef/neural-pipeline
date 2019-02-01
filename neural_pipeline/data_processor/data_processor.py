@@ -17,16 +17,17 @@ class DataProcessor:
 
     :param model: model, that will be used for process data
     :param file_struct_manager: file structure manager
-    :param is_cuda: is processing will be in CUDA device
+    :param device: what device pass model and data for processing
     """
-    def __init__(self, model: Module, file_struct_manager: FileStructManager, is_cuda=True):
-        self._is_cuda = is_cuda
+
+    def __init__(self, model: Module, file_struct_manager: FileStructManager, device: torch.device=None):
+        self._device = device
         self._file_struct_manager = file_struct_manager
 
         self._model = Model(model, file_struct_manager)
 
-        if self._is_cuda:
-            self.model().cuda()
+        if self._device is not None:
+            self.model().to(device)
 
     def model(self) -> Module:
         """
@@ -44,7 +45,7 @@ class DataProcessor:
         """
 
         def make_predict():
-            if self._is_cuda:
+            if self._device is not None:
                 data['data'] = self._pass_data_to_device(data['data'])
             return self._model(data['data'])
 
@@ -59,17 +60,16 @@ class DataProcessor:
         """
         self._model.load_weights()
 
-    @staticmethod
-    def _pass_data_to_device(data: torch.Tensor or dict) -> torch.Tensor or dict:
+    def _pass_data_to_device(self, data: torch.Tensor or dict) -> torch.Tensor or dict:
         """
         Internal method, that pass data to specified device
         :param data: data as dict or torch.Tensor
         :return: processed on target device
         """
         if isinstance(data, dict):
-            return dict_recursive_bypass(data, lambda v: v.to('cuda:0'))
+            return dict_recursive_bypass(data, lambda v: v.to(self._device))
         else:
-            return data.to('cuda:0')
+            return data.to(self._device)
 
 
 class TrainDataProcessor(DataProcessor):
@@ -79,19 +79,19 @@ class TrainDataProcessor(DataProcessor):
     :param model: model, that will be used for process data
     :param train_config: train config
     :param file_struct_manager: file structure manager
-    :param is_cuda: is processing will be in CUDA device
+    :param device: what device pass model, data and optimizer for processing
     """
 
-    def __init__(self, model: Module, train_config: 'TrainConfig', file_struct_manager: FileStructManager, is_cuda=True):
-        super().__init__(model, file_struct_manager, is_cuda)
+    def __init__(self, model: Module, train_config: 'TrainConfig', file_struct_manager: FileStructManager,
+                 device: torch.device = None):
+        super().__init__(model, file_struct_manager, device)
 
         self.__criterion = train_config.loss()
 
-        if self._is_cuda:
-            self.__criterion.to('cuda:0')
+        if self._device:
+            self.__criterion.to(self._device)
 
         self.__optimizer = train_config.optimizer()
-
         self.__epoch_num = 0
 
     def predict(self, data, is_train=False) -> torch.Tensor or dict:
@@ -105,7 +105,7 @@ class TrainDataProcessor(DataProcessor):
         """
 
         def make_predict():
-            if self._is_cuda:
+            if self._device is not None:
                 data['data'] = self._pass_data_to_device(data['data'])
             return self._model(data['data'])
 
@@ -126,7 +126,7 @@ class TrainDataProcessor(DataProcessor):
         :param metrics_processor: metrics processor for collect metrics after batch is processed
         :return: array of losses with shape (N, ...) where N is batch size
         """
-        if self._is_cuda:
+        if self._device:
             batch['target'] = self._pass_data_to_device(batch['target'])
 
         if is_train:

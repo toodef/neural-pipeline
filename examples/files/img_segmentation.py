@@ -156,7 +156,7 @@ if __name__ == '__main__':
 
     file_struct_manager = FileStructManager(checkpoint_dir_path=r"data/checkpoints", logdir_path=r"data/logs")
 
-    trainer = Trainer(model, train_config, file_struct_manager).set_epoch_num(4)
+    trainer = Trainer(model, train_config, file_struct_manager, torch.device('cuda:0')).set_epoch_num(4)
 
     tensorboard = TensorboardMonitor(file_struct_manager, is_continue=False, network_name='PortraitSegmentation')
     log = LogMonitor(file_struct_manager, 'logs.json')

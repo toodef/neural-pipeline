@@ -1,3 +1,4 @@
+import torch
 from torch.nn import Module
 
 from neural_pipeline.data_processor import TrainDataProcessor
@@ -96,19 +97,20 @@ class Trainer:
         def __str__(self):
             return self._msg
 
-    def __init__(self, model: Module, train_config: TrainConfig, file_struct_manager: FileStructManager, is_cuda: bool = True):
+    def __init__(self, model: Module, train_config: TrainConfig, file_struct_manager: FileStructManager,
+                 device: torch.device = None):
         self.__train_config = train_config
         self.__file_struct_manager = file_struct_manager
         self.__model = model
 
-        self.__is_cuda = is_cuda
+        self._device = device
         self.__epoch_num = 100
         self.__need_resume = False
 
         self.monitor_hub = MonitorHub()
 
         self._data_processor = TrainDataProcessor(self.__model, self.__train_config, self.__file_struct_manager,
-                                                  is_cuda=self.__is_cuda)
+                                                  self._device)
         self._lr = LearningRate(self._data_processor.get_lr())
 
         self._on_epoch_end = []

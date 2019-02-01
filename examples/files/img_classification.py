@@ -59,4 +59,4 @@ if __name__ == '__main__':
     train_config = TrainConfig([TrainStage(train_dataset), ValidationStage(validation_dataset)], NLLLoss(),
                                torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.5))
 
-    Trainer(model, train_config, fsm, is_cuda=True).set_epoch_num(50).train()
+    Trainer(model, train_config, fsm, torch.device('cuda:0')).set_epoch_num(50).train()
