@@ -30,7 +30,7 @@ It's contains:
 [See the full documentation there](https://neural-pipeline.readthedocs.io/en/master/)
 
 Data flow scheme:
-[Data flow](docs/img/data_flow.svg)
+![Data flow](https://github.com/toodef/neural-pipeline/blob/master/docs/img/data_flow.svg)
 
 ### See the examples
 * MNIST classification example - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/src/img_classification.py)
