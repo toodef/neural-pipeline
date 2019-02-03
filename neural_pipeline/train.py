@@ -167,8 +167,6 @@ class Trainer:
                     if stage.metrics_processor() is not None:
                         self.monitor_hub.update_metrics(stage.metrics_processor().get_metrics())
 
-                self._data_processor.save_state()
-
                 new_best_state = self._save_state(self._checkpoint_manager, best_checkpoints_manager, cur_best_state)
                 if new_best_state is not None:
                     cur_best_state = new_best_state
@@ -186,13 +184,18 @@ class Trainer:
         if self._best_state_rule is not None:
             new_best_state = self._best_state_rule()
             if cur_best_state is None:
+                self._data_processor.save_state()
                 ckpts_manager.pack()
                 return new_best_state
             else:
                 if new_best_state <= cur_best_state:
+                    self._data_processor.set_checkpoints_manager(best_ckpts_manager)
+                    self._data_processor.save_state()
                     best_ckpts_manager.pack()
+                    self._data_processor.set_checkpoints_manager(ckpts_manager)
                     return new_best_state
 
+        self._data_processor.save_state()
         ckpts_manager.pack()
         return None
 

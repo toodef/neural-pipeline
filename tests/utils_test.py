@@ -39,6 +39,18 @@ class UtilsTest(unittest.TestCase):
 
 
 class FileStructManagerTest(UseFileStructure):
+    class TestObj(FolderRegistrable):
+        def __init__(self, m: 'FileStructManager', dir: str, name: str):
+            super().__init__(m)
+            self.dir = dir
+            self.name = name
+
+        def get_gir(self) -> str:
+            return self.dir
+
+        def get_name(self) -> str:
+            return self.name
+
     def test_creation(self):
         if os.path.exists(self.base_dir):
             shutil.rmtree(self.checkpoints_dir, ignore_errors=True)
@@ -56,25 +68,16 @@ class FileStructManagerTest(UseFileStructure):
             self.fail("Raise error when base directory exists but empty: [{}]".format(err))
 
         os.makedirs(os.path.join(self.base_dir, 'new_dir'))
-        with self.assertRaises(FileStructManager.FSMException):
+        try:
             FileStructManager(base_dir=self.base_dir, is_continue=False)
+        except:
+            self.fail("Error initialize when exists non-registered folders in base directory")
+
         shutil.rmtree(self.base_dir, ignore_errors=True)
 
     def test_module_registration(self):
-        class TestObj(FolderRegistrable):
-            def __init__(self, m: 'FileStructManager', dir: str, name: str):
-                super().__init__(m)
-                self.dir = dir
-                self.name = name
-
-            def get_gir(self) -> str:
-                return self.dir
-
-            def get_name(self) -> str:
-                return self.name
-
         fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
-        o = TestObj(fsm, 'test_dir', 'test_name')
+        o = self.TestObj(fsm, 'test_dir', 'test_name')
         fsm.register_dir(o)
 
         expected_path = os.path.join(self.base_dir, 'test_dir')
@@ -82,10 +85,14 @@ class FileStructManagerTest(UseFileStructure):
         self.assertEqual(fsm.get_path(o), expected_path)
 
         with self.assertRaises(FileStructManager.FSMException):
-            fsm.register_dir(TestObj(fsm, 'test_dir', 'another_name'))
+            fsm.register_dir(self.TestObj(fsm, 'test_dir', 'another_name'))
 
         with self.assertRaises(FileStructManager.FSMException):
-            fsm.register_dir(TestObj(fsm, 'another_name', 'test_name'))
+            fsm.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'))
+
+        os.makedirs(os.path.join(self.base_dir, 'another_dir'))
+        with self.assertRaises(FileStructManager.FSMException):
+            fsm.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'))
 
 
 class CheckpointsManagerTests(UseFileStructure):
@@ -134,7 +141,7 @@ class CheckpointsManagerTests(UseFileStructure):
             if os.path.exists(f) and os.path.isfile(f):
                 self.fail("File '{}' doesn't remove after pack".format(f))
 
-        result = os.path.join(fsm.get_path(cm), 'checkpoint.zip')
+        result = os.path.join(fsm.get_path(cm), 'last_checkpoint.zip')
         self.assertTrue(os.path.exists(result) and os.path.isfile(result))
 
         f = open(cm.weights_file(), 'w')
@@ -146,7 +153,7 @@ class CheckpointsManagerTests(UseFileStructure):
 
         try:
             cm.pack()
-            result = os.path.join(fsm.get_path(cm), 'checkpoint.zip.old')
+            result = os.path.join(fsm.get_path(cm), 'last_checkpoint.zip.old')
             self.assertTrue(os.path.exists(result) and os.path.isfile(result))
         except Exception as err:
             self.fail('Fail to pack with existing previous state file')

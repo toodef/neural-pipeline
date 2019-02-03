@@ -4,6 +4,7 @@ from abc import ABCMeta
 import numpy as np
 
 from neural_pipeline.train_config import MetricsGroup
+from neural_pipeline.utils import dict_recursive_bypass
 from neural_pipeline.utils.file_structure_manager import FileStructManager, FolderRegistrable
 
 __all__ = ['MonitorHub', 'AbstractMonitor', 'ConsoleMonitor', 'LogMonitor']
@@ -85,6 +86,15 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
         self._fsm = fsm
         self._fsm.register_dir(self)
         self._storage = {}
+        self._file = self._get_file_name(False)
+        self._final_metrics_file = None
+
+    def write_final_metrics(self) -> 'LogMonitor':
+        self._final_metrics_file = self._get_final_file_name(False)
+        return self
+
+    def get_final_metrics_file(self) -> str or None:
+        return self._final_metrics_file
 
     def update_metrics(self, metrics: {}) -> None:
         for metric in metrics['metrics']:
@@ -116,11 +126,13 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
                 store.append(float(np.mean(values)))
 
     def _flush_metrics(self) -> None:
-        with open(self._file_path(), 'w') as out:
+        with open(self._get_file_name(True), 'w') as out:
             json.dump(self._storage, out)
 
-    def _file_path(self) -> str:
-        return os.path.join(self._fsm.get_path(self), 'metrics_log.json')
+        if self._final_metrics_file is not None:
+            res = dict_recursive_bypass(self._storage, lambda v: v[-1])
+            with open(self._get_final_file_name(True), 'w') as out:
+                json.dump(res, out)
 
     def _cur_storage(self, names: [str]):
         res = self._storage
@@ -137,6 +149,12 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
+    def _get_file_name(self, create: bool) -> str:
+        return os.path.join(self._fsm.get_path(self, create), 'metrics_log.json')
+
+    def _get_final_file_name(self, create: bool) -> str:
+        return os.path.join(self._fsm.get_path(self, create), 'metrics.json')
 
     def get_gir(self) -> str:
         return os.path.join('monitors', 'metrics_log')

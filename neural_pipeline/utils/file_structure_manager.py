@@ -39,7 +39,7 @@ class CheckpointsManager(FolderRegistrable):
 
     All states pack to zip file. It contains few files: model weights, optimizer state, data processor state
 
-    :param checkpoints_dir: folder that contains checkpoints
+    :param fsm: :class:'FileStructureManager' instance
     :param prefix: prefix of saved and loaded files
     """
 
@@ -57,23 +57,23 @@ class CheckpointsManager(FolderRegistrable):
     def __init__(self, fsm: 'FileStructManager', prefix: str = None):
         super().__init__(fsm)
 
-        fsm.register_dir(self)
+        self._prefix = prefix if prefix is not None else 'last'
+        fsm.register_dir(self, disable_registered_check=True)
         self._checkpoints_dir = fsm.get_path(self)
 
-        if not (os.path.exists(self._checkpoints_dir) and os.path.isdir(self._checkpoints_dir)):
+        if (prefix is None) and (not (os.path.exists(self._checkpoints_dir) and os.path.isdir(self._checkpoints_dir))):
             raise self.SMException("Checkpoints dir doesn't exists: [{}]".format(self._checkpoints_dir))
 
-        self._preffix = prefix
         self._weights_file = os.path.join(self._checkpoints_dir, 'weights.pth')
         self._state_file = os.path.join(self._checkpoints_dir, 'state.pth')
         self._checkpoint_file = self._compile_path(self._checkpoints_dir, 'checkpoint.zip')
 
         if os.path.exists(self._weights_file) and os.path.exists(self._state_file) and \
                 os.path.isfile(self._weights_file) and os.path.isfile(self._state_file):
-            prev_prefffix = self._preffix
-            self._preffix = "prev_start"
+            prev_prefix = self._prefix
+            self._prefix = "prev_start"
             self.pack()
-            self._preffix = prev_prefffix
+            self._prefix = prev_prefix
 
     def unpack(self) -> None:
         """
@@ -132,7 +132,7 @@ class CheckpointsManager(FolderRegistrable):
 
         :return: path to result file
         """
-        return os.path.join(directory, (self._preffix + "_" if self._preffix is not None else "") + file)
+        return os.path.join(directory, (self._prefix + "_" if self._prefix is not None else "") + file)
 
     def _check_files(self, files) -> None:
         """
@@ -150,7 +150,7 @@ class CheckpointsManager(FolderRegistrable):
             raise self.SMException("Some files doesn't exists: [{}]".format(';'.join(files)))
 
     def get_gir(self) -> str:
-        return 'checkpoints'
+        return os.path.join('checkpoints', self._prefix)
 
     def get_name(self) -> str:
         return 'CheckpointsManager'
@@ -190,8 +190,8 @@ class FileStructManager:
             else:
                 os.makedirs(self._path, exist_ok=True)
 
-        def get_path(self) -> str:
-            if self._path_first_request:
+        def get_path(self, create_if_non_exists: bool = True) -> str:
+            if create_if_non_exists and self._path_first_request:
                 self._create_directories()
                 self._path_first_request = False
             return self._path
@@ -201,21 +201,18 @@ class FileStructManager:
         self._is_continue = is_continue
         self._base_dir = base_dir
 
-        if (not self._is_continue) and os.path.exists(self._base_dir)\
-                and os.path.isdir(self._base_dir) and os.listdir(self._base_dir):
-            raise self.FSMException("Base dir '{}' exist".format(self._base_dir))
-
-    def register_dir(self, obj: FolderRegistrable) -> None:
+    def register_dir(self, obj: FolderRegistrable, disable_registered_check: bool = False) -> None:
         path = os.path.join(self._base_dir, obj.get_gir())
 
-        for n, f in self._dirs.items():
-            if f.get_path_for_check() == path:
-                raise self.FSMException("Path {} already registered!".format(path))
+        if not disable_registered_check:
+            for n, f in self._dirs.items():
+                if f.get_path_for_check() == path:
+                    raise self.FSMException("Path {} already registered!".format(path))
 
-        if obj.get_name() in self._dirs:
-            raise self.FSMException("Object {} already registered!".format(obj.get_name()))
+            if obj.get_name() in self._dirs:
+                raise self.FSMException("Object {} already registered!".format(obj.get_name()))
 
         self._dirs[obj.get_name()] = self._Folder(path, self)
 
-    def get_path(self, obj: FolderRegistrable) -> str:
-        return self._dirs[obj.get_name()].get_path()
+    def get_path(self, obj: FolderRegistrable, create_if_non_exists: bool = True) -> str:
+        return self._dirs[obj.get_name()].get_path(create_if_non_exists)

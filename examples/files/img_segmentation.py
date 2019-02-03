@@ -61,7 +61,7 @@ class PicsartDataset(AbstractDataset):
         images_pathes = sorted(images_pathes, key=lambda p: int(os.path.splitext(p)[0]))
         self.__image_pathes = []
         self.__aug = aug
-        for p in images_pathes[:20]:
+        for p in images_pathes:
             name = os.path.splitext(p)[0]
             mask_img = os.path.join(masks_dir, name + '.png')
             if os.path.exists(mask_img):
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     trainer = Trainer(model, train_config, file_struct_manager, torch.device('cuda:0')).set_epoch_num(4)
 
     tensorboard = TensorboardMonitor(file_struct_manager, is_continue=False, network_name='PortraitSegmentation')
-    log = LogMonitor(file_struct_manager)
+    log = LogMonitor(file_struct_manager).write_final_metrics()
     mpl_monitor = MPLMonitor()
     trainer.monitor_hub.add_monitor(tensorboard).add_monitor(log).add_monitor(mpl_monitor)
     trainer.enable_best_states_storing(lambda: np.mean(train_stage.get_losses()))
