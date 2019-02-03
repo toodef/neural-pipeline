@@ -75,7 +75,7 @@ class FileStructManagerTest(UseFileStructure):
 
         shutil.rmtree(self.base_dir, ignore_errors=True)
 
-    def test_module_registration(self):
+    def test_object_registration(self):
         fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
         o = self.TestObj(fsm, 'test_dir', 'test_name')
         fsm.register_dir(o)
@@ -86,9 +86,17 @@ class FileStructManagerTest(UseFileStructure):
 
         with self.assertRaises(FileStructManager.FSMException):
             fsm.register_dir(self.TestObj(fsm, 'test_dir', 'another_name'))
+        try:
+            fsm.register_dir(self.TestObj(fsm, 'test_dir', 'another_name'), check_dir_registered=False)
+        except:
+            self.fail("Folder registrable test fail when it's disabled")
 
         with self.assertRaises(FileStructManager.FSMException):
             fsm.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'))
+        try:
+            fsm.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'), check_name_registered=False)
+        except:
+            self.fail("Folder registrable test fail when it's disabled")
 
         os.makedirs(os.path.join(self.base_dir, 'another_dir'))
         with self.assertRaises(FileStructManager.FSMException):

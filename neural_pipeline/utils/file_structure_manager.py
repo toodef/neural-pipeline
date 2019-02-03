@@ -58,7 +58,7 @@ class CheckpointsManager(FolderRegistrable):
         super().__init__(fsm)
 
         self._prefix = prefix if prefix is not None else 'last'
-        fsm.register_dir(self, disable_registered_check=True)
+        fsm.register_dir(self)
         self._checkpoints_dir = fsm.get_path(self)
 
         if (prefix is None) and (not (os.path.exists(self._checkpoints_dir) and os.path.isdir(self._checkpoints_dir))):
@@ -153,7 +153,7 @@ class CheckpointsManager(FolderRegistrable):
         return os.path.join('checkpoints', self._prefix)
 
     def get_name(self) -> str:
-        return 'CheckpointsManager'
+        return 'CheckpointsManager' + self._prefix
 
 
 class FileStructManager:
@@ -201,14 +201,15 @@ class FileStructManager:
         self._is_continue = is_continue
         self._base_dir = base_dir
 
-    def register_dir(self, obj: FolderRegistrable, disable_registered_check: bool = False) -> None:
+    def register_dir(self, obj: FolderRegistrable, check_name_registered: bool = True, check_dir_registered: bool = True) -> None:
         path = os.path.join(self._base_dir, obj.get_gir())
 
-        if not disable_registered_check:
+        if check_dir_registered:
             for n, f in self._dirs.items():
                 if f.get_path_for_check() == path:
                     raise self.FSMException("Path {} already registered!".format(path))
 
+        if check_name_registered:
             if obj.get_name() in self._dirs:
                 raise self.FSMException("Object {} already registered!".format(obj.get_name()))
 
