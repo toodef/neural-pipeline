@@ -1,6 +1,5 @@
 import os
 import shutil
-import unittest
 
 import torch
 
@@ -8,18 +7,16 @@ from neural_pipeline.train_config import MetricsProcessor, TrainStage
 from neural_pipeline.train_config.train_config import ValidationStage, TrainConfig
 from neural_pipeline.utils.file_structure_manager import FileStructManager
 from neural_pipeline import Predictor, Trainer
+from tests.common import UseFileStructure
 
 from tests.data_processor_test import SimpleModel, SimpleLoss
 from tests.data_producer_test import TestDataProducer
 
 
-class PredictTest(unittest.TestCase):
-    logdir = 'logs'
-    checkpoints_dir = 'tensorboard_logs'
-
+class PredictTest(UseFileStructure):
     def test_predict(self):
         model = SimpleModel()
-        fsm = FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
+        fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
 
         metrics_processor = MetricsProcessor()
         stages = [TrainStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
@@ -29,11 +26,5 @@ class PredictTest(unittest.TestCase):
         Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1)), fsm)\
             .set_epoch_num(1).train()
 
-        fsm = FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None, is_continue=True)
+        fsm = FileStructManager(base_dir=self.base_dir, is_continue=True)
         Predictor(model, fsm).predict({'data': torch.rand(1, 3)})
-
-    def tearDown(self):
-        if os.path.exists(self.logdir):
-            shutil.rmtree(self.logdir, ignore_errors=True)
-        if os.path.exists(self.checkpoints_dir):
-            shutil.rmtree(self.checkpoints_dir, ignore_errors=True)

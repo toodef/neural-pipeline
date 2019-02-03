@@ -154,12 +154,12 @@ if __name__ == '__main__':
     train_config = TrainConfig([train_stage, val_stage], torch.nn.BCEWithLogitsLoss(),
                                torch.optim.Adam(model.parameters(), lr=1e-4))
 
-    file_struct_manager = FileStructManager(checkpoint_dir_path=r"data/checkpoints", logdir_path=r"data/logs")
+    file_struct_manager = FileStructManager(base_dir='data', is_continue=False)
 
     trainer = Trainer(model, train_config, file_struct_manager, torch.device('cuda:0')).set_epoch_num(4)
 
     tensorboard = TensorboardMonitor(file_struct_manager, is_continue=False, network_name='PortraitSegmentation')
-    log = LogMonitor(file_struct_manager, 'logs.json')
+    log = LogMonitor(file_struct_manager)
     mpl_monitor = MPLMonitor()
     trainer.monitor_hub.add_monitor(tensorboard).add_monitor(log).add_monitor(mpl_monitor)
     trainer.enable_best_states_storing(lambda: np.mean(train_stage.get_losses()))

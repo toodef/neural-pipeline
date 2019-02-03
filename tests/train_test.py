@@ -11,6 +11,7 @@ from neural_pipeline.train import DecayingLR
 from neural_pipeline.train_config import TrainConfig, TrainStage, MetricsProcessor
 from neural_pipeline.train_config.train_config import ValidationStage
 from neural_pipeline.utils.file_structure_manager import FileStructManager
+from tests.common import UseFileStructure
 from tests.data_processor_test import SimpleModel
 from tests.data_producer_test import TestDataProducer
 
@@ -22,22 +23,19 @@ class SimpleLoss(torch.nn.Module):
         return output / target
 
 
-class TrainTest(unittest.TestCase):
-    logdir = 'logs'
-    checkpoints_dir = 'tensorboard_logs'
-
+class TrainTest(UseFileStructure):
     def test_base_ops(self):
-        fsm = FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
-        model = Model(SimpleModel(), fsm)
+        fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
+        model = SimpleModel()
 
         trainer = Trainer(model,
-                          TrainConfig([], torch.nn.L1Loss(), torch.optim.SGD(model.model().parameters(), lr=1)),
+                          TrainConfig([], torch.nn.L1Loss(), torch.optim.SGD(model.parameters(), lr=1)),
                           fsm)
         with self.assertRaises(Trainer.TrainerException):
             trainer.train()
 
     def test_train(self):
-        fsm = FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
+        fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
         model = SimpleModel()
         metrics_processor = MetricsProcessor()
         stages = [TrainStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
@@ -88,7 +86,7 @@ class TrainTest(unittest.TestCase):
         self.assertEqual(val, lr.value())
 
     def test_lr_decaying(self):
-        fsm = FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
+        fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
         model = SimpleModel()
         metrics_processor = MetricsProcessor()
         stages = [TrainStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
@@ -105,9 +103,3 @@ class TrainTest(unittest.TestCase):
         trainer.train()
 
         self.assertAlmostEqual(trainer.data_processor().get_lr(), 0.1 * (0.5 ** 3), delta=1e-6)
-
-    def tearDown(self):
-        if os.path.exists(self.logdir):
-            shutil.rmtree(self.logdir, ignore_errors=True)
-        if os.path.exists(self.checkpoints_dir):
-            shutil.rmtree(self.checkpoints_dir, ignore_errors=True)

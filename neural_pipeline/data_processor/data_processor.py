@@ -2,10 +2,11 @@ import json
 import numpy as np
 
 import torch
+
+from neural_pipeline.utils import CheckpointsManager
 from torch.nn import Module
 
 from neural_pipeline.data_processor.model import Model
-from neural_pipeline.utils.file_structure_manager import FileStructManager
 from neural_pipeline.utils.utils import dict_recursive_bypass
 
 __all__ = ['DataProcessor', 'TrainDataProcessor']
@@ -16,18 +17,22 @@ class DataProcessor:
     DataProcessor manage: model, data processing, device choosing
 
     :param model: model, that will be used for process data
-    :param file_struct_manager: file structure manager
     :param device: what device pass model and data for processing
     """
 
-    def __init__(self, model: Module, file_struct_manager: FileStructManager, device: torch.device=None):
+    def __init__(self, model: Module, device: torch.device=None):
         self._device = device
-        self._file_struct_manager = file_struct_manager
+        self._checkpoints_manager = None
 
-        self._model = Model(model, file_struct_manager)
+        self._model = Model(model)
 
         if self._device is not None:
             self.model().to(device)
+
+    def set_checkpoints_manager(self, checkpoint_manager: CheckpointsManager) -> 'DataProcessor':
+        self._checkpoints_manager = checkpoint_manager
+        self._model.set_checkpoints_manager(checkpoint_manager)
+        return self
 
     def model(self) -> Module:
         """
@@ -60,6 +65,12 @@ class DataProcessor:
         """
         self._model.load_weights()
 
+    def save_state(self) -> None:
+        """
+        Save state of optimizer and perform epochs number
+        """
+        self._model.save_weights()
+
     def _pass_data_to_device(self, data: torch.Tensor or dict) -> torch.Tensor or dict:
         """
         Internal method, that pass data to specified device
@@ -78,13 +89,18 @@ class TrainDataProcessor(DataProcessor):
 
     :param model: model, that will be used for process data
     :param train_config: train config
-    :param file_struct_manager: file structure manager
     :param device: what device pass model, data and optimizer for processing
     """
 
-    def __init__(self, model: Module, train_config: 'TrainConfig', file_struct_manager: FileStructManager,
-                 device: torch.device = None):
-        super().__init__(model, file_struct_manager, device)
+    class TDPException(Exception):
+        def __init__(self, msg):
+            self._msg = msg
+
+        def __str__(self):
+            return self._msg
+
+    def __init__(self, model: Module, train_config: 'TrainConfig', device: torch.device = None):
+        super().__init__(model, device)
 
         self.__criterion = train_config.loss()
 
@@ -170,31 +186,28 @@ class TrainDataProcessor(DataProcessor):
         """
         return {'weights': self._model.model().state_dict(), 'optimizer': self.__optimizer.state_dict()}
 
+    def _get_checkpoints_manager(self) -> CheckpointsManager:
+        if self._checkpoints_manager is None:
+            raise self.TDPException("Checkpoints manager doesn't specified. Use 'set_checkpoints_manager()'")
+        return self._checkpoints_manager
+
     def load(self) -> None:
         """
         Load state of model, optimizer and TrainDataProcessor from checkpoint
         """
         super().load()
-
-        print("Data processor inited by file:", self._file_struct_manager.optimizer_state_file(), end='; ')
-        state = torch.load(self._file_struct_manager.optimizer_state_file())
+        cp_manager = self._get_checkpoints_manager()
+        print("Optimizer inited by file:", cp_manager.optimizer_state_file(), end='; ')
+        state = torch.load(cp_manager.optimizer_state_file())
         print('state dict len before:', len(state), end='; ')
         state = {k: v for k, v in state.items() if k in self.__optimizer.state_dict()}
         print('state dict len after:', len(state), end='; ')
         self.__optimizer.load_state_dict(state)
         print('done')
 
-        with open(self._file_struct_manager.data_processor_state_file(), 'r') as in_file:
-            dp_state = json.load(in_file)
-            self.__epoch_num = dp_state['last_epoch_idx']
-
     def save_state(self) -> None:
         """
         Save state of optimizer and perform epochs number
         """
-        torch.save(self.__optimizer.state_dict(), self._file_struct_manager.optimizer_state_file())
-
-        with open(self._file_struct_manager.data_processor_state_file(), 'w') as out:
-            json.dump({"last_epoch_idx": self.__epoch_num}, out)
-
-        self._model.save_weights()
+        super().save_state()
+        torch.save(self.__optimizer.state_dict(), self._get_checkpoints_manager().optimizer_state_file())

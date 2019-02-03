@@ -9,14 +9,14 @@ except ImportError:
 from neural_pipeline.monitoring import AbstractMonitor
 from neural_pipeline.data_processor import Model
 from neural_pipeline.train_config import AbstractMetric, MetricsGroup
-from neural_pipeline.utils.file_structure_manager import FileStructManager
+from neural_pipeline.utils.file_structure_manager import FileStructManager, FolderRegistrable
 
 import warnings
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
-class TensorboardMonitor(AbstractMonitor):
+class TensorboardMonitor(AbstractMonitor, FolderRegistrable):
     """
     Class, that manage metrics end events monitoring. It worked with tensorboard. Monitor get metrics after epoch ends and visualise it. Metrics may be float or np.array values. If
     metric is np.array - it will be shown as histogram and scalars (scalar plots contains mean valuse from array).
@@ -31,11 +31,12 @@ class TensorboardMonitor(AbstractMonitor):
         self.__writer = None
         self.__txt_log_file = None
 
-        dir = file_struct_manager.logdir_path()
+        file_struct_manager.register_dir(self)
+        dir = file_struct_manager.get_path(self)
         if dir is None:
             return
 
-        dir = os.path.join(dir, 'tensorboard', network_name)
+        dir = os.path.join(dir, network_name)
 
         if not is_continue and os.path.exists(dir) and os.path.isdir(dir):
             idx = 0
@@ -140,3 +141,9 @@ class TensorboardMonitor(AbstractMonitor):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
+    def get_gir(self) -> str:
+        return os.path.join('monitors', 'tensorboard')
+
+    def get_name(self) -> str:
+        return 'Tensorboard'

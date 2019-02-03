@@ -2,9 +2,10 @@ import torch
 from torch.nn import Module
 
 from neural_pipeline.data_processor import TrainDataProcessor
-from neural_pipeline.utils import FileStructManager, StateManager
+from neural_pipeline.utils import FileStructManager, CheckpointsManager
 from neural_pipeline.train_config.train_config import TrainConfig
 from neural_pipeline.monitoring import MonitorHub, ConsoleMonitor
+from neural_pipeline.utils.file_structure_manager import FolderRegistrable
 
 __all__ = ['Trainer', 'LearningRate', 'DecayingLR']
 
@@ -99,23 +100,21 @@ class Trainer:
 
     def __init__(self, model: Module, train_config: TrainConfig, file_struct_manager: FileStructManager,
                  device: torch.device = None):
-        self.__train_config = train_config
-        self.__file_struct_manager = file_struct_manager
-        self.__model = model
-
-        self._device = device
-        self.__epoch_num = 100
-        self.__need_resume = False
-
+        self._fsm = file_struct_manager
         self.monitor_hub = MonitorHub()
 
-        self._data_processor = TrainDataProcessor(self.__model, self.__train_config, self.__file_struct_manager,
-                                                  self._device)
-        self._lr = LearningRate(self._data_processor.get_lr())
+        self._checkpoint_manager = CheckpointsManager(self._fsm)
 
+        self.__epoch_num = 100
+        self.__need_resume = False
         self._on_epoch_end = []
-
         self._best_state_rule = None
+
+        self.__train_config = train_config
+        self._device = device
+        self._data_processor = TrainDataProcessor(model, self.__train_config, self._device)\
+            .set_checkpoints_manager(self._checkpoint_manager)
+        self._lr = LearningRate(self._data_processor.get_lr())
 
     def set_epoch_num(self, epoch_number: int) -> 'Trainer':
         """
@@ -145,16 +144,15 @@ class Trainer:
         if len(self.__train_config.stages()) < 1:
             raise self.TrainerException("There's no sages for training")
 
-        state_manager = StateManager(self.__file_struct_manager)
-        best_state_manager = None
+        best_checkpoints_manager = None
         cur_best_state = None
         if self._best_state_rule is not None:
-            best_state_manager = StateManager(self.__file_struct_manager, 'best')
+            best_checkpoints_manager = CheckpointsManager(self._fsm, 'best')
 
         if self.__need_resume:
-            state_manager.unpack()
+            self._checkpoint_manager.unpack()
             self._data_processor.load()
-            state_manager.pack()
+            self._checkpoint_manager.pack()
 
         start_epoch_idx = 1
 
@@ -171,7 +169,7 @@ class Trainer:
 
                 self._data_processor.save_state()
 
-                new_best_state = self._save_state(state_manager, best_state_manager, cur_best_state)
+                new_best_state = self._save_state(self._checkpoint_manager, best_checkpoints_manager, cur_best_state)
                 if new_best_state is not None:
                     cur_best_state = new_best_state
 
@@ -183,19 +181,19 @@ class Trainer:
                 self._update_losses()
                 self.__iterate_by_stages(lambda s: s.on_epoch_end())
 
-    def _save_state(self, state_manager: StateManager, best_state_manager: StateManager or None,
+    def _save_state(self, ckpts_manager: CheckpointsManager, best_ckpts_manager: CheckpointsManager or None,
                     cur_best_state: float or None) -> float or None:
         if self._best_state_rule is not None:
             new_best_state = self._best_state_rule()
             if cur_best_state is None:
-                state_manager.pack()
+                ckpts_manager.pack()
                 return new_best_state
             else:
                 if new_best_state <= cur_best_state:
-                    best_state_manager.pack()
+                    best_ckpts_manager.pack()
                     return new_best_state
 
-        state_manager.pack()
+        ckpts_manager.pack()
         return None
 
     def _update_losses(self):

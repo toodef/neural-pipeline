@@ -4,9 +4,9 @@ from abc import ABCMeta
 import numpy as np
 
 from neural_pipeline.train_config import MetricsGroup
-from neural_pipeline.utils.file_structure_manager import FileStructManager
+from neural_pipeline.utils.file_structure_manager import FileStructManager, FolderRegistrable
 
-__all__ = ['MonitorHub', 'AbstractMonitor', 'ConsoleMonitor']
+__all__ = ['MonitorHub', 'AbstractMonitor', 'ConsoleMonitor', 'LogMonitor']
 
 
 class AbstractMonitor(metaclass=ABCMeta):
@@ -78,11 +78,12 @@ class ConsoleMonitor(AbstractMonitor):
         print(res_string)
 
 
-class LogMonitor(AbstractMonitor):
-    def __init__(self, fsm: FileStructManager, file_path: str):
+class LogMonitor(AbstractMonitor, FolderRegistrable):
+    def __init__(self, fsm: FileStructManager):
         super().__init__()
 
-        self._file_path = os.path.join(fsm.logdir_path(), file_path)
+        self._fsm = fsm
+        self._fsm.register_dir(self)
         self._storage = {}
 
     def update_metrics(self, metrics: {}) -> None:
@@ -115,8 +116,11 @@ class LogMonitor(AbstractMonitor):
                 store.append(float(np.mean(values)))
 
     def _flush_metrics(self) -> None:
-        with open(self._file_path, 'w') as out:
+        with open(self._file_path(), 'w') as out:
             json.dump(self._storage, out)
+
+    def _file_path(self) -> str:
+        return os.path.join(self._fsm.get_path(self), 'metrics_log.json')
 
     def _cur_storage(self, names: [str]):
         res = self._storage
@@ -133,6 +137,12 @@ class LogMonitor(AbstractMonitor):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
+    def get_gir(self) -> str:
+        return os.path.join('monitors', 'metrics_log')
+
+    def get_name(self) -> str:
+        return 'LogMonitor'
 
 
 class MonitorHub:

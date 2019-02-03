@@ -7,5 +7,6 @@ from .utils_test import *
 from .train_test import *
 from .predict_test import *
 
+
 if __name__ == '__main__':
     unittest.main()

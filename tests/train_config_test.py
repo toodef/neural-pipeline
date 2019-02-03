@@ -9,7 +9,7 @@ from neural_pipeline import Trainer
 from neural_pipeline.data_producer import DataProducer
 from neural_pipeline.train_config.train_config import MetricsGroup, AbstractMetric, TrainStage, MetricsProcessor, TrainConfig
 from neural_pipeline.utils.file_structure_manager import FileStructManager
-from tests.common import UseResources
+from tests.common import UseFileStructure
 from tests.data_processor_test import SimpleModel, SimpleLoss
 
 __all__ = ['TrainConfigTest']
@@ -32,7 +32,7 @@ class FakeMetricsProcessor(MetricsProcessor):
         self.call_num += 1
 
 
-class TrainConfigTest(unittest.TestCase, UseResources):
+class TrainConfigTest(UseFileStructure):
     def test_metric(self):
         metric = SimpleMetric()
 
@@ -100,7 +100,7 @@ class TrainConfigTest(unittest.TestCase, UseResources):
         metrics_processor = FakeMetricsProcessor()
         train_stage = TrainStage(data_producer, metrics_processor).enable_hard_negative_mining(0.1)
 
-        fsm = FileStructManager(checkpoint_dir_path=self.checkpoints_dir, logdir_path=self.logdir, prefix=None)
+        fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
         model = SimpleModel()
         Trainer(model, TrainConfig([train_stage], SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1)), fsm) \
             .set_epoch_num(1).train()
