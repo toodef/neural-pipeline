@@ -49,17 +49,33 @@ class Model:
         print("Model inited by file:", file, end='; ')
         pretrained_weights = torch.load(file)
         print("dict len before:", len(pretrained_weights), end='; ')
-        pretrained_weights = {k: v for k, v in pretrained_weights.items() if k in self._base_model.state_dict()}
-        self._base_model.load_state_dict(pretrained_weights)
-        print("dict len after:", len(pretrained_weights))
+        processed = {}
+        model_state_dict = self._base_model.state_dict()
+        for k, v in pretrained_weights.items():
+            if k.split('.')[0] == 'module' and not isinstance(self._base_model, torch.nn.DataParallel):
+                k = '.'.join(k.split('.')[1:])
+            elif isinstance(self._base_model, torch.nn.DataParallel) and k.split('.')[0] != 'module':
+                k = 'module.' + k
+            if k in model_state_dict:
+                if v.device != model_state_dict[k].device:
+                    v.to(model_state_dict[k].device)
+                processed[k] = v
 
-    def save_weights(self) -> None:
+        self._base_model.load_state_dict(processed)
+        print("dict len after:", len(processed))
+
+    def save_weights(self, weights_file: str = None) -> None:
         """
         Serialize weights to file
         """
-        if self._checkpoints_manager is None:
-            raise self.ModelException("Checkpoints manager doesn't specified. Use 'set_checkpoints_manager()'")
-        torch.save(self._base_model.state_dict(), self._checkpoints_manager.weights_file())
+        self._base_model.to('cpu')
+        state_dict = self._base_model.state_dict()
+        if weights_file is None:
+            if self._checkpoints_manager is None:
+                raise self.ModelException("Checkpoints manager doesn't specified. Use 'set_checkpoints_manager()'")
+            torch.save(state_dict, self._checkpoints_manager.weights_file())
+        else:
+            torch.save(state_dict, weights_file)
 
     def __call__(self, x):
         """
@@ -69,8 +85,9 @@ class Model:
         """
         return self._base_model(x)
 
-    def to_device(self, device: torch.device) -> None:
+    def to_device(self, device: torch.device) -> 'Model':
         """
         Pass model to specified device
         """
         self._base_model.to(device)
+        return self

@@ -1,3 +1,4 @@
+import os
 import shutil
 import unittest
 
@@ -9,7 +10,7 @@ from neural_pipeline.utils import FileStructManager, dict_pair_recursive_bypass,
 from neural_pipeline.train_config import TrainConfig
 from tests.common import UseFileStructure, data_remove
 
-__all__ = ['DataProcessorTest', 'TrainDataProcessorTest']
+__all__ = ['ModelTest', 'DataProcessorTest', 'TrainDataProcessorTest']
 
 
 class SimpleModel(torch.nn.Module):
@@ -19,6 +20,24 @@ class SimpleModel(torch.nn.Module):
 
     def forward(self, x):
         return self.fc(x)
+
+    @staticmethod
+    def dummy_input():
+        return torch.rand(3)
+
+
+def compare_two_models(unittest_obj: unittest.TestCase, model1: torch.nn.Module, model2: torch.nn.Module):
+    def on_node(n1, n2):
+        if n1.device == torch.device('cuda:0'):
+            n1 = n1.to('cpu')
+        if n2.device == torch.device('cuda:0'):
+            n2 = n2.to('cpu')
+        unittest_obj.assertTrue(np.array_equal(n1.numpy(), n2.numpy()))
+
+    state_dict1 = model1.state_dict().copy()
+    state_dict2 = model2.state_dict().copy()
+
+    dict_pair_recursive_bypass(state_dict1, state_dict2, on_node)
 
 
 class NonStandardIOModel(torch.nn.Module):
@@ -30,6 +49,58 @@ class NonStandardIOModel(torch.nn.Module):
         res1 = self.fc(x['data1'])
         res2 = self.fc(x['data2'])
         return {'res1': res1, 'res2': res2}
+
+
+class ModelTest(UseFileStructure):
+    def test_init(self):
+        try:
+            Model(SimpleModel())
+        except:
+            self.fail('Model initialization fail')
+
+    def test_data_parallel(self):
+        try:
+            m = Model(torch.nn.DataParallel(SimpleModel()))
+            m(SimpleModel.dummy_input())
+        except:
+            self.fail('Model DataParallel pass fail')
+
+        if torch.cuda.is_available():
+            try:
+                device = torch.device('cuda')
+                m = Model(torch.nn.DataParallel(SimpleModel())).to_device(device)
+                m(SimpleModel.dummy_input().to(device))
+            except:
+                self.fail('Model DataParallel on gpu fail')
+
+    def test_saving_and_loading(self):
+        m = Model(SimpleModel())
+        m.save_weights('weights.pth')
+        m_new = Model(SimpleModel())
+        m_new.load_weights('weights.pth')
+        compare_two_models(self, m.model(), m_new.model())
+        os.remove('weights.pth')
+
+        m = SimpleModel()
+        Model(torch.nn.DataParallel(m)).save_weights('weights.pth')
+        m_new = Model(SimpleModel())
+        m_new.load_weights('weights.pth')
+        compare_two_models(self, m, m_new.model())
+        os.remove('weights.pth')
+
+        m = SimpleModel()
+        Model(m).save_weights('weights.pth')
+        m_new = SimpleModel()
+        Model(torch.nn.DataParallel(m_new)).load_weights('weights.pth')
+        compare_two_models(self, m, m_new)
+        os.remove('weights.pth')
+
+        m = SimpleModel()
+        Model(torch.nn.DataParallel(m)).save_weights('weights.pth')
+        m_new = SimpleModel()
+        Model(torch.nn.DataParallel(m_new)).load_weights('weights.pth')
+        compare_two_models(self, m, m_new)
+        os.remove('weights.pth')
 
 
 class DataProcessorTest(UseFileStructure):
@@ -73,7 +144,6 @@ class DataProcessorTest(UseFileStructure):
 
         model = SimpleModel().train()
         dp = DataProcessor(model=model)
-        before_state_dict = model.state_dict().copy()
         with self.assertRaises(Model.ModelException):
             dp.save_state()
         try:
@@ -83,11 +153,10 @@ class DataProcessorTest(UseFileStructure):
         except:
             self.fail('Fail to DataProcessor load when CheckpointsManager was defined')
 
-        del model
         del dp
 
-        model = SimpleModel().train()
-        dp = DataProcessor(model=model)
+        model_new = SimpleModel().train()
+        dp = DataProcessor(model=model_new)
 
         with self.assertRaises(Model.ModelException):
             dp.load()
@@ -100,9 +169,7 @@ class DataProcessorTest(UseFileStructure):
         except:
             self.fail('Fail to DataProcessor load when CheckpointsManager was defined')
 
-        after_state_dict = model.state_dict().copy()
-
-        dict_pair_recursive_bypass(before_state_dict, after_state_dict, on_node)
+        compare_two_models(self, model, model_new)
 
 
 class SimpleLoss(torch.nn.Module):
