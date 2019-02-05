@@ -406,6 +406,9 @@ class TrainStage(StandardStage):
         :param part: part of data that repeat after train stage
         :return: self object
         """
+
+        if not 0 < part < 1:
+            raise ValueError('Value of part for hard negative mining is out of range (0, 1)')
         self.hnm = self._HardNegativesTrainStage(self.name() + '_hnm', self.data_producer, part)
         self.data_producer.pass_indices(True)
         return self
@@ -430,6 +433,11 @@ class TrainStage(StandardStage):
         if self.hnm is not None:
             self.hn_indices.append(batch['data_idx'])
         super()._process_batch(batch, data_processor)
+
+    def on_epoch_end(self):
+        super().on_epoch_end()
+        if self.hnm is not None:
+            self.hnm.on_epoch_end()
 
 
 class ValidationStage(StandardStage):

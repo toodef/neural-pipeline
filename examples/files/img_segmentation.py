@@ -156,7 +156,7 @@ if __name__ == '__main__':
 
     file_struct_manager = FileStructManager(base_dir='data', is_continue=False)
 
-    trainer = Trainer(model, train_config, file_struct_manager, torch.device('cuda:0')).set_epoch_num(4)
+    trainer = Trainer(model, train_config, file_struct_manager, torch.device('cuda:0')).set_epoch_num(50)
 
     tensorboard = TensorboardMonitor(file_struct_manager, is_continue=False, network_name='PortraitSegmentation')
     log = LogMonitor(file_struct_manager).write_final_metrics()

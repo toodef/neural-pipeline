@@ -80,13 +80,12 @@ class DataProducer:
         return self
 
     def get_data(self, dataset_idx: int, data_idx: int) -> object:
+        data = self.__datasets[dataset_idx][data_idx]
         if self._need_pass_indices:
-            data = self.__datasets[dataset_idx][data_idx]
             if not isinstance(data, dict):
                 data = {'data': data}
             return dict(data, **{'data_idx': str(dataset_idx) + "_" + str(data_idx)})
-        else:
-            return self.__datasets[dataset_idx][data_idx]
+        return data
 
     def __len__(self):
         return self.__overall_len
@@ -118,7 +117,7 @@ class DataProducer:
                           shuffle=self._glob_shuffle, pin_memory=self._pin_memory)
 
     def _get_loader_by_indices(self, indices: [int]) -> DataLoader:
-        return DataLoader(ByIndices(self.__datasets, indices), batch_size=self.__batch_size, num_workers=self.__num_workers,
+        return DataLoader(_ByIndices(self.__datasets, indices), batch_size=self.__batch_size, num_workers=self.__num_workers,
                           shuffle=self._glob_shuffle, pin_memory=self._pin_memory)
 
     def _update_datasets_idx_space(self):
@@ -134,7 +133,7 @@ class DataProducer:
             cur_len += dataset_len
 
 
-class ByIndices(DataProducer):
+class _ByIndices(DataProducer):
     def __init__(self, datasets: [AbstractDataset], indices: []):
         super().__init__(datasets)
         self.shuffle_datasets_order(False)

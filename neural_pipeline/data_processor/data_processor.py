@@ -104,7 +104,7 @@ class TrainDataProcessor(DataProcessor):
 
         self.__criterion = train_config.loss()
 
-        if self._device:
+        if self._device is not None:
             self.__criterion.to(self._device)
 
         self.__optimizer = train_config.optimizer()

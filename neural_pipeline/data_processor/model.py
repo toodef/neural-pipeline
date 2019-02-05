@@ -68,7 +68,6 @@ class Model:
         """
         Serialize weights to file
         """
-        self._base_model.to('cpu')
         state_dict = self._base_model.state_dict()
         if weights_file is None:
             if self._checkpoints_manager is None:
