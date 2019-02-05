@@ -6,7 +6,7 @@ Neural networks training pipeline based on PyTorch 0.4.1 and designed to standar
 
 It's contains:
 * Flexible and customizable training process
-* Checkpoints management and train process resuming
+* Checkpoints management and train process resuming (source and target device independent)
 * Metrics processing and visualisation by builtins ([tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard), [Matplotlib](https://matplotlib.org)) or custom monitors
 * Training best practices (e.g. learning rate decaying and hard negative mining)
 * Metrics logging and comparision (DVC compatible)
@@ -19,7 +19,7 @@ It's contains:
 `pip install neural-pipeline`
 
 ##### For `builtin` module using install:
-`pip install tensorboardX`
+`pip install tensorboardX matplotlib`
 
 ##### Install latest version before it's published on PyPi
 `pip install -U git+https://github.com/toodef/neural-pipeline`
