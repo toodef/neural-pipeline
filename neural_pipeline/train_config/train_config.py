@@ -398,6 +398,7 @@ class TrainStage(StandardStage):
         super().__init__(name, True, data_producer, metrics_processor)
         self.hnm = None
         self.hn_indices = []
+        self._dp_pass_indices_earlier = False
 
     def enable_hard_negative_mining(self, part: float) -> 'TrainStage':
         """
@@ -410,6 +411,7 @@ class TrainStage(StandardStage):
         if not 0 < part < 1:
             raise ValueError('Value of part for hard negative mining is out of range (0, 1)')
         self.hnm = self._HardNegativesTrainStage(self.name() + '_hnm', self.data_producer, part)
+        self._dp_pass_indices_earlier = self.data_producer._is_passed_indices()
         self.data_producer.pass_indices(True)
         return self
 
@@ -420,7 +422,8 @@ class TrainStage(StandardStage):
         :return: self object
         """
         self.hnm = None
-        self.data_producer.pass_indices(False)
+        if not self._dp_pass_indices_earlier:
+            self.data_producer.pass_indices(False)
         return self
 
     def run(self, data_processor: TrainDataProcessor) -> None:

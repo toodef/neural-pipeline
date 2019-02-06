@@ -79,6 +79,9 @@ class DataProducer:
         self._need_pass_indices = need_pass
         return self
 
+    def _is_passed_indices(self) -> bool:
+        return self._need_pass_indices
+
     def get_data(self, dataset_idx: int, data_idx: int) -> object:
         data = self.__datasets[dataset_idx][data_idx]
         if self._need_pass_indices:
