@@ -77,6 +77,7 @@ class FileStructManagerTest(UseFileStructure):
 
     def test_object_registration(self):
         fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
+        fsm_exist_ok = FileStructManager(base_dir=self.base_dir, is_continue=False, exist_ok=True)
         o = self.TestObj(fsm, 'test_dir', 'test_name')
         fsm.register_dir(o)
 
@@ -88,19 +89,28 @@ class FileStructManagerTest(UseFileStructure):
             fsm.register_dir(self.TestObj(fsm, 'test_dir', 'another_name'))
         try:
             fsm.register_dir(self.TestObj(fsm, 'test_dir', 'another_name'), check_dir_registered=False)
+            fsm_exist_ok.register_dir(self.TestObj(fsm, 'test_dir', 'another_name'))
+            fsm_exist_ok.register_dir(self.TestObj(fsm, 'test_dir', 'another_name2'), check_dir_registered=False)
         except:
             self.fail("Folder registrable test fail when it's disabled")
 
         with self.assertRaises(FileStructManager.FSMException):
             fsm.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'))
+            fsm_exist_ok.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'))
         try:
             fsm.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'), check_name_registered=False)
+            fsm_exist_ok.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'), check_name_registered=False)
         except:
             self.fail("Folder registrable test fail when it's disabled")
 
-        os.makedirs(os.path.join(self.base_dir, 'another_dir'))
+        os.makedirs(os.path.join(self.base_dir, 'dir_dir', 'dir'))
         with self.assertRaises(FileStructManager.FSMException):
-            fsm.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'))
+            fsm.register_dir(self.TestObj(fsm, 'dir_dir', 'name_name'))
+
+        try:
+            fsm_exist_ok.register_dir(self.TestObj(fsm, 'dir_dir', 'name_name'))
+        except:
+            self.fail("Folder registrable test fail when exists_ok=True")
 
 
 class CheckpointsManagerTests(UseFileStructure):
@@ -149,7 +159,7 @@ class CheckpointsManagerTests(UseFileStructure):
             if os.path.exists(f) and os.path.isfile(f):
                 self.fail("File '{}' doesn't remove after pack".format(f))
 
-        result = os.path.join(fsm.get_path(cm), 'last_checkpoint.zip')
+        result = os.path.join(fsm.get_path(cm, check=False, create_if_non_exists=False), 'last_checkpoint.zip')
         self.assertTrue(os.path.exists(result) and os.path.isfile(result))
 
         f = open(cm.weights_file(), 'w')
@@ -161,7 +171,7 @@ class CheckpointsManagerTests(UseFileStructure):
 
         try:
             cm.pack()
-            result = os.path.join(fsm.get_path(cm), 'last_checkpoint.zip.old')
+            result = os.path.join(fsm.get_path(cm, check=False, create_if_non_exists=False), 'last_checkpoint.zip.old')
             self.assertTrue(os.path.exists(result) and os.path.isfile(result))
         except Exception as err:
             self.fail('Fail to pack with existing previous state file')

@@ -59,7 +59,7 @@ class CheckpointsManager(FolderRegistrable):
 
         self._prefix = prefix if prefix is not None else 'last'
         fsm.register_dir(self)
-        self._checkpoints_dir = fsm.get_path(self)
+        self._checkpoints_dir = fsm.get_path(self, create_if_non_exists=True, check=False)
 
         if (prefix is None) and (not (os.path.exists(self._checkpoints_dir) and os.path.isdir(self._checkpoints_dir))):
             raise self.SMException("Checkpoints dir doesn't exists: [{}]".format(self._checkpoints_dir))
@@ -184,10 +184,7 @@ class FileStructManager:
         def _create_directories(self) -> None:
             if self._fsm._is_continue:
                 return
-            if os.path.exists(self._path) and os.path.isdir(self._path):
-                if os.listdir(self._path):
-                    raise self._fsm.FSMException("Checkpoint directory already exists [{}]".format(self._path))
-            else:
+            if not (os.path.exists(self._path) and os.path.isdir(self._path)):
                 os.makedirs(self._path, exist_ok=True)
 
         def get_path(self, create_if_non_exists: bool = True) -> str:
@@ -196,10 +193,16 @@ class FileStructManager:
                 self._path_first_request = False
             return self._path
 
-    def __init__(self, base_dir: str, is_continue: bool):
+        def check_path(self):
+            if os.path.exists(self._path) and os.path.isdir(self._path):
+                if os.listdir(self._path):
+                    raise self._fsm.FSMException("Checkpoint directory already exists [{}]".format(self._path))
+
+    def __init__(self, base_dir: str, is_continue: bool, exist_ok: bool = False):
         self._dirs = {}
         self._is_continue = is_continue
         self._base_dir = base_dir
+        self._exist_ok = exist_ok
 
     def register_dir(self, obj: FolderRegistrable, check_name_registered: bool = True, check_dir_registered: bool = True) -> None:
         path = os.path.join(self._base_dir, obj.get_gir())
@@ -214,6 +217,11 @@ class FileStructManager:
                 raise self.FSMException("Object {} already registered!".format(obj.get_name()))
 
         self._dirs[obj.get_name()] = self._Folder(path, self)
+        if not self._exist_ok and not self._is_continue:
+            self._dirs[obj.get_name()].check_path()
 
-    def get_path(self, obj: FolderRegistrable, create_if_non_exists: bool = True) -> str:
-        return self._dirs[obj.get_name()].get_path(create_if_non_exists)
+    def get_path(self, obj: FolderRegistrable, create_if_non_exists: bool = False, check: bool = True) -> str:
+        dir = self._dirs[obj.get_name()]
+        if not self._exist_ok and check:
+            dir.check_path()
+        return dir.get_path(create_if_non_exists)

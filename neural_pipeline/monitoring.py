@@ -88,9 +88,14 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
         self._storage = {}
         self._file = self._get_file_name(False)
         self._final_metrics_file = None
+        self._nonstandard_final_metrix_file = False
 
-    def write_final_metrics(self) -> 'LogMonitor':
-        self._final_metrics_file = self._get_final_file_name(False)
+    def write_final_metrics(self, path: str = None) -> 'LogMonitor':
+        if path is not None:
+            self._final_metrics_file = path
+            self._nonstandard_final_metrix_file = True
+        else:
+            self._final_metrics_file = self._get_final_file_name(False)
         return self
 
     def get_final_metrics_file(self) -> str or None:
@@ -131,7 +136,7 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
 
         if self._final_metrics_file is not None:
             res = dict_recursive_bypass(self._storage, lambda v: v[-1])
-            with open(self._get_final_file_name(True), 'w') as out:
+            with open(self._get_final_file_name(True) if self._nonstandard_final_metrix_file else self._final_metrics_file, 'w') as out:
                 json.dump(res, out)
 
     def _cur_storage(self, names: [str]):
