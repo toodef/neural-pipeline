@@ -7,5 +7,6 @@ API
    ./train
    ./data_processor
    ./train_config
+   ./monitoring
    ./utils
    ./predict
