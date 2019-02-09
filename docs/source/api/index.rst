@@ -5,8 +5,8 @@ API
    :maxdepth: 4
 
    ./train
-   ./data_processor
    ./train_config
    ./monitoring
    ./utils
+   ./data_processor
    ./predict

@@ -1,3 +1,14 @@
+"""
+Main module for monitoring training process
+
+There is:
+
+* :class:`MonitorHub` - monitors collection for connect all monitors to :class:`Trainer`
+* :class:`AbstractMonitor` - basic class for all monitors, that will be connected to :class:`MonitorHub`
+* :class:`ConsoleMonitor` - monitor, that used for write epoch results to console
+* :class:`LogMonitor` - monitor, used for metrics logging
+"""
+
 import json
 import os
 from abc import ABCMeta
@@ -11,6 +22,9 @@ __all__ = ['MonitorHub', 'AbstractMonitor', 'ConsoleMonitor', 'LogMonitor']
 
 
 class AbstractMonitor(metaclass=ABCMeta):
+    """
+    Basic class for every monitor.
+    """
     def __init__(self):
         self.epoch_num = 0
 
@@ -60,6 +74,12 @@ class AbstractMonitor(metaclass=ABCMeta):
 
 
 class ConsoleMonitor(AbstractMonitor):
+    """
+    Monitor, that used for write metrics to console.
+
+    Output looks like: ``Epoch: [#]; train: [-1, 0, 1]; validation: [-1, 0, 1]``. This 3 numbers is [min, mean, max] values of
+    training stage loss values
+    """
     class ResStr:
         def __init__(self, start: str):
             self.res = start
@@ -80,6 +100,13 @@ class ConsoleMonitor(AbstractMonitor):
 
 
 class LogMonitor(AbstractMonitor, FolderRegistrable):
+    """
+    Monitor, used for logging metrics. It's write full log and can also write last metrics in separate file if required
+
+    All output files in JSON format and stores in ``<base_dir_path>/monitors/metrics_log``
+
+    :param fsm: :class:`FileStructManager` object
+    """
     def __init__(self, fsm: FileStructManager):
         super().__init__()
 
@@ -90,6 +117,12 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
         self._final_metrics_file = None
 
     def write_final_metrics(self, path: str = None) -> 'LogMonitor':
+        """
+        Enable saving final metrics to separate file
+
+        :param path: path to result file. If not defined, file will placed near full metrics log and named 'metrics.json`
+        :return: self object
+        """
         if path is not None:
             self._final_metrics_file = path
         else:
@@ -97,6 +130,11 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
         return self
 
     def get_final_metrics_file(self) -> str or None:
+        """
+        Get final metrics file path
+
+        :return: path or None if writing doesn't enabled by :meth:`write_final_metrics`
+        """
         return self._final_metrics_file
 
     def update_metrics(self, metrics: {}) -> None:
@@ -116,7 +154,13 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
 
         self._iterate_by_losses(losses, on_loss)
 
-    def _process_metric(self, cur_metric, parent_tag: str = None):
+    def _process_metric(self, cur_metric, parent_tag: str = None) -> None:
+        """
+        Internal method for processing metrics or metrics groups
+
+        :param cur_metric: :class:`AbstractMetric` or :class:`MetricsGroup` object
+        :param parent_tag: parent tag for place metric in storage
+        """
         if isinstance(cur_metric, MetricsGroup):
             for m in cur_metric.metrics():
                 if m.get_values().size > 0:
@@ -129,6 +173,9 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
                 store.append(float(np.mean(values)))
 
     def _flush_metrics(self) -> None:
+        """
+        Flush metrics files
+        """
         with open(self._get_file_name(True), 'w') as out:
             json.dump(self._storage, out)
 
@@ -137,7 +184,12 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
             with open(self._final_metrics_file, 'w') as out:
                 json.dump(res, out)
 
-    def _cur_storage(self, names: [str]):
+    def _cur_storage(self, names: [str]) -> [] or {}:
+        """
+        Get current substorage by path of names
+        :param names: list on names (path to target substorage)
+        :return: substorage
+        """
         res = self._storage
         for i, n in enumerate(names):
             if n is None:
@@ -147,7 +199,10 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
             res = res[n]
         return res
 
-    def close(self):
+    def close(self) -> None:
+        """
+        Close monitor
+        """
         self._flush_metrics()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -167,6 +222,9 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
 
 
 class MonitorHub:
+    """
+    Aggregator of monitors. This class collect monitors and provide unified interface to it's
+    """
     def __init__(self):
         self.monitors = []
 
@@ -180,6 +238,12 @@ class MonitorHub:
             m.set_epoch_num(epoch_num)
 
     def add_monitor(self, monitor: AbstractMonitor) -> 'MonitorHub':
+        """
+        Connect monitor to hub
+
+        :param monitor: :class:`AbstractMonitor` object
+        :return:
+        """
         self.monitors.append(monitor)
         return self
 
