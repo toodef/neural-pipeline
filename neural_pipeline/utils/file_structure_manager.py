@@ -1,8 +1,15 @@
+"""
+This module contains all classes, that work with file structure
+
+* :class:`FileStructManager` provide all modules registration
+* :class:`CheckpointsManager` provide checkpoints management
+"""
+
 import os
 from abc import ABCMeta, abstractmethod
 from zipfile import ZipFile
 
-__all__ = ['CheckpointsManager', 'FileStructManager', 'FolderRegistrable']
+__all__ = ['FileStructManager', 'CheckpointsManager', 'FolderRegistrable']
 
 
 class FolderRegistrable(metaclass=ABCMeta):
@@ -45,7 +52,7 @@ class CheckpointsManager(FolderRegistrable):
 
     class SMException(Exception):
         """
-        Exception for :mod:`StateManager`
+        Exception for :class:`CheckpointsManager`
         """
 
         def __init__(self, message: str):
@@ -121,9 +128,19 @@ class CheckpointsManager(FolderRegistrable):
         self.clear_files()
 
     def optimizer_state_file(self) -> str:
+        """
+        Get optimizer state file path
+
+        :return: path
+        """
         return self._state_file
 
     def weights_file(self) -> str:
+        """
+        Get model weights file path
+
+        :return: path
+        """
         return self._weights_file
 
     def _compile_path(self, directory: str, file: str) -> str:
@@ -158,10 +175,15 @@ class CheckpointsManager(FolderRegistrable):
 
 class FileStructManager:
     """
-    This class manage data directory. It's get path to config and provide info about folder and interface for work with it
+    Class, that provide directories registration in base directory.
+
+    All modules, that use file structure under base directory should register their paths in this class by pass module
+    to method :meth:`register_dir`.
+    If directory also registered registration method will raise exception :class:`FSMException`
 
     :param base_dir: path to directory with checkpoints
-    :param is_continue: is FileStructManager used for continue training or predict
+    :param is_continue: is `FileStructManager` used for continue training or predict
+    :param exists_ok: if `True` - all checks for existing directories will be disabled
     """
 
     class FSMException(Exception):
@@ -172,6 +194,13 @@ class FileStructManager:
             return self.__message
 
     class _Folder:
+        """
+        Internal class, that implements logic for single registrable directory
+
+        :param path: path to directory
+        :param fsm: :class:`FileStructManager` object
+        """
+
         def __init__(self, path: str, fsm: 'FileStructManager'):
             self._path = path
             self._fsm = fsm
@@ -179,32 +208,59 @@ class FileStructManager:
             self._path_first_request = True
 
         def get_path_for_check(self) -> str:
+            """
+            Get folder path without any checking for existing
+
+            :return: path
+            """
             return self._path
 
         def _create_directories(self) -> None:
+            """
+            Internal method that create directory if this not exists and FileStructManager not in continue mode
+            """
             if self._fsm._is_continue:
                 return
             if not (os.path.exists(self._path) and os.path.isdir(self._path)):
                 os.makedirs(self._path, exist_ok=True)
 
         def get_path(self, create_if_non_exists: bool = True) -> str:
+            """
+            Get folder path. This method create directory if it's not exists (if param ``create_if_non_exists == True``)
+
+            :param create_if_non_exists: is need to create directory if it's doesn't exists
+            :return: directory path
+            """
             if create_if_non_exists and self._path_first_request:
                 self._create_directories()
                 self._path_first_request = False
             return self._path
 
-        def check_path(self):
+        def check_path(self) -> None:
+            """
+            Check that directory doesn't contains any files
+
+            :raises: :class:`FileStructManager.FSMException`
+            """
             if os.path.exists(self._path) and os.path.isdir(self._path):
                 if os.listdir(self._path):
                     raise self._fsm.FSMException("Checkpoint directory already exists [{}]".format(self._path))
 
-    def __init__(self, base_dir: str, is_continue: bool, exist_ok: bool = False):
+    def __init__(self, base_dir: str, is_continue: bool, exists_ok: bool = False):
         self._dirs = {}
         self._is_continue = is_continue
         self._base_dir = base_dir
-        self._exist_ok = exist_ok
+        self._exist_ok = exists_ok
 
     def register_dir(self, obj: FolderRegistrable, check_name_registered: bool = True, check_dir_registered: bool = True) -> None:
+        """
+        Register directory in file structure
+
+        :param obj: object to registration
+        :param check_name_registered: is need to check if object name also registered
+        :param check_dir_registered: is need to check if object path also registered
+        :raise FileStructManager: if path or object name also registered and if path also exists (in depends of optional parameters values)
+        """
         path = os.path.join(self._base_dir, obj.get_gir())
 
         if check_dir_registered:
@@ -221,6 +277,15 @@ class FileStructManager:
             self._dirs[obj.get_name()].check_path()
 
     def get_path(self, obj: FolderRegistrable, create_if_non_exists: bool = False, check: bool = True) -> str:
+        """
+        Get path of registered object
+
+        :param obj: object
+        :param create_if_non_exists: is need to create object's directory if it doesn't exists
+        :param check: is need to check object's directory existing
+        :return: path to directory
+        :raise FSMException: if directory exists and ``check == True``
+        """
         dir = self._dirs[obj.get_name()]
         if not self._exist_ok and check:
             dir.check_path()

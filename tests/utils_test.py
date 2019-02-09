@@ -77,7 +77,7 @@ class FileStructManagerTest(UseFileStructure):
 
     def test_object_registration(self):
         fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
-        fsm_exist_ok = FileStructManager(base_dir=self.base_dir, is_continue=False, exist_ok=True)
+        fsm_exist_ok = FileStructManager(base_dir=self.base_dir, is_continue=False, exists_ok=True)
         o = self.TestObj(fsm, 'test_dir', 'test_name')
         fsm.register_dir(o)
 
