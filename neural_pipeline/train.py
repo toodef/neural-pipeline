@@ -112,6 +112,7 @@ class Trainer:
     :param model: model for training
     :param train_config: :class:`TrainConfig` object
     :param fsm: :class:`FileStructManager` object
+    :param device: device for training process
     """
 
     class TrainerException(Exception):

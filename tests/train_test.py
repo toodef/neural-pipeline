@@ -127,7 +127,7 @@ class TrainTest(UseFileStructure):
         stages = [TrainStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
                                                 for _ in list(range(20))]]), metrics_processor)]
         trainer = Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=0.1)),
-                          fsm).set_epoch_num(3).enable_best_states_storing(lambda: np.mean(stages[0].get_losses()))
+                          fsm).set_epoch_num(3).enable_best_states_saving(lambda: np.mean(stages[0].get_losses()))
 
         checkpoint_file = os.path.join(self.base_dir, 'checkpoints', 'last', 'last_checkpoint.zip')
         best_checkpoint_file = os.path.join(self.base_dir, 'checkpoints', 'best', 'best_checkpoint.zip')

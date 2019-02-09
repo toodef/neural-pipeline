@@ -40,11 +40,11 @@ class DataProcessor:
         """
         return self._model.model()
 
-    def predict(self, data) -> object:
+    def predict(self, data: torch.Tensor or dict) -> object:
         """
         Make predict by data
 
-        :param data: data in dict with key `data`
+        :param data: data as :class:`torch.Tensor` or dict with key ``data``
         :return: processed output
         :rtype: the model output type
         """
@@ -74,7 +74,8 @@ class DataProcessor:
     def _pass_data_to_device(self, data: torch.Tensor or dict) -> torch.Tensor or dict:
         """
         Internal method, that pass data to specified device
-        :param data: data as dict or torch.Tensor
+
+        :param data: data as :class:`torch.Tensor` or dict with key ``data``
         :return: processed on target device
         """
         if isinstance(data, dict):
