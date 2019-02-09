@@ -1,3 +1,7 @@
+"""
+The main module for training process
+"""
+
 import torch
 from torch.nn import Module
 
@@ -6,12 +10,12 @@ from neural_pipeline.utils import FileStructManager, CheckpointsManager
 from neural_pipeline.train_config.train_config import TrainConfig
 from neural_pipeline.monitoring import MonitorHub, ConsoleMonitor
 
-__all__ = ['Trainer', 'LearningRate', 'DecayingLR']
+__all__ = ['Trainer']
 
 
 class LearningRate:
     """
-    Basic learning rate class.
+    Basic learning rate class
     """
 
     def __init__(self, value: float):
@@ -20,6 +24,8 @@ class LearningRate:
     def value(self) -> float:
         """
         Get value of current learning rate
+
+        :return: current value
         """
         return self._value
 
@@ -34,8 +40,9 @@ class LearningRate:
 
 class DecayingLR(LearningRate):
     """
-    This class provide lr decaying by defined metric value (by :arg:`target_value_clbk`). If metric value doesn't update minimum throw defined number of steps -
-    lr decay by defined coefficient.
+    This class provide lr decaying by defined metric value (by :arg:`target_value_clbk`).
+    If metric value doesn't update minimum after defined number of steps (:arg:`patience`) - lr was decaying
+    by defined coefficient (:arg:`decay_coefficient`).
 
     :param start_value: start value
     :param decay_coefficient: coefficient of decaying
@@ -86,7 +93,25 @@ class DecayingLR(LearningRate):
 
 class Trainer:
     """
-    Class, that provide model training
+    Class, that run drive process.
+
+    Trainer get list of training stages and every epoch loop over it.
+
+    Training process looks like:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        for epoch in epochs_num:
+            for stage in training_stages:
+                stage.run()
+                monitor_hub.update_metrics(stage.metrics_processor().get_metrics())
+            save_state()
+            on_epoch_end_callback()
+
+    :param model: model for training
+    :param train_config: :class:`TrainConfig` object
+    :param fsm: :class:`FileStructManager` object
     """
 
     class TrainerException(Exception):
@@ -97,9 +122,9 @@ class Trainer:
         def __str__(self):
             return self._msg
 
-    def __init__(self, model: Module, train_config: TrainConfig, file_struct_manager: FileStructManager,
+    def __init__(self, model: Module, train_config: TrainConfig, fsm: FileStructManager,
                  device: torch.device = None):
-        self._fsm = file_struct_manager
+        self._fsm = fsm
         self.monitor_hub = MonitorHub()
 
         self._checkpoint_manager = CheckpointsManager(self._fsm)
@@ -117,7 +142,8 @@ class Trainer:
 
     def set_epoch_num(self, epoch_number: int) -> 'Trainer':
         """
-        Define number of training epoch
+        Define number of epoch for training. One epoch - one iteration over all train stages
+
         :param epoch_number: number of training epoch
         :return: self object
         """
@@ -127,18 +153,28 @@ class Trainer:
     def resume(self) -> 'Trainer':
         """
         Resume train from last checkpoint
+
         :return: self object
         """
         self.__need_resume = True
         return self
 
     def enable_lr_decaying(self, coeff: float, patience: int, target_val_clbk: callable) -> 'Trainer':
+        """
+        Enable rearing rate decaying. Learning rate decay when `target_val_clbk` returns doesn't update
+        minimum for `patience` steps
+
+        :param coeff: lr decay coefficient
+        :param patience: number of steps
+        :param target_val_clbk: callback which returns the value that is used for lr decaying
+        :return: self object
+        """
         self._lr = DecayingLR(self._data_processor.get_lr(), coeff, patience, target_val_clbk)
         return self
 
     def train(self) -> None:
         """
-        Train model
+        Run training process
         """
         if len(self.__train_config.stages()) < 1:
             raise self.TrainerException("There's no sages for training")
@@ -180,6 +216,14 @@ class Trainer:
 
     def _save_state(self, ckpts_manager: CheckpointsManager, best_ckpts_manager: CheckpointsManager or None,
                     cur_best_state: float or None) -> float or None:
+        """
+        Internal method used for save states after epoch end
+
+        :param ckpts_manager: ordinal checkpoints manager
+        :param best_ckpts_manager: checkpoints manager, used for store best stages
+        :param cur_best_state: current best stage metric value
+        :return: new best stage metric value or None if it not update
+        """
         if self._best_state_rule is not None:
             new_best_state = self._best_state_rule()
             if cur_best_state is None:
@@ -198,7 +242,10 @@ class Trainer:
         ckpts_manager.pack()
         return None
 
-    def _update_losses(self):
+    def _update_losses(self) -> None:
+        """
+        Update loses procedure
+        """
         losses = {}
         for stage in self.__train_config.stages():
             if stage.get_losses() is not None:
@@ -213,11 +260,24 @@ class Trainer:
         """
         return self._data_processor
 
-    def enable_best_states_storing(self, rule: callable) -> 'Trainer':
+    def enable_best_states_saving(self, rule: callable) -> 'Trainer':
+        """
+        Enable best states saving
+
+        Best stages will save when return of `rule` update minimum
+
+        :param rule: callback which returns the value that is used for define when need store best metric
+        :return: self object
+        """
         self._best_state_rule = rule
         return self
 
-    def disable_best_states_storing(self):
+    def disable_best_states_saving(self) -> 'Trainer':
+        """
+        Enable best states saving
+
+        :return: self object
+        """
         self._best_state_rule = None
         return self
 
@@ -231,6 +291,11 @@ class Trainer:
         self._on_epoch_end.append(callback)
         return self
 
-    def __iterate_by_stages(self, func: callable):
+    def __iterate_by_stages(self, func: callable) -> None:
+        """
+        Internal method, that used for iterate by stages
+
+        :param func: callback, that calls for every stage
+        """
         for stage in self.__train_config.stages():
             func(stage)
