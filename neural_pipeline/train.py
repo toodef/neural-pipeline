@@ -5,7 +5,6 @@ from neural_pipeline.data_processor import TrainDataProcessor
 from neural_pipeline.utils import FileStructManager, CheckpointsManager
 from neural_pipeline.train_config.train_config import TrainConfig
 from neural_pipeline.monitoring import MonitorHub, ConsoleMonitor
-from neural_pipeline.utils.file_structure_manager import FolderRegistrable
 
 __all__ = ['Trainer', 'LearningRate', 'DecayingLR']
 

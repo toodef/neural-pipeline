@@ -1,3 +1,4 @@
+import os
 from random import randint
 
 import torch
@@ -100,3 +101,55 @@ class TrainTest(UseFileStructure):
         trainer.train()
 
         self.assertAlmostEqual(trainer.data_processor().get_lr(), 0.1 * (0.5 ** 3), delta=1e-6)
+
+    def test_savig_states(self):
+        fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
+        model = SimpleModel()
+        metrics_processor = MetricsProcessor()
+        stages = [TrainStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
+                                                for _ in list(range(20))]]), metrics_processor)]
+        trainer = Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=0.1)),
+                          fsm).set_epoch_num(3)
+
+        checkpoint_file = os.path.join(self.base_dir, 'checkpoints', 'last', 'last_checkpoint.zip')
+
+        def on_epoch_end():
+            self.assertTrue(os.path.exists(checkpoint_file))
+            os.remove(checkpoint_file)
+
+        trainer.add_on_epoch_end_callback(on_epoch_end)
+        trainer.train()
+
+    def test_savig_best_states(self):
+        fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
+        model = SimpleModel()
+        metrics_processor = MetricsProcessor()
+        stages = [TrainStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
+                                                for _ in list(range(20))]]), metrics_processor)]
+        trainer = Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=0.1)),
+                          fsm).set_epoch_num(3).enable_best_states_storing(lambda: np.mean(stages[0].get_losses()))
+
+        checkpoint_file = os.path.join(self.base_dir, 'checkpoints', 'last', 'last_checkpoint.zip')
+        best_checkpoint_file = os.path.join(self.base_dir, 'checkpoints', 'best', 'best_checkpoint.zip')
+
+        class Val:
+            def __init__(self):
+                self.v = None
+
+        first_val = Val()
+
+        def on_epoch_end(val):
+            if val.v is not None and np.mean(stages[0].get_losses()) < val.v:
+                self.assertTrue(os.path.exists(best_checkpoint_file))
+                os.remove(best_checkpoint_file)
+                val.v = np.mean(stages[0].get_losses())
+                return
+
+            val.v = np.mean(stages[0].get_losses())
+
+            self.assertTrue(os.path.exists(checkpoint_file))
+            self.assertFalse(os.path.exists(best_checkpoint_file))
+            os.remove(checkpoint_file)
+
+        trainer.add_on_epoch_end_callback(lambda: on_epoch_end(first_val))
+        trainer.train()
