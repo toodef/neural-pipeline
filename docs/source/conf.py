@@ -161,7 +161,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'NeuralPipeline', 'Neural Pipeline Documentation',
-     author, 'NeuralPipeline', 'One line description of project.',
+     author, 'NeuralPipeline', 'Neural networks training pipeline based on PyTorch. Designed to standardize training process and to increase coding preformance.',
      'Miscellaneous'),
 ]
 

@@ -1,3 +1,7 @@
+"""
+This module contains Matplotlib monitor interface
+"""
+
 from random import shuffle
 
 try:
@@ -15,6 +19,9 @@ from neural_pipeline.train_config import MetricsGroup
 
 
 class MPLMonitor(AbstractMonitor):
+    """
+    This monitor show all data in Matplotlib plots
+    """
     class _Plot:
         __cmap = plt.cm.get_cmap('hsv', 10)
         __cmap_indices = [i for i in range(10)]
@@ -84,6 +91,12 @@ class MPLMonitor(AbstractMonitor):
                 self._process_metric(group)
 
     def realtime(self, is_realtime: bool) -> 'MPLMonitor':
+        """
+        Is need to show data updates in realtime
+
+        :param is_realtime: is need realtime
+        :return: self object
+        """
         self._realtime = is_realtime
 
     def __exit__(self, exc_type, exc_val, exc_tb):

@@ -7,7 +7,8 @@ Welcome to Neural Pipeline's documentation!
 ===========================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
    :caption: Contents:
 
+   getting_started/index
    api/index

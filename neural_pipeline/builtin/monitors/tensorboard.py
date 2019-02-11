@@ -1,3 +1,7 @@
+"""
+This module contains Tensorboard monitor interface
+"""
+
 import os
 import numpy as np
 
@@ -21,7 +25,7 @@ class TensorboardMonitor(AbstractMonitor, FolderRegistrable):
     Class, that manage metrics end events monitoring. It worked with tensorboard. Monitor get metrics after epoch ends and visualise it. Metrics may be float or np.array values. If
     metric is np.array - it will be shown as histogram and scalars (scalar plots contains mean valuse from array).
 
-    :param file_struct_manager: file structure manager
+    :param fsm: file structure manager
     :param is_continue: is data processor continue training
     :param network_name: network name
     """
@@ -117,16 +121,35 @@ class TensorboardMonitor(AbstractMonitor, FolderRegistrable):
             for group in metrics_group.groups():
                 process_metric(group, metrics_group.name())
 
-    def update_scalar(self, name: str, value: float, epoch_idx: int = None):
+    def update_scalar(self, name: str, value: float, epoch_idx: int = None) -> None:
+        """
+        Update scalar on tensorboard
+
+        :param name: the classic tag for TensorboardX
+        :param value: scalar value
+        :param epoch_idx: epoch idx. If doesn't set - use last epoch idx stored in this class
+        """
         self.__writer.add_scalar(name, value, global_step=(epoch_idx if epoch_idx is not None else self.epoch_num))
 
-    def write_to_txt_log(self, line: str, tag: str = None):
-        self.__writer.add_text("log" if tag is None else tag, line, self.epoch_num)
-        line = "Epoch [{}]".format(self.epoch_num) + ": " + line
-        self.__txt_log_file.write(line + '\n')
+    def write_to_txt_log(self, text: str, tag: str = None) -> None:
+        """
+        Write to txt log
+
+        :param text: text that will be writed
+        :param tag: tag
+        """
+        self.__writer.add_text("log" if tag is None else tag, text, self.epoch_num)
+        text = "Epoch [{}]".format(self.epoch_num) + ": " + text
+        self.__txt_log_file.write(text + '\n')
         self.__txt_log_file.flush()
 
     def visualize_model(self, model: Model, tensor) -> None:
+        """
+        Visualize model graph
+
+        :param model: :class:`torch.nn.Module` object
+        :param tensor: dummy input for trace model
+        """
         self.__writer.add_graph(model, tensor)
 
     def close(self):

@@ -1,3 +1,11 @@
+"""
+This module created AlbUNet: U-Net with ResNet encoder. This model writed by Alexander Buslaev and spoiled by me.
+
+This model can be constructed with 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152' encoders.
+
+For create model just call ``resnet<number>`` method
+"""
+
 import torch
 import torch.nn as nn
 import math
@@ -247,50 +255,60 @@ class ResNet(nn.Module):
 
 
 def resnet18(classes_num: int, in_channels: int, pretrained: bool = True):
-    """Constructs a ResNet-18 model.
+    """
+    Constructs a AlbUNet with ResNet-18 encoder.
 
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    :param classes_num: number of classes (number of masks in output)
+    :param in_channels: number of input channels
+    :param pretrained: If True, returns a model with encoder pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], in_channels)
     return AlbUNet(model, classes_num, weights_url=model_urls['resnet18'] if pretrained else None)
 
 
 def resnet34(classes_num: int, in_channels: int, pretrained: bool = True):
-    """Constructs a ResNet-34 model.
+    """
+    Constructs a AlbUNet with ResNet-34 encoder.
 
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    :param classes_num: number of classes (number of masks in output)
+    :param in_channels: number of input channels
+    :param pretrained: If True, returns a model with encoder pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [3, 4, 6, 3], in_channels)
     return AlbUNet(model, classes_num, weights_url=model_urls['resnet34'] if pretrained else None)
 
 
 def resnet50(classes_num: int, in_channels: int, pretrained: bool = True):
-    """Constructs a ResNet-50 model.
+    """
+    Constructs a AlbUNet with ResNet-50 encoder.
 
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    :param classes_num: number of classes (number of masks in output)
+    :param in_channels: number of input channels
+    :param pretrained: If True, returns a model with encoder pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 6, 3], in_channels)
     return AlbUNet(model, classes_num, weights_url=model_urls['resnet50'] if pretrained else None)
 
 
 def resnet101(classes_num: int, in_channels: int, pretrained: bool = True):
-    """Constructs a ResNet-101 model.
+    """
+    Constructs a AlbUNet with ResNet-101 encoder.
 
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    :param classes_num: number of classes (number of masks in output)
+    :param in_channels: number of input channels
+    :param pretrained: If True, returns a model with encoder pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 23, 3], in_channels)
     return AlbUNet(model, classes_num, weights_url=model_urls['resnet101'] if pretrained else None)
 
 
 def resnet152(classes_num: int, in_channels: int, pretrained: bool = True):
-    """Constructs a ResNet-152 model.
+    """
+    Constructs a AlbUNet with ResNet-152 encoder.
 
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    :param classes_num: number of classes (number of masks in output)
+    :param in_channels: number of input channels
+    :param pretrained: If True, returns a model with encoder pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 8, 36, 3], in_channels)
     return AlbUNet(model, classes_num, weights_url=model_urls['resnet152'] if pretrained else None)
