@@ -1,8 +1,6 @@
 from neural_pipeline.builtin.monitors.tensorboard import TensorboardMonitor
-from neural_pipeline.data_producer import DataProducer, AbstractDataset
-from neural_pipeline.train_config import TrainConfig, TrainStage, ValidationStage
-from neural_pipeline import Trainer
-from neural_pipeline.utils.file_structure_manager import FileStructManager
+from neural_pipeline import DataProducer, AbstractDataset, TrainConfig, TrainStage,\
+    ValidationStage, Trainer, FileStructManager
 
 import torch
 from torch import nn

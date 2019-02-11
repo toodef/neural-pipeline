@@ -36,7 +36,7 @@ class TensorboardMonitor(AbstractMonitor, FolderRegistrable):
         if dir is None:
             return
 
-        dir = os.path.join(dir, network_name)
+        dir = os.path.join(dir, network_name) if network_name is not None else dir
 
         if not (fsm.in_continue_mode() or is_continue) and os.path.exists(dir) and os.path.isdir(dir):
             idx = 0

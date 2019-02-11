@@ -1,10 +1,11 @@
-Neural networks training pipeline based on PyTorch 0.4.1 and designed to standardize and facilitate the training process.
+# Neural Piepline:
+
+Neural networks training pipeline based on PyTorch. Designed to standardize and speedup training process and to increase coding preformance.
 
 [![Build Status](https://travis-ci.org/toodef/neural-pipeline.svg?branch=master)](https://travis-ci.org/toodef/neural-pipeline)
 [![Coverage Status](https://coveralls.io/repos/github/toodef/neural-pipeline/badge.svg?branch=master)](https://coveralls.io/github/toodef/neural-pipeline?branch=master)
 [![Maintainability](https://api.codeclimate.com/v1/badges/1feaafcc614adf27c30f/maintainability)](https://codeclimate.com/github/toodef/neural-pipeline/maintainability)
 
-It's contains:
 * Core is about 2K lines, covered by tests, that you doesn't need to write again
 * Flexible and customizable training process
 * Checkpoints management and train process resuming (source and target device independent)
@@ -13,13 +14,11 @@ It's contains:
 * Metrics logging and comparison (DVC compatible)
 
 # Train MNIST example:
-This code run MNIST image classification with Tensorboard monitoring
+This code run MNIST image classification with Tensorboard monitoring. Code based on PyTorch [example](https://github.com/pytorch/examples/blob/master/mnist/main.py)
 ```python
 from neural_pipeline.builtin.monitors.tensorboard import TensorboardMonitor
-from neural_pipeline.data_producer import DataProducer, AbstractDataset
-from neural_pipeline.train_config import TrainConfig, TrainStage, ValidationStage
-from neural_pipeline import Trainer
-from neural_pipeline.utils.file_structure_manager import FileStructManager
+from neural_pipeline import DataProducer, AbstractDataset, TrainConfig, TrainStage,\
+    ValidationStage, Trainer, FileStructManager
 
 import torch
 from torch import nn
