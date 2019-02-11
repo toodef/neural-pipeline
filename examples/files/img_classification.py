@@ -1,3 +1,4 @@
+from neural_pipeline.builtin.monitors.tensorboard import TensorboardMonitor
 from neural_pipeline.data_producer import DataProducer, AbstractDataset
 from neural_pipeline.train_config import TrainConfig, TrainStage, ValidationStage
 from neural_pipeline import Trainer
@@ -28,11 +29,6 @@ class Net(nn.Module):
         return F.log_softmax(x, dim=1)
 
 
-class NLLLoss(torch.nn.Module):
-    def forward(self, output: torch.Tensor, target: torch.Tensor):
-        return F.nll_loss(output, target)
-
-
 class MNISTDataset(AbstractDataset):
     transforms = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
@@ -50,13 +46,15 @@ class MNISTDataset(AbstractDataset):
 if __name__ == '__main__':
     checkpoints_dir, logdir = 'data/checkpoints', 'data/logs'
 
-    fsm = FileStructManager(checkpoint_dir_path=checkpoints_dir, logdir_path=logdir, prefix=None)
+    fsm = FileStructManager(base_dir='data', is_continue=False)
     model = Net()
 
     train_dataset = DataProducer([MNISTDataset('data/dataset', True)], batch_size=4, num_workers=2)
     validation_dataset = DataProducer([MNISTDataset('data/dataset', False)], batch_size=4, num_workers=2)
 
-    train_config = TrainConfig([TrainStage(train_dataset), ValidationStage(validation_dataset)], NLLLoss(),
+    train_config = TrainConfig([TrainStage(train_dataset), ValidationStage(validation_dataset)], torch.nn.NLLLoss(),
                                torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.5))
 
-    Trainer(model, train_config, fsm, torch.device('cuda:0')).set_epoch_num(50).train()
+    trainer = Trainer(model, train_config, fsm, torch.device('cuda:0')).set_epoch_num(50)
+    trainer.monitor_hub.add_monitor(TensorboardMonitor(fsm, is_continue=False))
+    trainer.train()

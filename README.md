@@ -5,11 +5,77 @@ Neural networks training pipeline based on PyTorch 0.4.1 and designed to standar
 [![Maintainability](https://api.codeclimate.com/v1/badges/1feaafcc614adf27c30f/maintainability)](https://codeclimate.com/github/toodef/neural-pipeline/maintainability)
 
 It's contains:
+* Core is about 2K lines, covered by tests, that you doesn't need to write again
 * Flexible and customizable training process
 * Checkpoints management and train process resuming (source and target device independent)
-* Metrics processing and visualization by builtins ([tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard), [Matplotlib](https://matplotlib.org)) or custom monitors
+* Metrics processing and visualization by builtin ([tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard), [Matplotlib](https://matplotlib.org)) or custom monitors
 * Training best practices (e.g. learning rate decaying and hard negative mining)
 * Metrics logging and comparison (DVC compatible)
+
+# Train MNIST example:
+This code run MNIST image classification with Tensorboard monitoring
+```python
+from neural_pipeline.builtin.monitors.tensorboard import TensorboardMonitor
+from neural_pipeline.data_producer import DataProducer, AbstractDataset
+from neural_pipeline.train_config import TrainConfig, TrainStage, ValidationStage
+from neural_pipeline import Trainer
+from neural_pipeline.utils.file_structure_manager import FileStructManager
+
+import torch
+from torch import nn
+import torch.nn.functional as F
+from torchvision import datasets, transforms
+
+
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5, 1)
+        self.conv2 = nn.Conv2d(20, 50, 5, 1)
+        self.fc1 = nn.Linear(4 * 4 * 50, 500)
+        self.fc2 = nn.Linear(500, 10)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = F.relu(self.conv2(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = x.view(-1, 4 * 4 * 50)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
+
+
+class MNISTDataset(AbstractDataset):
+    transforms = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+
+    def __init__(self, data_dir: str, is_train: bool):
+        self.dataset = datasets.MNIST(data_dir, train=is_train, download=True)
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, item):
+        data, target = self.dataset[item]
+        return {'data': self.transforms(data), 'target': target}
+
+
+if __name__ == '__main__':
+    checkpoints_dir, logdir = 'data/checkpoints', 'data/logs'
+
+    fsm = FileStructManager(base_dir='data', is_continue=False)
+    model = Net()
+
+    train_dataset = DataProducer([MNISTDataset('data/dataset', True)], batch_size=4, num_workers=2)
+    validation_dataset = DataProducer([MNISTDataset('data/dataset', False)], batch_size=4, num_workers=2)
+
+    train_config = TrainConfig([TrainStage(train_dataset), ValidationStage(validation_dataset)], torch.nn.NLLLoss(),
+                               torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.5))
+
+    trainer = Trainer(model, train_config, fsm, torch.device('cuda:0')).set_epoch_num(50)
+    trainer.monitor_hub.add_monitor(TensorboardMonitor(fsm, is_continue=False))
+    trainer.train()
+```
 
 # Installation:
 [![PyPI version](https://badge.fury.io/py/neural-pipeline.svg)](https://badge.fury.io/py/neural-pipeline)
@@ -33,8 +99,9 @@ Data flow scheme:
 ![Data flow](https://github.com/toodef/neural-pipeline/blob/master/docs/img/data_flow.svg)
 
 ### See the examples
-* MNIST classification example - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/src/img_classification.py)
-* Segmentation example - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_segmentation.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_segmentation.py)
+* MNIST classification - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/src/img_classification.py)
+* Segmentation - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_segmentation.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_segmentation.py)
+* Resume training process - [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/resume_train.py)
 
 
 
