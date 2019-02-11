@@ -1,6 +1,6 @@
-# Neural Piepline:
+# Neural Piepline
 
-Neural networks training pipeline based on PyTorch. Designed to standardize and speedup training process and to increase coding preformance.
+Neural networks training pipeline based on PyTorch. Designed to standardize training process and to increase coding preformance.
 
 [![Build Status](https://travis-ci.org/toodef/neural-pipeline.svg?branch=master)](https://travis-ci.org/toodef/neural-pipeline)
 [![Coverage Status](https://coveralls.io/repos/github/toodef/neural-pipeline/badge.svg?branch=master)](https://coveralls.io/github/toodef/neural-pipeline?branch=master)
@@ -14,9 +14,9 @@ Neural networks training pipeline based on PyTorch. Designed to standardize and 
 * Metrics logging and comparison (DVC compatible)
 
 # Train MNIST example:
-This code run MNIST image classification with Tensorboard monitoring. Code based on PyTorch [example](https://github.com/pytorch/examples/blob/master/mnist/main.py)
+This code run MNIST image classification with Tensorboard monitoring. Code based on PyTorch [example](https://github.com/pytorch/examples/blob/master/mnist/main.py).
 
-See full example [there](https://github.com/toodef/neural-pipeline/blob/master/examples/src/img_classification.py)
+See full example [there](https://github.com/toodef/neural-pipeline/blob/master/examples/src/img_classification.py).
 ```python
 from neural_pipeline.builtin.monitors.tensorboard import TensorboardMonitor
 from neural_pipeline import DataProducer, AbstractDataset, TrainConfig, TrainStage,\
