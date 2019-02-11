@@ -16,7 +16,7 @@ Neural networks training pipeline based on PyTorch. Designed to standardize trai
 # Train MNIST example:
 This code run MNIST image classification with Tensorboard monitoring. Code based on PyTorch [example](https://github.com/pytorch/examples/blob/master/mnist/main.py).
 
-See full example [there](https://github.com/toodef/neural-pipeline/blob/master/examples/src/img_classification.py).
+See full example [there](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_classification.py).
 ```python
 from neural_pipeline.builtin.monitors.tensorboard import TensorboardMonitor
 from neural_pipeline import DataProducer, AbstractDataset, TrainConfig, TrainStage,\
@@ -80,7 +80,7 @@ Data flow scheme:
 ![Data flow](https://github.com/toodef/neural-pipeline/blob/master/docs/img/data_flow.svg)
 
 ### See the examples
-* MNIST classification - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/src/img_classification.py)
+* MNIST classification - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_classification.py)
 * Segmentation - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_segmentation.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_segmentation.py)
 * Resume training process - [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/resume_train.py)
 
