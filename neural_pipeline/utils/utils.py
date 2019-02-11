@@ -1,6 +1,7 @@
 def dict_recursive_bypass(dictionary: dict, on_node: callable) -> dict:
     """
     Recursive bypass dictionary
+
     :param dictionary:
     :param on_node: callable for every node, that get value of dict end node as parameters
     """
@@ -17,6 +18,7 @@ def dict_recursive_bypass(dictionary: dict, on_node: callable) -> dict:
 def dict_pair_recursive_bypass(dictionary1: dict, dictionary2: dict, on_node: callable) -> dict:
     """
     Recursive bypass dictionary
+
     :param dictionary1:
     :param dictionary2:
     :param on_node: callable for every node, that get value of dict end node as parameters

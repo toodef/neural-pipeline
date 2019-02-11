@@ -80,9 +80,21 @@ class DataProducer:
         return self
 
     def _is_passed_indices(self) -> bool:
+        """
+        Internal method for know if :class:`DataProducer` passed indices
+
+        :return: is passed
+        """
         return self._need_pass_indices
 
     def get_data(self, dataset_idx: int, data_idx: int) -> object:
+        """
+        Get single data by dataset idx and data_idx
+
+        :param dataset_idx: index of dataset
+        :param data_idx: index of data in this dataset
+        :return: dataset output
+        """
         data = self.__datasets[dataset_idx][data_idx]
         if self._need_pass_indices:
             if not isinstance(data, dict):
@@ -119,11 +131,20 @@ class DataProducer:
         return DataLoader(self, batch_size=self.__batch_size, num_workers=self.__num_workers,
                           shuffle=self._glob_shuffle, pin_memory=self._pin_memory)
 
-    def _get_loader_by_indices(self, indices: [int]) -> DataLoader:
+    def _get_loader_by_indices(self, indices: [str]) -> DataLoader:
+        """
+        Get loader, that produce data only by specified indices
+
+        :param indices: required indices
+        :return: :class:`DataLoader` object
+        """
         return DataLoader(_ByIndices(self.__datasets, indices), batch_size=self.__batch_size, num_workers=self.__num_workers,
                           shuffle=self._glob_shuffle, pin_memory=self._pin_memory)
 
-    def _update_datasets_idx_space(self):
+    def _update_datasets_idx_space(self) -> None:
+        """
+        Update idx space of datasets. Idx space used for correct mapping global idx to corresponding dataset data index
+        """
         if self._shuffle_datasets_order:
             shuffle(self.__datasets)
 

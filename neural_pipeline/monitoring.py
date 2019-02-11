@@ -214,10 +214,10 @@ class LogMonitor(AbstractMonitor, FolderRegistrable):
     def _get_final_file_name(self, create: bool) -> str:
         return os.path.join(self._fsm.get_path(self, create), 'metrics.json')
 
-    def get_gir(self) -> str:
+    def _get_gir(self) -> str:
         return os.path.join('monitors', 'metrics_log')
 
-    def get_name(self) -> str:
+    def _get_name(self) -> str:
         return 'LogMonitor'
 
 

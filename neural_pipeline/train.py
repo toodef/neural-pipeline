@@ -1,6 +1,7 @@
 """
 The main module for training process
 """
+import json
 
 import torch
 from torch.nn import Module
@@ -131,13 +132,13 @@ class Trainer:
         self._checkpoint_manager = CheckpointsManager(self._fsm)
 
         self.__epoch_num = 100
-        self.__need_resume = False
+        self._resume_from = None
         self._on_epoch_end = []
         self._best_state_rule = None
 
         self.__train_config = train_config
         self._device = device
-        self._data_processor = TrainDataProcessor(model, self.__train_config, self._device)\
+        self._data_processor = TrainDataProcessor(model, self.__train_config, self._device) \
             .set_checkpoints_manager(self._checkpoint_manager)
         self._lr = LearningRate(self._data_processor.get_lr())
 
@@ -151,13 +152,14 @@ class Trainer:
         self.__epoch_num = epoch_number
         return self
 
-    def resume(self) -> 'Trainer':
+    def resume(self, from_best_checkpoint: bool) -> 'Trainer':
         """
         Resume train from last checkpoint
 
+        :param from_best_checkpoint: is need to continue from best checkpoint
         :return: self object
         """
-        self.__need_resume = True
+        self._resume_from = 'last' if from_best_checkpoint is False else 'best'
         return self
 
     def enable_lr_decaying(self, coeff: float, patience: int, target_val_clbk: callable) -> 'Trainer':
@@ -185,13 +187,9 @@ class Trainer:
         if self._best_state_rule is not None:
             best_checkpoints_manager = CheckpointsManager(self._fsm, 'best')
 
-        if self.__need_resume:
-            self._checkpoint_manager.unpack()
-            self._data_processor.load()
-            self._checkpoint_manager.pack()
-
         start_epoch_idx = 1
-
+        if self._resume_from is not None:
+            start_epoch_idx += self._resume()
         self.monitor_hub.add_monitor(ConsoleMonitor())
 
         with self.monitor_hub:
@@ -203,7 +201,7 @@ class Trainer:
                     if stage.metrics_processor() is not None:
                         self.monitor_hub.update_metrics(stage.metrics_processor().get_metrics())
 
-                new_best_state = self._save_state(self._checkpoint_manager, best_checkpoints_manager, cur_best_state)
+                new_best_state = self._save_state(self._checkpoint_manager, best_checkpoints_manager, cur_best_state, epoch_idx)
                 if new_best_state is not None:
                     cur_best_state = new_best_state
 
@@ -215,8 +213,24 @@ class Trainer:
                 self._update_losses()
                 self.__iterate_by_stages(lambda s: s.on_epoch_end())
 
+    def _resume(self) -> int:
+        if self._resume_from == 'last':
+            ckpts_manager = self._checkpoint_manager
+        elif self._checkpoint_manager == 'best':
+            ckpts_manager = CheckpointsManager(self._fsm, 'best')
+        else:
+            raise NotImplementedError("Resume parameter may be only 'last' or 'best' not {}".format(self._resume_from))
+        ckpts_manager.unpack()
+        self._data_processor.load()
+
+        with open(ckpts_manager.trainer_file(), 'r') as file:
+            start_epoch_idx = json.load(file)['last_epoch'] + 1
+
+        ckpts_manager.pack()
+        return start_epoch_idx
+
     def _save_state(self, ckpts_manager: CheckpointsManager, best_ckpts_manager: CheckpointsManager or None,
-                    cur_best_state: float or None) -> float or None:
+                    cur_best_state: float or None, epoch_idx: int) -> float or None:
         """
         Internal method used for save states after epoch end
 
@@ -225,21 +239,28 @@ class Trainer:
         :param cur_best_state: current best stage metric value
         :return: new best stage metric value or None if it not update
         """
+        def save_trainer(ckp_manager):
+            with open(ckp_manager.trainer_file(), 'w') as out:
+                json.dump({'last_epoch': epoch_idx}, out)
+
         if self._best_state_rule is not None:
             new_best_state = self._best_state_rule()
             if cur_best_state is None:
                 self._data_processor.save_state()
+                save_trainer(ckpts_manager)
                 ckpts_manager.pack()
                 return new_best_state
             else:
                 if new_best_state <= cur_best_state:
                     self._data_processor.set_checkpoints_manager(best_ckpts_manager)
                     self._data_processor.save_state()
+                    save_trainer(best_ckpts_manager)
                     best_ckpts_manager.pack()
                     self._data_processor.set_checkpoints_manager(ckpts_manager)
                     return new_best_state
 
         self._data_processor.save_state()
+        save_trainer(ckpts_manager)
         ckpts_manager.pack()
         return None
 

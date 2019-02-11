@@ -20,7 +20,7 @@ except ImportError:
 from neural_pipeline.data_producer.data_producer import DataProducer
 from neural_pipeline.data_processor.data_processor import TrainDataProcessor
 
-__all__ = ['AbstractMetric', 'MetricsGroup', 'MetricsProcessor', 'AbstractStage', 'TrainStage', 'ValidationStage', 'TrainConfig']
+__all__ = ['TrainConfig', 'TrainStage', 'ValidationStage', 'AbstractMetric', 'MetricsGroup', 'MetricsProcessor', 'AbstractStage']
 
 
 class AbstractMetric(metaclass=ABCMeta):
@@ -78,6 +78,7 @@ class AbstractMetric(metaclass=ABCMeta):
     def min_val() -> float:
         """
         Get minimum value of metric. This used for correct histogram visualisation in some monitors
+
         :return: minimum value
         """
         return 0
@@ -86,6 +87,7 @@ class AbstractMetric(metaclass=ABCMeta):
     def max_val() -> float:
         """
         Get maximum value of metric. This used for correct histogram visualisation in some monitors
+
         :return: maximum value
         """
         return 1
@@ -354,6 +356,11 @@ class StandardStage(AbstractStage):
             self._losses = np.append(self._losses, cur_loss)
 
     def metrics_processor(self) -> MetricsProcessor or None:
+        """
+        Get merics processor of this stage
+
+        :return: :class:`MetricsProcessor` if specified otherwise None
+        """
         return self._metrics_processor
 
     def get_losses(self) -> np.ndarray:
@@ -365,6 +372,9 @@ class StandardStage(AbstractStage):
         return self._losses
 
     def on_epoch_end(self) -> None:
+        """
+        Method, that calls after every epoch
+        """
         self._losses = None
         metrics_processor = self.metrics_processor()
         if metrics_processor is not None:
@@ -427,17 +437,31 @@ class TrainStage(StandardStage):
         return self
 
     def run(self, data_processor: TrainDataProcessor) -> None:
+        """
+        Run stage
+
+        :param data_processor: :class:`TrainDataProcessor` object
+        """
         super().run(data_processor)
         if self.hnm is not None:
             self.hnm.exec(data_processor, self._losses, self.hn_indices)
             self.hn_indices = []
 
-    def _process_batch(self, batch, data_processor: TrainDataProcessor):
+    def _process_batch(self, batch, data_processor: TrainDataProcessor) -> None:
+        """
+        Internal method for process one bathc
+
+        :param batch: batch
+        :param data_processor: :class:`TrainDataProcessor` instance
+        """
         if self.hnm is not None:
             self.hn_indices.append(batch['data_idx'])
         super()._process_batch(batch, data_processor)
 
     def on_epoch_end(self):
+        """
+        Method, that calls after every epoch
+        """
         super().on_epoch_end()
         if self.hnm is not None:
             self.hnm.on_epoch_end()

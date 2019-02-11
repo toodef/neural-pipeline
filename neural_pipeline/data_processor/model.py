@@ -25,6 +25,12 @@ class Model:
         self._checkpoints_manager = None
 
     def set_checkpoints_manager(self, manager: CheckpointsManager) -> 'Model':
+        """
+        Set checkpoints manager, that will be used for identify path for weights file reading an writing
+
+        :param manager: :class:`CheckpointsManager` instance
+        :return: self object
+        """
         self._checkpoints_manager = manager
         return self
 

@@ -109,7 +109,6 @@ class TrainDataProcessor(DataProcessor):
             self.__criterion.to(self._device)
 
         self.__optimizer = train_config.optimizer()
-        self.__epoch_num = 0
 
     def predict(self, data, is_train=False) -> torch.Tensor or dict:
         """
@@ -175,9 +174,6 @@ class TrainDataProcessor(DataProcessor):
         """
         for param_group in self.__optimizer.param_groups:
             return param_group['lr']
-
-    def get_last_epoch_idx(self):
-        return self.__epoch_num
 
     def get_state(self) -> {}:
         """

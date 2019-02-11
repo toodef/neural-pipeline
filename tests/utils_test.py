@@ -45,10 +45,10 @@ class FileStructManagerTest(UseFileStructure):
             self.dir = dir
             self.name = name
 
-        def get_gir(self) -> str:
+        def _get_gir(self) -> str:
             return self.dir
 
-        def get_name(self) -> str:
+        def _get_name(self) -> str:
             return self.name
 
     def test_creation(self):
@@ -144,10 +144,10 @@ class CheckpointsManagerTests(UseFileStructure):
         shutil.rmtree(cm.optimizer_state_file())
 
         f = open(cm.weights_file(), 'w')
-        f.write('1')
         f.close()
         f = open(cm.optimizer_state_file(), 'w')
-        f.write('1')
+        f.close()
+        f = open(cm.trainer_file(), 'w')
         f.close()
 
         try:
@@ -163,10 +163,10 @@ class CheckpointsManagerTests(UseFileStructure):
         self.assertTrue(os.path.exists(result) and os.path.isfile(result))
 
         f = open(cm.weights_file(), 'w')
-        f.write('1')
         f.close()
         f = open(cm.optimizer_state_file(), 'w')
-        f.write('1')
+        f.close()
+        f = open(cm.trainer_file(), 'w')
         f.close()
 
         try:
@@ -185,6 +185,8 @@ class CheckpointsManagerTests(UseFileStructure):
         f.close()
         f = open(cm.optimizer_state_file(), 'w')
         f.write('2')
+        f = open(cm.trainer_file(), 'w')
+        f.write('3')
         f.close()
 
         cm.pack()
@@ -194,7 +196,7 @@ class CheckpointsManagerTests(UseFileStructure):
         except Exception as err:
             self.fail('Exception on unpacking')
 
-        for i, f in enumerate([cm.weights_file(), cm.optimizer_state_file()]):
+        for i, f in enumerate([cm.weights_file(), cm.optimizer_state_file(), cm.trainer_file()]):
             if not (os.path.exists(f) and os.path.isfile(f)):
                 self.fail("File '{}' doesn't remove after pack".format(f))
             with open(f, 'r') as file:

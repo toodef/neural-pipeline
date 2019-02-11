@@ -24,7 +24,7 @@ class FolderRegistrable(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_gir(self) -> str:
+    def _get_gir(self) -> str:
         """
         Get directory path to register
 
@@ -32,7 +32,7 @@ class FolderRegistrable(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_name(self) -> str:
+    def _get_name(self) -> str:
         """
         Get name of registrable object
 
@@ -74,8 +74,9 @@ class CheckpointsManager(FolderRegistrable):
         self._weights_file = os.path.join(self._checkpoints_dir, 'weights.pth')
         self._state_file = os.path.join(self._checkpoints_dir, 'state.pth')
         self._checkpoint_file = self._compile_path(self._checkpoints_dir, 'checkpoint.zip')
+        self._trainer_file = os.path.join(self._checkpoints_dir, 'trainer.json')
 
-        if os.path.exists(self._weights_file) and os.path.exists(self._state_file) and \
+        if not fsm.in_continue_mode() and os.path.exists(self._weights_file) and os.path.exists(self._state_file) and \
                 os.path.isfile(self._weights_file) and os.path.isfile(self._state_file):
             prev_prefix = self._prefix
             self._prefix = "prev_start"
@@ -89,7 +90,7 @@ class CheckpointsManager(FolderRegistrable):
         with ZipFile(self._checkpoint_file, 'r') as zipfile:
             zipfile.extractall(self._checkpoints_dir)
 
-        self._check_files([self._weights_file, self._state_file])
+        self._check_files([self._weights_file, self._state_file, self._trainer_file])
 
     def clear_files(self) -> None:
         """
@@ -102,6 +103,7 @@ class CheckpointsManager(FolderRegistrable):
 
         rm_file(self._weights_file)
         rm_file(self._state_file)
+        rm_file(self._trainer_file)
 
     def pack(self) -> None:
         """
@@ -124,6 +126,7 @@ class CheckpointsManager(FolderRegistrable):
         with ZipFile(self._checkpoint_file, 'w') as zipfile:
             zipfile.write(self._weights_file, os.path.basename(self._weights_file))
             zipfile.write(self._state_file, os.path.basename(self._state_file))
+            zipfile.write(self._trainer_file, os.path.basename(self._trainer_file))
 
         self.clear_files()
 
@@ -142,6 +145,14 @@ class CheckpointsManager(FolderRegistrable):
         :return: path
         """
         return self._weights_file
+
+    def trainer_file(self) -> str:
+        """
+        Get trainer state file path
+
+        :return: path
+        """
+        return self._trainer_file
 
     def _compile_path(self, directory: str, file: str) -> str:
         """
@@ -166,10 +177,10 @@ class CheckpointsManager(FolderRegistrable):
         if len(failed) > 0:
             raise self.SMException("Some files doesn't exists: [{}]".format(';'.join(files)))
 
-    def get_gir(self) -> str:
+    def _get_gir(self) -> str:
         return os.path.join('checkpoints', self._prefix)
 
-    def get_name(self) -> str:
+    def _get_name(self) -> str:
         return 'CheckpointsManager' + self._prefix
 
 
@@ -261,7 +272,7 @@ class FileStructManager:
         :param check_dir_registered: is need to check if object path also registered
         :raise FileStructManager: if path or object name also registered and if path also exists (in depends of optional parameters values)
         """
-        path = os.path.join(self._base_dir, obj.get_gir())
+        path = os.path.join(self._base_dir, obj._get_gir())
 
         if check_dir_registered:
             for n, f in self._dirs.items():
@@ -269,12 +280,12 @@ class FileStructManager:
                     raise self.FSMException("Path {} already registered!".format(path))
 
         if check_name_registered:
-            if obj.get_name() in self._dirs:
-                raise self.FSMException("Object {} already registered!".format(obj.get_name()))
+            if obj._get_name() in self._dirs:
+                raise self.FSMException("Object {} already registered!".format(obj._get_name()))
 
-        self._dirs[obj.get_name()] = self._Folder(path, self)
+        self._dirs[obj._get_name()] = self._Folder(path, self)
         if not self._exist_ok and not self._is_continue:
-            self._dirs[obj.get_name()].check_path()
+            self._dirs[obj._get_name()].check_path()
 
     def get_path(self, obj: FolderRegistrable, create_if_non_exists: bool = False, check: bool = True) -> str:
         """
@@ -286,7 +297,15 @@ class FileStructManager:
         :return: path to directory
         :raise FSMException: if directory exists and ``check == True``
         """
-        dir = self._dirs[obj.get_name()]
-        if not self._exist_ok and check:
+        dir = self._dirs[obj._get_name()]
+        if not self._exist_ok and not self._is_continue and check:
             dir.check_path()
         return dir.get_path(create_if_non_exists)
+
+    def in_continue_mode(self) -> bool:
+        """
+        Is FileStructManager in continue mode
+
+        :return: True if in continue
+        """
+        return self._is_continue

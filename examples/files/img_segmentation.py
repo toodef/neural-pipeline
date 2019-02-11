@@ -22,7 +22,6 @@ from albumentations import Compose, HorizontalFlip, VerticalFlip, RandomRotate90
 
 from neural_pipeline import Trainer
 from neural_pipeline.builtin.models.albunet import resnet18
-from neural_pipeline.builtin.monitors.mpl import MPLMonitor
 from neural_pipeline.data_producer import AbstractDataset, DataProducer
 from neural_pipeline.monitoring import LogMonitor
 from neural_pipeline.train_config import AbstractMetric, MetricsProcessor, MetricsGroup, TrainStage, ValidationStage, TrainConfig
@@ -61,7 +60,7 @@ class PicsartDataset(AbstractDataset):
         images_pathes = sorted(images_pathes, key=lambda p: int(os.path.splitext(p)[0]))
         self.__image_pathes = []
         self.__aug = aug
-        for p in images_pathes:
+        for p in images_pathes[:20]:
             name = os.path.splitext(p)[0]
             mask_img = os.path.join(masks_dir, name + '.png')
             if os.path.exists(mask_img):
@@ -81,7 +80,8 @@ img_dir = os.path.join(base_dir, 'train')
 img_pathes = [f for f in os.listdir(img_dir) if os.path.splitext(f)[1] == ".jpg"]
 train_pathes, val_pathes = train_test_split(img_pathes, shuffle=True, test_size=0.2)
 
-train_dataset, val_dataset = PicsartDataset(train_pathes, augmentate_and_to_pytorch), PicsartDataset(val_pathes, augmentate_and_to_pytorch)
+train_dataset, val_dataset = PicsartDataset(train_pathes, augmentate_and_to_pytorch), PicsartDataset(val_pathes,
+                                                                                                     augmentate_and_to_pytorch)
 
 ###################################
 # define metrics
@@ -141,29 +141,52 @@ class SegmentationMetricsProcessor(MetricsProcessor):
 # define train config and train model
 ###################################
 
-if __name__ == '__main__':
-    train_data_producer = DataProducer([train_dataset], batch_size=2, num_workers=3)
-    val_data_producer = DataProducer([val_dataset], batch_size=2, num_workers=3)
+train_data_producer = DataProducer([train_dataset], batch_size=2, num_workers=3)
+val_data_producer = DataProducer([val_dataset], batch_size=2, num_workers=3)
 
+train_stage = TrainStage(train_data_producer, SegmentationMetricsProcessor('train')).enable_hard_negative_mining(0.1)
+val_metrics_processor = SegmentationMetricsProcessor('validation')
+val_stage = ValidationStage(val_data_producer, val_metrics_processor)
+
+
+def train():
     model = resnet18(classes_num=1, in_channels=3, pretrained=True)
-
-    train_stage = TrainStage(train_data_producer, SegmentationMetricsProcessor('train')).enable_hard_negative_mining(0.1)
-    val_metrics_processor = SegmentationMetricsProcessor('validation')
-    val_stage = ValidationStage(val_data_producer, val_metrics_processor)
-
     train_config = TrainConfig([train_stage, val_stage], torch.nn.BCEWithLogitsLoss(),
                                torch.optim.Adam(model.parameters(), lr=1e-4))
 
     file_struct_manager = FileStructManager(base_dir='data', is_continue=False)
 
-    trainer = Trainer(model, train_config, file_struct_manager, torch.device('cuda:0')).set_epoch_num(50)
+    trainer = Trainer(model, train_config, file_struct_manager, torch.device('cuda:0')).set_epoch_num(2)
 
     tensorboard = TensorboardMonitor(file_struct_manager, is_continue=False, network_name='PortraitSegmentation')
     log = LogMonitor(file_struct_manager).write_final_metrics()
-    mpl_monitor = MPLMonitor()
-    trainer.monitor_hub.add_monitor(tensorboard).add_monitor(log).add_monitor(mpl_monitor)
-    trainer.enable_best_states_storing(lambda: np.mean(train_stage.get_losses()))
+    trainer.monitor_hub.add_monitor(tensorboard).add_monitor(log)
+    trainer.enable_best_states_saving(lambda: np.mean(train_stage.get_losses()))
 
     trainer.enable_lr_decaying(coeff=0.5, patience=10, target_val_clbk=lambda: np.mean(train_stage.get_losses()))
     trainer.add_on_epoch_end_callback(lambda: tensorboard.update_scalar('params/lr', trainer.data_processor().get_lr()))
     trainer.train()
+
+
+def continue_training():
+    model = resnet18(classes_num=1, in_channels=3, pretrained=True)
+    train_config = TrainConfig([train_stage, val_stage], torch.nn.BCEWithLogitsLoss(),
+                               torch.optim.Adam(model.parameters(), lr=1e-4))
+
+    file_struct_manager = FileStructManager(base_dir='data', is_continue=True)
+
+    trainer = Trainer(model, train_config, file_struct_manager, torch.device('cuda:0')).set_epoch_num(10)
+
+    tensorboard = TensorboardMonitor(file_struct_manager, is_continue=False, network_name='PortraitSegmentation')
+    log = LogMonitor(file_struct_manager).write_final_metrics()
+    trainer.monitor_hub.add_monitor(tensorboard).add_monitor(log)
+    trainer.enable_best_states_saving(lambda: np.mean(train_stage.get_losses()))
+
+    trainer.enable_lr_decaying(coeff=0.5, patience=10, target_val_clbk=lambda: np.mean(train_stage.get_losses()))
+    trainer.add_on_epoch_end_callback(lambda: tensorboard.update_scalar('params/lr', trainer.data_processor().get_lr()))
+    trainer.resume(from_best_checkpoint=False).train()
+
+
+if __name__ == "__main__":
+    train()
+    continue_training()

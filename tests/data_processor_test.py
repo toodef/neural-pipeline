@@ -276,7 +276,6 @@ class TrainDataProcessorTest(UseFileStructure):
             try:
                 cm = CheckpointsManager(fsm)
                 dp_after.set_checkpoints_manager(cm)
-                cm.unpack()
                 dp_after.load()
             except:
                 self.fail('DataProcessor initialisation raises exception')
@@ -285,6 +284,5 @@ class TrainDataProcessorTest(UseFileStructure):
 
             dict_pair_recursive_bypass(before_state_dict, after_state_dict, on_node)
             self.assertEqual(dp_before.get_lr(), dp_after.get_lr())
-            self.assertEqual(dp_after.get_last_epoch_idx(), 0)
 
             shutil.rmtree(self.base_dir)

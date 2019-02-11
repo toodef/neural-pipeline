@@ -26,19 +26,19 @@ class TensorboardMonitor(AbstractMonitor, FolderRegistrable):
     :param network_name: network name
     """
 
-    def __init__(self, file_struct_manager: FileStructManager, is_continue: bool, network_name: str = None):
+    def __init__(self, fsm: FileStructManager, is_continue: bool, network_name: str = None):
         super().__init__()
         self.__writer = None
         self.__txt_log_file = None
 
-        file_struct_manager.register_dir(self)
-        dir = file_struct_manager.get_path(self)
+        fsm.register_dir(self)
+        dir = fsm.get_path(self)
         if dir is None:
             return
 
         dir = os.path.join(dir, network_name)
 
-        if not is_continue and os.path.exists(dir) and os.path.isdir(dir):
+        if not (fsm.in_continue_mode() or is_continue) and os.path.exists(dir) and os.path.isdir(dir):
             idx = 0
             tmp_dir = dir + "_v{}".format(idx)
             while os.path.exists(tmp_dir) and os.path.isdir(tmp_dir):
@@ -142,8 +142,8 @@ class TensorboardMonitor(AbstractMonitor, FolderRegistrable):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    def get_gir(self) -> str:
+    def _get_gir(self) -> str:
         return os.path.join('monitors', 'tensorboard')
 
-    def get_name(self) -> str:
+    def _get_name(self) -> str:
         return 'Tensorboard'
