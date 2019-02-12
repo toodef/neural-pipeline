@@ -35,5 +35,5 @@ For do it we need before training connect builtin `TensorboardMonitor` to `Train
 
 Now Tensorboard output will looks like:
 
-.. image:: img/tensorboard_loss.jpg
-.. image:: img/tensorboard_hist.jpg
+.. image:: ./img/tensorboard_loss.jpg
+.. image:: ./img/tensorboard_hist.jpg
