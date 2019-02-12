@@ -20,7 +20,8 @@ except ImportError:
 from neural_pipeline.data_producer.data_producer import DataProducer
 from neural_pipeline.data_processor.data_processor import TrainDataProcessor
 
-__all__ = ['TrainConfig', 'TrainStage', 'ValidationStage', 'AbstractMetric', 'MetricsGroup', 'MetricsProcessor', 'AbstractStage']
+__all__ = ['TrainConfig', 'TrainStage', 'ValidationStage', 'AbstractMetric', 'MetricsGroup', 'MetricsProcessor', 'AbstractStage',
+           'StandardStage']
 
 
 class AbstractMetric(metaclass=ABCMeta):

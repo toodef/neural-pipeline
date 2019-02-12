@@ -42,8 +42,6 @@ class MNISTDataset(AbstractDataset):
         data, target = self.dataset[item]
         return {'data': self.transforms(data), 'target': target}
 
-checkpoints_dir, logdir = 'data/checkpoints', 'data/logs'
-
 fsm = FileStructManager(base_dir='data', is_continue=False)
 model = Net()
 

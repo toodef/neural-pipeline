@@ -6,8 +6,9 @@ API
 
    ./train
    ./train_config
-   ./monitoring
+   ./data_producer
    ./utils
+   ./monitoring
    ./data_processor
    ./predict
    builtin/index

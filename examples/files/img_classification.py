@@ -42,8 +42,6 @@ class MNISTDataset(AbstractDataset):
 
 
 if __name__ == '__main__':
-    checkpoints_dir, logdir = 'data/checkpoints', 'data/logs'
-
     fsm = FileStructManager(base_dir='data', is_continue=False)
     model = Net()
 
@@ -53,6 +51,6 @@ if __name__ == '__main__':
     train_config = TrainConfig([TrainStage(train_dataset), ValidationStage(validation_dataset)], torch.nn.NLLLoss(),
                                torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.5))
 
-    trainer = Trainer(model, train_config, fsm, torch.device('cuda:0')).set_epoch_num(50)
+    trainer = Trainer(model, train_config, fsm, torch.device('cuda:0')).set_epoch_num(5)
     trainer.monitor_hub.add_monitor(TensorboardMonitor(fsm, is_continue=False))
     trainer.train()

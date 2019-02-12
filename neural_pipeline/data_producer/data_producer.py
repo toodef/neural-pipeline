@@ -45,7 +45,7 @@ class DataProducer:
         Is need to shuffle datasets order. Shuffling performs after every 0 index access
 
         :param is_need: is need
-        :return self object
+        :return: self object
         """
         self._shuffle_datasets_order = is_need
         return self
