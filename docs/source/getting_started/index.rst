@@ -11,7 +11,7 @@ First of all look at main classes of Neural Pipeline:
 
 Training stages needed for customize training process. With it `Trainer` work by this scheme (dataflow scheme for single epoch):
 
-.. image:: ..\\..\\img\\data_flow.svg
+.. image:: img/data_flow.svg
 
 .. toctree::
    :maxdepth: 4

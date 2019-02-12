@@ -72,10 +72,8 @@ trainer.train()
 # Getting started:
 ### Documentation
 [![Documentation Status](https://readthedocs.org/projects/neural-pipeline/badge/?version=master)](https://neural-pipeline.readthedocs.io/en/master/?badge=master)
-[See the full documentation there](https://neural-pipeline.readthedocs.io/en/master/)
-
-Data flow scheme:
-![Data flow](https://github.com/toodef/neural-pipeline/blob/master/docs/img/data_flow.svg)
+* [See the full documentation there](https://neural-pipeline.readthedocs.io/en/master/)
+* [Read getting started guide](https://neural-pipeline.readthedocs.io/en/master/getting_started/index.html)
 
 ### See the examples
 * MNIST classification - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_classification.py)
