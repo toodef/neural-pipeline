@@ -23,7 +23,7 @@ Last line build by `tqdm <https://github.com/tqdm/tqdm>`_ and outcomes from ``Tr
 Add Tensorboard monitor
 -----------------------
 
-For getting most useful information bout training we can connect `Tensorboard <https://www.tensorflow.org/guide/summaries_and_tensorboard>`_.
+For getting most useful information about training we can connect `Tensorboard <https://www.tensorflow.org/guide/summaries_and_tensorboard>`_.
 
 For do it we need before training connect builtin `TensorboardMonitor` to `Trainer`:
 
