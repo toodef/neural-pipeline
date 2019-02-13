@@ -24,10 +24,7 @@ Neural networks training pipeline based on PyTorch. Designed to standardize trai
 * Segmentation - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_segmentation.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_segmentation.py)
 * Resume training process - [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/resume_train.py)
 
-### Training example:
-This code run MNIST image classification with Tensorboard monitoring. Code based on PyTorch [example](https://github.com/pytorch/examples/blob/master/mnist/main.py).
-
-See full example [there](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_classification.py).
+### Neural Pipeline short overview:
 ```python
 import torch
 
