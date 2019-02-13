@@ -13,7 +13,18 @@ Neural networks training pipeline based on PyTorch. Designed to standardize trai
 * Training best practices (e.g. learning rate decaying and hard negative mining)
 * Metrics logging and comparison (DVC compatible)
 
-# Training example:
+# Getting started:
+### Documentation
+[![Documentation Status](https://readthedocs.org/projects/neural-pipeline/badge/?version=master)](https://neural-pipeline.readthedocs.io/en/master/?badge=master)
+* [See the full documentation there](https://neural-pipeline.readthedocs.io/en/master/)
+* [Read getting started guide](https://neural-pipeline.readthedocs.io/en/master/getting_started/index.html)
+
+### See the examples
+* MNIST classification - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_classification.py)
+* Segmentation - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_segmentation.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_segmentation.py)
+* Resume training process - [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/resume_train.py)
+
+### Training example:
 This code run MNIST image classification with Tensorboard monitoring. Code based on PyTorch [example](https://github.com/pytorch/examples/blob/master/mnist/main.py).
 
 See full example [there](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_classification.py).
@@ -40,7 +51,7 @@ trainer.monitor_hub.add_monitor(TensorboardMonitor(fsm, is_continue=False))\
                    .add_monitor(LogMonitor(fsm))
 trainer.train()
 ```
-This example train MyNet on MyDataset with vizualisation in Tensorflow and console and with metrics logging for further experiments comparison.
+This example of training MyNet on MyDataset with vizualisation in Tensorflow and with metrics logging for further experiments comparison.
 
 # Installation:
 [![PyPI version](https://badge.fury.io/py/neural-pipeline.svg)](https://badge.fury.io/py/neural-pipeline)
@@ -54,17 +65,3 @@ This example train MyNet on MyDataset with vizualisation in Tensorflow and conso
 
 ##### Install latest version before it's published on PyPi
 `pip install -U git+https://github.com/toodef/neural-pipeline`
-
-# Getting started:
-### Documentation
-[![Documentation Status](https://readthedocs.org/projects/neural-pipeline/badge/?version=master)](https://neural-pipeline.readthedocs.io/en/master/?badge=master)
-* [See the full documentation there](https://neural-pipeline.readthedocs.io/en/master/)
-* [Read getting started guide](https://neural-pipeline.readthedocs.io/en/master/getting_started/index.html)
-
-### See the examples
-* MNIST classification - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_classification.py)
-* Segmentation - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_segmentation.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_segmentation.py)
-* Resume training process - [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/resume_train.py)
-
-
-
