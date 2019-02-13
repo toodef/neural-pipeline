@@ -13,7 +13,7 @@ Neural networks training pipeline based on PyTorch. Designed to standardize trai
 * Training best practices (e.g. learning rate decaying and hard negative mining)
 * Metrics logging and comparison (DVC compatible)
 
-# Train MNIST example:
+# Training example:
 This code run MNIST image classification with Tensorboard monitoring. Code based on PyTorch [example](https://github.com/pytorch/examples/blob/master/mnist/main.py).
 
 See full example [there](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_classification.py).
@@ -26,35 +26,23 @@ import torch
 from torch import nn
 from torchvision import datasets, transforms
 
-class Net(nn.Module):
-    # Network implementation
-
-class MNISTDataset(AbstractDataset):
-    transforms = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-
-    def __init__(self, data_dir: str, is_train: bool):
-        self.dataset = datasets.MNIST(data_dir, train=is_train, download=True)
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, item):
-        data, target = self.dataset[item]
-        return {'data': self.transforms(data), 'target': target}
+from somethig import MyNet, MyDataset
 
 fsm = FileStructManager(base_dir='data', is_continue=False)
-model = Net()
+model = MyNet()
 
-train_dataset = DataProducer([MNISTDataset('data/dataset', True)], batch_size=4, num_workers=2)
-validation_dataset = DataProducer([MNISTDataset('data/dataset', False)], batch_size=4, num_workers=2)
+train_dataset = DataProducer([MyDataset()], batch_size=4, num_workers=2)
+validation_dataset = DataProducer([MyDataset()], batch_size=4, num_workers=2)
 
 train_config = TrainConfig([TrainStage(train_dataset), ValidationStage(validation_dataset)], torch.nn.NLLLoss(),
                            torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.5))
 
 trainer = Trainer(model, train_config, fsm, torch.device('cuda:0')).set_epoch_num(50)
-trainer.monitor_hub.add_monitor(TensorboardMonitor(fsm, is_continue=False))
+trainer.monitor_hub.add_monitor(TensorboardMonitor(fsm, is_continue=False))\
+                   .add_monitor(LogMonitor(fsm))
 trainer.train()
 ```
+This example train MyNet on MyDataset with vizualisation in Tensorflow and console and with metrics logging for further experiments comparison.
 
 # Installation:
 [![PyPI version](https://badge.fury.io/py/neural-pipeline.svg)](https://badge.fury.io/py/neural-pipeline)
