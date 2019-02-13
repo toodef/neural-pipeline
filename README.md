@@ -18,13 +18,11 @@ This code run MNIST image classification with Tensorboard monitoring. Code based
 
 See full example [there](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_classification.py).
 ```python
+import torch
+
 from neural_pipeline.builtin.monitors.tensorboard import TensorboardMonitor
 from neural_pipeline import DataProducer, AbstractDataset, TrainConfig, TrainStage,\
     ValidationStage, Trainer, FileStructManager
-
-import torch
-from torch import nn
-from torchvision import datasets, transforms
 
 from somethig import MyNet, MyDataset
 
