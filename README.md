@@ -20,7 +20,7 @@ Neural networks training pipeline based on PyTorch. Designed to standardize trai
 * [Read getting started guide](https://neural-pipeline.readthedocs.io/en/master/getting_started/index.html)
 
 ### See the examples
-* MNIST classification - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_classification.py)
+* MNIST classification - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_classification.py), [Kaggle kernel](https://www.kaggle.com/toodef/cnn-training-with-less-code)
 * Segmentation - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_segmentation.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_segmentation.py)
 * Resume training process - [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/resume_train.py)
 
