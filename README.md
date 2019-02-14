@@ -1,6 +1,6 @@
 # Neural Piepline
 
-Neural networks training pipeline based on PyTorch. Designed to standardize training process and to increase coding preformance.
+Neural networks training pipeline based on PyTorch. Designed to standardize training process and accelerate experiments.
 
 [![Build Status](https://travis-ci.org/toodef/neural-pipeline.svg?branch=master)](https://travis-ci.org/toodef/neural-pipeline)
 [![Coverage Status](https://coveralls.io/repos/github/toodef/neural-pipeline/badge.svg?branch=master)](https://coveralls.io/github/toodef/neural-pipeline?branch=master)
