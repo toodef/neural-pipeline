@@ -104,15 +104,15 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.9899495"
-     inkscape:cx="303.09049"
-     inkscape:cy="383.56735"
+     inkscape:cx="146.01177"
+     inkscape:cy="302.75515"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
      inkscape:window-width="1920"
-     inkscape:window-height="1013"
-     inkscape:window-x="-9"
-     inkscape:window-y="-9"
+     inkscape:window-height="1025"
+     inkscape:window-x="0"
+     inkscape:window-y="27"
      inkscape:window-maximized="1" />
   <metadata
      id="metadata5">
@@ -122,7 +122,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -145,13 +145,13 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#8e29be;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="120.61161"
-       y="200.79735"
+       x="125.68973"
+       y="252.9149"
        id="text20"><tspan
          sodipodi:role="line"
          id="tspan18"
-         x="120.61161"
-         y="200.79735"
+         x="125.68973"
+         y="252.9149"
          style="fill:#8e29be;fill-opacity:1;stroke-width:0.26458332">MetricsProcessor</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:1.05960655px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -254,35 +254,35 @@
          id="tspan4628">      s.run(data_producer)</tspan></text>
     <rect
        id="rect3802-3-4"
-       width="104.23909"
-       height="35.861565"
-       x="119.40343"
-       y="191.03156"
-       style="fill:none;stroke:#000000;stroke-width:0.26931742;stroke-opacity:1" />
+       width="100.53122"
+       height="28.411921"
+       x="124.46458"
+       y="243.13216"
+       style="fill:none;stroke:#000000;stroke-width:0.23541562;stroke-opacity:1" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:10.39085388px;line-height:5.60387516px;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.25977135"
-       x="130.95724"
-       y="213.31796"
+       x="135.94301"
+       y="266.40094"
        id="text4626-4"
        transform="scale(1.018524,0.9818129)"><tspan
          sodipodi:role="line"
          id="tspan4624-6"
-         x="130.95724"
-         y="213.31796"
+         x="135.94301"
+         y="266.40094"
          style="font-size:6.3499999px;line-height:5.60387516px;letter-spacing:0px;stroke-width:0.25977135"
          dx="0"
-         dy="0">for m in AbstractMonitor's:</tspan><tspan
+         dy="0">for m in AbstractMetrics's:</tspan><tspan
          sodipodi:role="line"
-         x="130.95724"
-         y="220.0829"
+         x="135.94301"
+         y="273.0545"
          style="font-size:6.3499999px;line-height:5.60387516px;letter-spacing:0px;stroke-width:0.25977135"
-         id="tspan4628-1">    m.update_metrics()</tspan><tspan
+         id="tspan4628-1">    m.calc(output, target)</tspan><tspan
          sodipodi:role="line"
-         x="130.95724"
-         y="226.84784"
+         x="135.94301"
+         y="279.70804"
          style="font-size:6.3499999px;line-height:5.60387516px;letter-spacing:0px;stroke-width:0.25977135"
-         id="tspan4670">    m.update_losses()</tspan></text>
+         id="tspan4670" /></text>
     <rect
        id="rect3802-9"
        width="228.53743"
@@ -291,8 +291,8 @@
        y="183.58296"
        style="fill:none;stroke:#000000;stroke-width:0.70806557;stroke-opacity:1" />
     <path
-       style="fill:none;fill-opacity:1;stroke:#007a00;stroke-width:0.537;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
-       d="m 173.45492,237.9583 -0.0491,-9.41971"
+       style="fill:none;fill-opacity:1;stroke:#007a00;stroke-width:0.565;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="m 175.05854,242.11263 -0.0491,-17.04855"
        id="path4687"
        inkscape:connector-curvature="0" />
     <text
@@ -309,35 +309,35 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#8e29be;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="116.061"
-       y="248.45197"
+       x="117.39734"
+       y="201.94707"
        id="text16-5"><tspan
          sodipodi:role="line"
          id="tspan14-7"
-         x="116.061"
-         y="248.45197"
+         x="117.39734"
+         y="201.94707"
          style="fill:#8e29be;fill-opacity:1;stroke-width:0.26458332">MonitorHub</tspan></text>
     <rect
        id="rect3802-3-8"
-       width="109.78186"
-       height="32.127506"
-       x="115.55135"
-       y="239.3763"
-       style="fill:none;stroke:#000000;stroke-width:0.26160038;stroke-opacity:1" />
+       width="109.79405"
+       height="29.199732"
+       x="116.8816"
+       y="192.86531"
+       style="fill:none;stroke:#000000;stroke-width:0.24940974;stroke-opacity:1" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:5.76791573px;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="125.71237"
-       y="260.435"
+       x="126.78145"
+       y="210.99013"
        id="text4626-3"><tspan
          sodipodi:role="line"
          id="tspan4624-8"
-         x="125.71237"
-         y="260.435"
+         x="126.78145"
+         y="210.99013"
          style="font-size:6.3499999px;line-height:5.76791573px;stroke-width:0.26458332">for m in AbstractMonitor's:</tspan><tspan
          sodipodi:role="line"
-         x="125.71237"
-         y="267.41928"
+         x="126.78145"
+         y="217.85771"
          style="font-size:6.3499999px;line-height:5.76791573px;stroke-width:0.26458332"
          id="tspan4628-4">    m.update(MetricsProcessor)</tspan></text>
     <text
