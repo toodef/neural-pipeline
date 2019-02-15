@@ -7,6 +7,7 @@ from neural_pipeline.utils import CheckpointsManager
 from torch.nn import Module
 
 from neural_pipeline.data_processor.model import Model
+from neural_pipeline.train_config import TrainConfig
 from neural_pipeline.utils.utils import dict_recursive_bypass
 
 __all__ = ['DataProcessor', 'TrainDataProcessor']
