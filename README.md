@@ -5,6 +5,7 @@ Neural networks training pipeline based on PyTorch. Designed to standardize trai
 [![Build Status](https://travis-ci.org/toodef/neural-pipeline.svg?branch=master)](https://travis-ci.org/toodef/neural-pipeline)
 [![Coverage Status](https://coveralls.io/repos/github/toodef/neural-pipeline/badge.svg?branch=master)](https://coveralls.io/github/toodef/neural-pipeline?branch=master)
 [![Maintainability](https://api.codeclimate.com/v1/badges/1feaafcc614adf27c30f/maintainability)](https://codeclimate.com/github/toodef/neural-pipeline/maintainability)
+[![Gitter chat](https://badges.gitter.im/neural-pipeline/gitter.png)](https://gitter.im/neural-pipeline/community)
 
 * Core is about 2K lines, covered by tests, that you doesn't need to write again
 * Flexible and customizable training process
