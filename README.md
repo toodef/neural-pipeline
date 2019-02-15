@@ -1,4 +1,4 @@
-# Neural Piepline
+# Neural Pipeline
 
 Neural networks training pipeline based on PyTorch. Designed to standardize training process and accelerate experiments.
 
