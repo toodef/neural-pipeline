@@ -7,7 +7,7 @@ Neural networks training pipeline based on PyTorch. Designed to standardize trai
 [![Maintainability](https://api.codeclimate.com/v1/badges/1feaafcc614adf27c30f/maintainability)](https://codeclimate.com/github/toodef/neural-pipeline/maintainability)
 [![Gitter chat](https://badges.gitter.im/neural-pipeline/gitter.png)](https://gitter.im/neural-pipeline/community)
 
-* Core is about 2K lines, covered by tests, that you doesn't need to write again
+* Core is about 2K lines, covered by tests, that you don't need to write again
 * Flexible and customizable training process
 * Checkpoints management and train process resuming (source and target device independent)
 * Metrics processing and visualization by builtin ([tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard), [Matplotlib](https://matplotlib.org)) or custom monitors
