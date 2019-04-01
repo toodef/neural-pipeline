@@ -522,3 +522,6 @@ class TrainConfig:
         :return: list of stages
         """
         return self._train_stages
+
+    def generate_name(self) -> str:
+        raise NotImplementedError()
