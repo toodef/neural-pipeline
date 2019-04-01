@@ -10,6 +10,7 @@ from neural_pipeline.data_processor import TrainDataProcessor
 from neural_pipeline.utils import FileStructManager, CheckpointsManager
 from neural_pipeline.train_config.train_config import TrainConfig
 from neural_pipeline.monitoring import MonitorHub, ConsoleMonitor
+from neural_pipeline.utils.fsm import MultipleFSM
 
 __all__ = ['Trainer']
 
@@ -321,3 +322,20 @@ class Trainer:
         """
         for stage in self.__train_config.stages():
             func(stage)
+
+
+class GridSearchTrainer:
+    def __init__(self, init_model_clbk: callable, train_configs: [TrainConfig], workdir: str, device: torch.device = None):
+        self._trainers = []
+        names = []
+        for train_config in train_configs:
+            names.append(train_config.generate_name())
+
+        fsm = MultipleFSM(workdir, names, is_continue=False, exists_ok=False)
+
+        for train_config in train_configs:
+            self._trainers.append(Trainer(init_model_clbk(), train_config, fsm, device=device))
+
+    def train(self):
+        for trainer in self._trainers:
+            trainer.train()

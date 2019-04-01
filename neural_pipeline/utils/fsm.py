@@ -9,7 +9,7 @@ import os
 from abc import ABCMeta, abstractmethod
 from zipfile import ZipFile
 
-__all__ = ['FileStructManager', 'CheckpointsManager', 'FolderRegistrable']
+__all__ = ['FileStructManager', 'CheckpointsManager', 'FolderRegistrable', 'MultipleFSM']
 
 
 class FolderRegistrable(metaclass=ABCMeta):
@@ -272,7 +272,7 @@ class FileStructManager:
         :param check_dir_registered: is need to check if object path also registered
         :raise FileStructManager: if path or object name also registered and if path also exists (in depends of optional parameters values)
         """
-        path = os.path.join(self._base_dir, obj._get_gir())
+        path = self._compile_path(obj)
 
         if check_dir_registered:
             for n, f in self._dirs.items():
@@ -309,3 +309,21 @@ class FileStructManager:
         :return: True if in continue
         """
         return self._is_continue
+
+    def _compile_path(self, obj: FolderRegistrable) -> str:
+        return os.path.join(self._base_dir, obj._get_gir())
+
+
+class MultipleFSM(FileStructManager):
+    def __init__(self, base_dir: str, experiments_names: [str], is_continue: bool, exists_ok: bool = False):
+        super().__init__(base_dir, is_continue, exists_ok)
+        self._experiments_names = experiments_names
+
+        self._objects_nums = {}
+
+    def _compile_path(self, obj: FolderRegistrable) -> str:
+        if obj._get_name() not in self._objects_nums:
+            self._objects_nums[obj._get_name()] = 0
+        else:
+            self._objects_nums[obj._get_name()] += 1
+        return os.path.join(self._base_dir, str(self._objects_nums[obj._get_name()]), obj._get_gir())
