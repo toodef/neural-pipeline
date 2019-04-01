@@ -1,7 +1,7 @@
 import torch
 from torch.nn import Module
 
-from neural_pipeline.utils.file_structure_manager import FileStructManager, CheckpointsManager
+from neural_pipeline.utils.file_structure_manager import CheckpointsManager
 
 __all__ = ['Model']
 
@@ -96,3 +96,16 @@ class Model:
         """
         self._base_model.to(device)
         return self
+
+    def to(self, dtype: torch.dtype) -> None:
+        """
+        Comvert model to target type such as `torch.float16`, `torch.uint8` e.t.c. See full list of types [there](https://pytorch.org/docs/stable/tensor_attributes.html#torch.torch.dtype)
+
+        :param dtype: target type
+        """
+
+        self._base_model.to(dtype)
+        for layer in self._base_model.modules():
+            if not dtype.is_floating_point and isinstance(layer, torch.nn.BatchNorm2d):
+                raise self.ModelException("Use of not floating point dtype doesn't supported by BatchNorm")
+            layer.to(dtype)

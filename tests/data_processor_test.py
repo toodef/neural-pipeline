@@ -4,6 +4,7 @@ import unittest
 
 import torch
 import numpy as np
+from torchvision import models
 
 from neural_pipeline.data_processor import DataProcessor, TrainDataProcessor, Model
 from neural_pipeline.utils import FileStructManager, dict_pair_recursive_bypass, CheckpointsManager
@@ -101,6 +102,24 @@ class ModelTest(UseFileStructure):
         Model(torch.nn.DataParallel(m_new)).load_weights('weights.pth')
         compare_two_models(self, m, m_new)
         os.remove('weights.pth')
+
+    def test_change_type(self):
+        def pass_torchvision_models(dtype):
+            for model in [models.resnet18(), models.resnet34(), models.resnet50(), models.resnet101(), models.resnet152(),
+                          models.alexnet(), models.densenet121(), models.densenet161(), models.densenet169(), models.densenet201(),
+                          models.inception_v3(), models.squeezenet1_0(), models.squeezenet1_1(), models.vgg11()]:
+                Model(model).to(target_type)
+
+        for target_type in [torch.float32, torch.float16]:
+            try:
+                Model(SimpleModel()).to(target_type)
+                if target_type.is_floating_point:
+                    pass_torchvision_models(target_type)
+                else:
+                    with self.assertRaises(Model.ModelException):
+                        pass_torchvision_models(target_type)
+            except:
+                self.fail('Fail to convert Model to {}'.format(target_type))
 
 
 class DataProcessorTest(UseFileStructure):
