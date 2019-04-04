@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
 from torch import optim
+from torch import nn
 
 __all__ = ['RegestryEntry']
 
@@ -59,7 +60,19 @@ class AdamEntry(RegestryEntry):
     def _init_by_params(self, params: {}) -> optim.Adam:
         return optim.Adam(params=params['params'], lr=params['lr'] if 'lr' in params else 1e-3,
                           betas=params['betas'] if 'betas' in params else (0.9, 0.999), eps=params['eps'] if 'eps' in params else 1e-8,
-                          weight_decay=params['weight_decay'] if 'weight_decay' in params else 0, amsgrad=params['amsgrad'] if 'amsgrad' in params else False)
+                          weight_decay=params['weight_decay'] if 'weight_decay' in params else 0,
+                          amsgrad=params['amsgrad'] if 'amsgrad' in params else False)
 
 
-registry = {type(optim.Adam): AdamEntry()}
+class BCELossEntry(RegestryEntry):
+    def __init__(self):
+        super().__init__(nn.BCELoss)
+
+    def get_params(self) -> {}:
+        return {}
+
+    def _init_by_params(self, params: {}) -> object:
+        return nn.BCELoss()
+
+
+registry = {type(optim.Adam): AdamEntry(), type(nn.BCELoss): BCELossEntry()}
