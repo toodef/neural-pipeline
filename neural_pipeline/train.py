@@ -5,6 +5,7 @@ import json
 import os
 
 import torch
+from neural_pipeline import AbstractMonitor
 from torch.nn import Module
 
 from neural_pipeline.data_processor import TrainDataProcessor
@@ -345,7 +346,7 @@ class Trainer:
 
 
 class GridSearchTrainer:
-    def __init__(self, init_model_clbk: callable, train_configs: [NamedTrainConfig], workdir: str, device: torch.device = None):
+    def __init__(self, init_model_clbk: callable, train_configs: [NamedTrainConfig], workdir: str, device: torch.device = None, is_resume: bool = False):
         self._trainers = []
         self._names = []
         self._train_configs = train_configs
@@ -355,11 +356,15 @@ class GridSearchTrainer:
         self._workdir = workdir
         self._state = {}
 
-        self._is_resume = False
+        self._fsm = None
 
-    def _init(self):
+        if is_resume:
+            self._resume()
+        self._init(is_resume)
+
+    def _init(self, is_resume: bool):
         target_train_configs = []
-        if self._is_resume:
+        if is_resume:
 
             for train_config in self._train_configs:
                 if train_config.get_name() not in self._state:
@@ -375,21 +380,17 @@ class GridSearchTrainer:
         for train_config in target_train_configs:
             self._trainers.append(Trainer(self._init_model(), train_config, fsm, device=self._device))
 
-    def resume(self) -> 'GridSearchTrainer':
+    def _resume(self) -> 'GridSearchTrainer':
         """
         Resume gridsearch
 
         :return: self object
         """
-        self._is_resume = True
-
         with open(self.__state_file_path(), 'r') as file:
             self._state = json.load(file)
         return self
 
     def train(self):
-        self._init()
-
         with open(self.__state_file_path(), 'w') as file:
             for i, trainer in enumerate(self._trainers):
                 trainer.train()
@@ -405,4 +406,14 @@ class GridSearchTrainer:
 
         :return: path
         """
-        return os.path.join(self._workdir, 'gridserch_trainer.json')
+        return os.path.join(self._workdir, 'gridsearch_trainer.json')
+
+    def set_epoch_num(self, epoch_num: int) -> 'GridSearchTrainer':
+        for trainer in self._trainers:
+            trainer.set_epoch_num(epoch_num)
+        return self
+
+    def add_monitor(self, init_monitor_clbk: callable) -> 'GridSearchTrainer':
+        for trainer in self._trainers:
+            trainer.monitor_hub.add_monitor(init_monitor_clbk())
+        return self
