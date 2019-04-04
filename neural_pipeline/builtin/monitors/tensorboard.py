@@ -13,7 +13,7 @@ except ImportError:
 from neural_pipeline.monitoring import AbstractMonitor
 from neural_pipeline.data_processor import Model
 from neural_pipeline.train_config import AbstractMetric, MetricsGroup
-from neural_pipeline.utils.file_structure_manager import FileStructManager, FolderRegistrable
+from neural_pipeline.utils.fsm import FileStructManager, FolderRegistrable
 
 import warnings
 
