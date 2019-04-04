@@ -26,8 +26,7 @@ class TrainTest(UseFileStructure):
         fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
         model = SimpleModel()
 
-        trainer = Trainer(model,
-                          TrainConfig([], torch.nn.L1Loss(), torch.optim.SGD(model.parameters(), lr=1)),
+        trainer = Trainer(TrainConfig(model, [], torch.nn.L1Loss(), torch.optim.SGD(model.parameters(), lr=1)),
                           fsm)
         with self.assertRaises(Trainer.TrainerException):
             trainer.train()
@@ -40,7 +39,7 @@ class TrainTest(UseFileStructure):
                                                 for _ in list(range(20))]]), metrics_processor),
                   ValidationStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
                                                      for _ in list(range(20))]]), metrics_processor)]
-        Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1)), fsm) \
+        Trainer(TrainConfig(model, stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1)), fsm) \
             .set_epoch_num(1).train()
 
     def test_decaynig_lr(self):
@@ -91,7 +90,7 @@ class TrainTest(UseFileStructure):
                                                 for _ in list(range(20))]]), metrics_processor),
                   ValidationStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
                                                      for _ in list(range(20))]]), metrics_processor)]
-        trainer = Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=0.1)),
+        trainer = Trainer(TrainConfig(model, stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=0.1)),
                           fsm).set_epoch_num(10)
 
         def target_value_clbk() -> float:
@@ -108,7 +107,7 @@ class TrainTest(UseFileStructure):
         metrics_processor = MetricsProcessor()
         stages = [TrainStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
                                                 for _ in list(range(20))]]), metrics_processor)]
-        trainer = Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=0.1)),
+        trainer = Trainer(TrainConfig(model, stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=0.1)),
                           fsm).set_epoch_num(3)
 
         checkpoint_file = os.path.join(self.base_dir, 'checkpoints', 'last', 'last_checkpoint.zip')
@@ -126,7 +125,7 @@ class TrainTest(UseFileStructure):
         metrics_processor = MetricsProcessor()
         stages = [TrainStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
                                                 for _ in list(range(20))]]), metrics_processor)]
-        trainer = Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=0.1)),
+        trainer = Trainer(TrainConfig(model, stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=0.1)),
                           fsm).set_epoch_num(3).enable_best_states_saving(lambda: np.mean(stages[0].get_losses()))
 
         checkpoint_file = os.path.join(self.base_dir, 'checkpoints', 'last', 'last_checkpoint.zip')

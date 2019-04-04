@@ -158,7 +158,7 @@ class TrainConfigTest(UseFileStructure):
 
         fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
         model = SimpleModel()
-        Trainer(model, TrainConfig([train_stage], SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1)), fsm) \
+        Trainer(TrainConfig(model, [train_stage], SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1)), fsm) \
             .set_epoch_num(1).train()
 
         self.assertEqual(metrics_processor.call_num, len(data_producer))

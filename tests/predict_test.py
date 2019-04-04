@@ -20,7 +20,7 @@ class PredictTest(UseFileStructure):
                                                 for _ in list(range(20))]]), metrics_processor),
                   ValidationStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
                                                      for _ in list(range(20))]]), metrics_processor)]
-        Trainer(model, TrainConfig(stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1)), fsm)\
+        Trainer(TrainConfig(model, stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1)), fsm)\
             .set_epoch_num(1).train()
 
         fsm = FileStructManager(base_dir=self.base_dir, is_continue=True)

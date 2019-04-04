@@ -127,7 +127,7 @@ class Trainer:
         def __str__(self):
             return self._msg
 
-    def __init__(self, model: Module, train_config: TrainConfig, fsm: FileStructManager,
+    def __init__(self, train_config: TrainConfig, fsm: FileStructManager,
                  device: torch.device = None):
         self._fsm = fsm
         self.monitor_hub = MonitorHub()
@@ -141,7 +141,7 @@ class Trainer:
 
         self._train_config = train_config
         self._device = device
-        self._data_processor = TrainDataProcessor(model, self._train_config, self._device) \
+        self._data_processor = TrainDataProcessor(train_config.model(), self._train_config, self._device) \
             .set_checkpoints_manager(self._checkpoint_manager)
         self._lr = LearningRate(self._data_processor.get_lr())
 
@@ -346,11 +346,10 @@ class Trainer:
 
 
 class GridSearchTrainer:
-    def __init__(self, init_model_clbk: callable, train_configs: [NamedTrainConfig], workdir: str, device: torch.device = None, is_resume: bool = False):
+    def __init__(self, train_configs: [NamedTrainConfig], workdir: str, device: torch.device = None, is_resume: bool = False):
         self._trainers = []
         self._names = []
         self._train_configs = train_configs
-        self._init_model = init_model_clbk
         self._device = device
 
         self._workdir = workdir
@@ -375,10 +374,10 @@ class GridSearchTrainer:
         for train_config in target_train_configs:
             self._names.append(train_config.get_name())
 
-        fsm = MultipleFSM(self._workdir, self._names, is_continue=False, exists_ok=False)
+        self._fsm = MultipleFSM(self._workdir, self._names, is_continue=False, exists_ok=False)
 
         for train_config in target_train_configs:
-            self._trainers.append(Trainer(self._init_model(), train_config, fsm, device=self._device))
+            self._trainers.append(Trainer(train_config, self._fsm, device=self._device))
 
     def _resume(self) -> 'GridSearchTrainer':
         """
@@ -417,3 +416,6 @@ class GridSearchTrainer:
         for trainer in self._trainers:
             trainer.monitor_hub.add_monitor(init_monitor_clbk())
         return self
+
+    def fsm(self) -> 'FileStructManager':
+        return self._fsm

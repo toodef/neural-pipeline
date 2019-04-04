@@ -494,10 +494,11 @@ class TrainConfig:
     :param optimizer: optimizer object
     """
 
-    def __init__(self, train_stages: [], loss: Module, optimizer: Optimizer):
+    def __init__(self, model: Module, train_stages: [], loss: Module, optimizer: Optimizer):
         self._train_stages = train_stages
-        self.__loss = loss
-        self.__optimizer = optimizer
+        self._loss = loss
+        self._optimizer = optimizer
+        self._model = model
 
     def loss(self) -> Module:
         """
@@ -505,7 +506,7 @@ class TrainConfig:
 
         :return: loss object
         """
-        return self.__loss
+        return self._loss
 
     def optimizer(self) -> Optimizer:
         """
@@ -513,7 +514,7 @@ class TrainConfig:
 
         :return: optimizer object
         """
-        return self.__optimizer
+        return self._optimizer
 
     def stages(self) -> [AbstractStage]:
         """
@@ -522,6 +523,9 @@ class TrainConfig:
         :return: list of stages
         """
         return self._train_stages
+
+    def model(self) -> Module:
+        return self._model
 
 
 class NamedTrainConfig(TrainConfig):
@@ -534,8 +538,8 @@ class NamedTrainConfig(TrainConfig):
     :param name: name of train config
     """
 
-    def __init__(self, train_stages: [], loss: Module, optimizer: Optimizer, name: str):
-        super().__init__(train_stages, loss, optimizer)
+    def __init__(self, model: Module, train_stages: [], loss: Module, optimizer: Optimizer, name: str):
+        super().__init__(model, train_stages, loss, optimizer)
         self._name = name
 
     def get_name(self) -> str:

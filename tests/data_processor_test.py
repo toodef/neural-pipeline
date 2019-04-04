@@ -186,7 +186,7 @@ class SimpleLoss(torch.nn.Module):
 class TrainDataProcessorTest(UseFileStructure):
     def test_initialisation(self):
         model = SimpleModel()
-        train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
+        train_config = TrainConfig(model, [], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
         try:
             TrainDataProcessor(model=model, train_config=train_config)
         except:
@@ -194,7 +194,7 @@ class TrainDataProcessorTest(UseFileStructure):
 
     def test_prediction_output(self):
         model = SimpleModel()
-        train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
+        train_config = TrainConfig(model, [], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
         dp = TrainDataProcessor(model=model, train_config=train_config)
         self.assertFalse(model.fc.weight.is_cuda)
         res = dp.predict({'data': torch.rand(1, 3)}, is_train=False)
@@ -212,7 +212,7 @@ class TrainDataProcessorTest(UseFileStructure):
 
     def test_predict(self):
         model = SimpleModel().train()
-        train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
+        train_config = TrainConfig(model, [], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
         dp = TrainDataProcessor(model=model, train_config=train_config)
         self.assertFalse(model.fc.weight.is_cuda)
         self.assertTrue(model.training)
@@ -223,7 +223,7 @@ class TrainDataProcessorTest(UseFileStructure):
 
     def test_train(self):
         model = SimpleModel().train()
-        train_config = TrainConfig([], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
+        train_config = TrainConfig(model, [], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
         dp = TrainDataProcessor(model=model, train_config=train_config)
 
         self.assertFalse(model.fc.weight.is_cuda)
@@ -237,7 +237,7 @@ class TrainDataProcessorTest(UseFileStructure):
             dp.process_batch({'data': torch.rand(1, 3), 'target': torch.rand(1)}, is_train=True)
 
         loss = SimpleLoss()
-        train_config = TrainConfig([], loss, torch.optim.SGD(model.parameters(), lr=0.1))
+        train_config = TrainConfig(model, [], loss, torch.optim.SGD(model.parameters(), lr=0.1))
         dp = TrainDataProcessor(model=model, train_config=train_config)
         res = dp.process_batch({'data': torch.rand(1, 3), 'target': torch.rand(1)}, is_train=True)
         self.assertTrue(model.training)
@@ -254,7 +254,7 @@ class TrainDataProcessorTest(UseFileStructure):
         loss = SimpleLoss()
 
         for optim in [torch.optim.SGD(model.parameters(), lr=0.1), torch.optim.Adam(model.parameters(), lr=0.1)]:
-            train_config = TrainConfig([], loss, optim)
+            train_config = TrainConfig(model, [], loss, optim)
 
             dp_before = TrainDataProcessor(model=model, train_config=train_config)
             before_state_dict = model.state_dict().copy()
