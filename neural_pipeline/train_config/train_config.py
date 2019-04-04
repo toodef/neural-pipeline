@@ -20,7 +20,7 @@ except ImportError:
 from neural_pipeline.data_producer.data_producer import DataProducer
 from neural_pipeline.data_processor.data_processor import TrainDataProcessor
 
-__all__ = ['TrainConfig', 'TrainStage', 'ValidationStage', 'AbstractMetric', 'MetricsGroup', 'MetricsProcessor', 'AbstractStage',
+__all__ = ['TrainConfig', 'NamedTrainConfig', 'TrainStage', 'ValidationStage', 'AbstractMetric', 'MetricsGroup', 'MetricsProcessor', 'AbstractStage',
            'StandardStage']
 
 
@@ -523,5 +523,33 @@ class TrainConfig:
         """
         return self._train_stages
 
-    def generate_name(self) -> str:
-        raise NotImplementedError()
+
+class NamedTrainConfig(TrainConfig):
+    """
+    Train process setting storage with name. Used for train with few train configs in one time
+
+    :param train_stages: list of stages for train loop
+    :param loss: loss criterion
+    :param optimizer: optimizer object
+    :param name: name of train config
+    """
+
+    def __init__(self, train_stages: [], loss: Module, optimizer: Optimizer, name: str):
+        super().__init__(train_stages, loss, optimizer)
+        self._name = name
+
+    def get_name(self) -> str:
+        """
+        Get name of train config
+
+        :return: name
+        """
+        return self._name
+
+    def get_metric_for_compare(self) -> float or None:
+        """
+        Get metric for compare train configs
+
+        :return: metric value or None, if compare doesn't needed
+        """
+        return None

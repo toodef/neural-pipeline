@@ -5,7 +5,7 @@ import torch
 
 from neural_pipeline.train_config import MetricsProcessor, TrainStage
 from neural_pipeline.train_config.train_config import ValidationStage, TrainConfig
-from neural_pipeline.utils.file_structure_manager import FileStructManager
+from neural_pipeline.utils.fsm import FileStructManager
 from neural_pipeline import Predictor, Trainer
 from tests.common import UseFileStructure
 

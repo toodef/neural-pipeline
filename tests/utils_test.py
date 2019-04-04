@@ -11,7 +11,7 @@ import numpy as np
 import unittest
 
 from neural_pipeline.utils import FileStructManager, CheckpointsManager, dict_recursive_bypass
-from neural_pipeline.utils.file_structure_manager import FolderRegistrable
+from neural_pipeline.utils.fsm import FolderRegistrable
 from tests.common import UseFileStructure
 
 __all__ = ['UtilsTest', 'FileStructManagerTest', 'CheckpointsManagerTests']

@@ -2,17 +2,18 @@
 The main module for training process
 """
 import json
+import os
 
 import torch
 from torch.nn import Module
 
 from neural_pipeline.data_processor import TrainDataProcessor
 from neural_pipeline.utils import FileStructManager, CheckpointsManager
-from neural_pipeline.train_config.train_config import TrainConfig
+from neural_pipeline.train_config.train_config import TrainConfig, NamedTrainConfig
 from neural_pipeline.monitoring import MonitorHub, ConsoleMonitor
 from neural_pipeline.utils.fsm import MultipleFSM
 
-__all__ = ['Trainer']
+__all__ = ['Trainer', 'GridSearchTrainer']
 
 
 class LearningRate:
@@ -137,11 +138,13 @@ class Trainer:
         self._on_epoch_end = []
         self._best_state_rule = None
 
-        self.__train_config = train_config
+        self._train_config = train_config
         self._device = device
-        self._data_processor = TrainDataProcessor(model, self.__train_config, self._device) \
+        self._data_processor = TrainDataProcessor(model, self._train_config, self._device) \
             .set_checkpoints_manager(self._checkpoint_manager)
         self._lr = LearningRate(self._data_processor.get_lr())
+
+        self._stop_rule = None
 
     def set_epoch_num(self, epoch_number: int) -> 'Trainer':
         """
@@ -180,7 +183,7 @@ class Trainer:
         """
         Run training process
         """
-        if len(self.__train_config.stages()) < 1:
+        if len(self._train_config.stages()) < 1:
             raise self.TrainerException("There's no sages for training")
 
         best_checkpoints_manager = None
@@ -196,7 +199,7 @@ class Trainer:
         with self.monitor_hub:
             for epoch_idx in range(start_epoch_idx, self.__epoch_num + start_epoch_idx):
                 self.monitor_hub.set_epoch_num(epoch_idx)
-                for stage in self.__train_config.stages():
+                for stage in self._train_config.stages():
                     stage.run(self._data_processor)
 
                     if stage.metrics_processor() is not None:
@@ -270,7 +273,7 @@ class Trainer:
         Update loses procedure
         """
         losses = {}
-        for stage in self.__train_config.stages():
+        for stage in self._train_config.stages():
             if stage.get_losses() is not None:
                 losses[stage.name()] = stage.get_losses()
         self.monitor_hub.update_losses(losses)
@@ -314,28 +317,92 @@ class Trainer:
         self._on_epoch_end.append(callback)
         return self
 
+    def set_stop_rule(self, rule: callable) -> 'Trainer':
+        """
+        Set the rule by which the training process will stop.
+
+        :param rule: callable, that return True or False. When rule return True - training process wil be canceled
+        :return: self object
+        """
+        self._stop_rule = rule
+
+    def train_config(self) -> TrainConfig:
+        """
+        Get train config
+
+        :return: TrainConfig object
+        """
+        return self._train_config
+
     def __iterate_by_stages(self, func: callable) -> None:
         """
         Internal method, that used for iterate by stages
 
         :param func: callback, that calls for every stage
         """
-        for stage in self.__train_config.stages():
+        for stage in self._train_config.stages():
             func(stage)
 
 
 class GridSearchTrainer:
-    def __init__(self, init_model_clbk: callable, train_configs: [TrainConfig], workdir: str, device: torch.device = None):
+    def __init__(self, init_model_clbk: callable, train_configs: [NamedTrainConfig], workdir: str, device: torch.device = None):
         self._trainers = []
-        names = []
-        for train_config in train_configs:
-            names.append(train_config.generate_name())
+        self._names = []
+        self._train_configs = train_configs
+        self._init_model = init_model_clbk
+        self._device = device
 
-        fsm = MultipleFSM(workdir, names, is_continue=False, exists_ok=False)
+        self._workdir = workdir
+        self._state = {}
 
-        for train_config in train_configs:
-            self._trainers.append(Trainer(init_model_clbk(), train_config, fsm, device=device))
+        self._is_resume = False
+
+    def _init(self):
+        target_train_configs = []
+        if self._is_resume:
+
+            for train_config in self._train_configs:
+                if train_config.get_name() not in self._state:
+                    target_train_configs.append(train_config)
+        else:
+            target_train_configs = self._train_configs
+
+        for train_config in target_train_configs:
+            self._names.append(train_config.get_name())
+
+        fsm = MultipleFSM(self._workdir, self._names, is_continue=False, exists_ok=False)
+
+        for train_config in target_train_configs:
+            self._trainers.append(Trainer(self._init_model(), train_config, fsm, device=self._device))
+
+    def resume(self) -> 'GridSearchTrainer':
+        """
+        Resume gridsearch
+
+        :return: self object
+        """
+        self._is_resume = True
+
+        with open(self.__state_file_path(), 'r') as file:
+            self._state = json.load(file)
+        return self
 
     def train(self):
-        for trainer in self._trainers:
-            trainer.train()
+        self._init()
+
+        with open(self.__state_file_path(), 'w') as file:
+            for i, trainer in enumerate(self._trainers):
+                trainer.train()
+
+                cur_state = {'canceled': True}
+
+                self._state[self._names[i]] = cur_state
+                json.dump(self._state, file)
+
+    def __state_file_path(self) -> str:
+        """
+        Internam method for compile state file path
+
+        :return: path
+        """
+        return os.path.join(self._workdir, 'gridserch_trainer.json')

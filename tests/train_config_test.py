@@ -8,7 +8,7 @@ from torch import Tensor
 from neural_pipeline import Trainer
 from neural_pipeline.data_producer import DataProducer
 from neural_pipeline.train_config.train_config import MetricsGroup, AbstractMetric, TrainStage, MetricsProcessor, TrainConfig
-from neural_pipeline.utils.file_structure_manager import FileStructManager
+from neural_pipeline.utils.fsm import FileStructManager
 from tests.common import UseFileStructure
 from tests.data_processor_test import SimpleModel, SimpleLoss
 from tests.data_producer_test import TestDataProducer

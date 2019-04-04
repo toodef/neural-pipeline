@@ -16,7 +16,7 @@ import numpy as np
 
 from neural_pipeline.train_config import MetricsGroup
 from neural_pipeline.utils import dict_recursive_bypass
-from neural_pipeline.utils.file_structure_manager import FileStructManager, FolderRegistrable
+from neural_pipeline.utils.fsm import FileStructManager, FolderRegistrable
 
 __all__ = ['MonitorHub', 'AbstractMonitor', 'ConsoleMonitor', 'LogMonitor']
 

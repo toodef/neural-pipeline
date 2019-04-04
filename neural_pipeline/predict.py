@@ -8,7 +8,7 @@ import torch
 from neural_pipeline.utils import CheckpointsManager
 from neural_pipeline.data_producer.data_producer import DataProducer
 from neural_pipeline.data_processor import Model
-from neural_pipeline.utils.file_structure_manager import FileStructManager
+from neural_pipeline.utils.fsm import FileStructManager
 from neural_pipeline.data_processor.data_processor import DataProcessor
 
 

@@ -8,7 +8,7 @@ from neural_pipeline import Trainer
 from neural_pipeline.train import DecayingLR
 from neural_pipeline.train_config import TrainConfig, TrainStage, MetricsProcessor
 from neural_pipeline.train_config.train_config import ValidationStage
-from neural_pipeline.utils.file_structure_manager import FileStructManager
+from neural_pipeline.utils.fsm import FileStructManager
 from tests.common import UseFileStructure
 from tests.data_processor_test import SimpleModel
 from tests.data_producer_test import TestDataProducer
