@@ -263,7 +263,7 @@ class FileStructManager:
         self._base_dir = base_dir
         self._exist_ok = exists_ok
 
-    def register_dir(self, obj: FolderRegistrable, check_name_registered: bool = True, check_dir_registered: bool = True) -> None:
+    def register_dir(self, obj: FolderRegistrable, check_name_registered: bool = False, check_dir_registered: bool = True) -> None:
         """
         Register directory in file structure
 
@@ -315,11 +315,14 @@ class FileStructManager:
 
 
 class MultipleFSM(FileStructManager):
-    def __init__(self, base_dir: str, experiments_names: [str], is_continue: bool, exists_ok: bool = False):
+    def __init__(self, base_dir: str, is_continue: bool, exists_ok: bool = False):
         super().__init__(base_dir, is_continue, exists_ok)
-        self._experiments_names = experiments_names
-
+        self._cur_experiment_name = None
         self._objects_nums = {}
+
+    def set_namespace(self, name: str) -> 'MultipleFSM':
+        self._cur_experiment_name = name
+        return self
 
     def _compile_path(self, obj: FolderRegistrable) -> str:
         if obj._get_name() not in self._objects_nums:

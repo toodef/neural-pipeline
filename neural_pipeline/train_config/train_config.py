@@ -20,7 +20,7 @@ except ImportError:
 from neural_pipeline.data_producer.data_producer import DataProducer
 from neural_pipeline.data_processor.data_processor import TrainDataProcessor
 
-__all__ = ['TrainConfig', 'NamedTrainConfig', 'TrainStage', 'ValidationStage', 'AbstractMetric', 'MetricsGroup', 'MetricsProcessor', 'AbstractStage',
+__all__ = ['TrainConfig', 'ComparableTrainConfig', 'TrainStage', 'ValidationStage', 'AbstractMetric', 'MetricsGroup', 'MetricsProcessor', 'AbstractStage',
            'StandardStage']
 
 
@@ -528,27 +528,31 @@ class TrainConfig:
         return self._model
 
 
-class NamedTrainConfig(TrainConfig):
+class ComparableTrainConfig:
     """
     Train process setting storage with name. Used for train with few train configs in one time
 
-    :param train_stages: list of stages for train loop
-    :param loss: loss criterion
-    :param optimizer: optimizer object
     :param name: name of train config
     """
 
-    def __init__(self, model: Module, train_stages: [], loss: Module, optimizer: Optimizer, name: str):
-        super().__init__(model, train_stages, loss, optimizer)
+    def __init__(self, name: str = None):
         self._name = name
 
-    def get_name(self) -> str:
+    @abstractmethod
+    def get_train_config(self) -> 'TrainConfig':
         """
-        Get name of train config
+        Get train config
 
-        :return: name
+        :return: TrainConfig object
         """
-        return self._name
+
+    @abstractmethod
+    def get_params(self) -> {}:
+        """
+        Get params of this config
+
+        :return:
+        """
 
     def get_metric_for_compare(self) -> float or None:
         """
