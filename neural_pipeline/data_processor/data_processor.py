@@ -112,7 +112,8 @@ class TrainDataProcessor(DataProcessor):
 
     def predict(self, data, is_train=False) -> torch.Tensor or dict:
         """
-        Make predict by data. If ``is_train`` was ``True``
+        Make predict by data. If ``is_train`` is ``True`` - this operation will compute gradients. If
+        ``is_train`` is ``False`` - this will work with ``model.eval()`` and ``torch.no_grad``
 
         :param data: data in dict
         :param is_train: is data processor need train on data or just predict

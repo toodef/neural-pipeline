@@ -48,9 +48,9 @@ if __name__ == '__main__':
     train_dataset = DataProducer([MNISTDataset('data/dataset', True)], batch_size=4, num_workers=2)
     validation_dataset = DataProducer([MNISTDataset('data/dataset', False)], batch_size=4, num_workers=2)
 
-    train_config = TrainConfig([TrainStage(train_dataset), ValidationStage(validation_dataset)], torch.nn.NLLLoss(),
+    train_config = TrainConfig(model, [TrainStage(train_dataset), ValidationStage(validation_dataset)], torch.nn.NLLLoss(),
                                torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.5))
 
-    trainer = Trainer(model, train_config, fsm, torch.device('cuda:0')).set_epoch_num(5)
+    trainer = Trainer(train_config, fsm, torch.device('cuda:0')).set_epoch_num(5)
     trainer.monitor_hub.add_monitor(TensorboardMonitor(fsm, is_continue=False))
     trainer.train()

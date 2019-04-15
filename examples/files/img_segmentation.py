@@ -25,7 +25,7 @@ from neural_pipeline.builtin.models.albunet import resnet18
 from neural_pipeline.data_producer import AbstractDataset, DataProducer
 from neural_pipeline.monitoring import LogMonitor
 from neural_pipeline.train_config import AbstractMetric, MetricsProcessor, MetricsGroup, TrainStage, ValidationStage, TrainConfig
-from neural_pipeline.utils.file_structure_manager import FileStructManager
+from neural_pipeline.utils.fsm import FileStructManager
 from neural_pipeline.builtin.monitors.tensorboard import TensorboardMonitor
 
 ###################################
@@ -151,12 +151,12 @@ val_stage = ValidationStage(val_data_producer, val_metrics_processor)
 
 def train():
     model = resnet18(classes_num=1, in_channels=3, pretrained=True)
-    train_config = TrainConfig([train_stage, val_stage], torch.nn.BCEWithLogitsLoss(),
+    train_config = TrainConfig(model, [train_stage, val_stage], torch.nn.BCEWithLogitsLoss(),
                                torch.optim.Adam(model.parameters(), lr=1e-4))
 
     file_struct_manager = FileStructManager(base_dir='data', is_continue=False)
 
-    trainer = Trainer(model, train_config, file_struct_manager, torch.device('cuda:0')).set_epoch_num(2)
+    trainer = Trainer(train_config, file_struct_manager, torch.device('cuda:0')).set_epoch_num(2)
 
     tensorboard = TensorboardMonitor(file_struct_manager, is_continue=False, network_name='PortraitSegmentation')
     log = LogMonitor(file_struct_manager).write_final_metrics()

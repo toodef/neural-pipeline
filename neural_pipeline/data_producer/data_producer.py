@@ -2,7 +2,9 @@ import itertools
 from random import shuffle
 
 from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import default_collate
 from abc import ABCMeta, abstractmethod
+
 
 __all__ = ['AbstractDataset', 'DataProducer']
 
@@ -35,6 +37,7 @@ class DataProducer:
         self._shuffle_datasets_order = False
         self._glob_shuffle = False
         self._pin_memory = False
+        self._collate_fn = default_collate
 
         self._need_pass_indices = False
 
@@ -102,6 +105,10 @@ class DataProducer:
             return dict(data, **{'data_idx': str(dataset_idx) + "_" + str(data_idx)})
         return data
 
+    def set_collate_func(self, func: callable) -> 'DataProducer':
+        self._collate_fn = func
+        return self
+
     def __len__(self):
         return self.__overall_len
 
@@ -129,7 +136,7 @@ class DataProducer:
         if indices is not None:
             return self._get_loader_by_indices(indices)
         return DataLoader(self, batch_size=self.__batch_size, num_workers=self.__num_workers,
-                          shuffle=self._glob_shuffle, pin_memory=self._pin_memory)
+                          shuffle=self._glob_shuffle, pin_memory=self._pin_memory, collate_fn=self._collate_fn)
 
     def _get_loader_by_indices(self, indices: [str]) -> DataLoader:
         """
@@ -139,7 +146,7 @@ class DataProducer:
         :return: :class:`DataLoader` object
         """
         return DataLoader(_ByIndices(self.__datasets, indices), batch_size=self.__batch_size, num_workers=self.__num_workers,
-                          shuffle=self._glob_shuffle, pin_memory=self._pin_memory)
+                          shuffle=self._glob_shuffle, pin_memory=self._pin_memory, collate_fn=self._collate_fn)
 
     def _update_datasets_idx_space(self) -> None:
         """

@@ -12,3 +12,4 @@ Welcome to Neural Pipeline's documentation!
 
    getting_started/index
    api/index
+   tutorials/index

@@ -1,5 +1,5 @@
-Create dataset
-==============
+Implement dataset class
+=======================
 
 In Neural Pipeline dataset is iterable class. This means, that class need contain ``__getitem__`` and ``__len__`` methods.
 
