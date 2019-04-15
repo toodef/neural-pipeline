@@ -9,7 +9,7 @@ setuptools.setup(
     name="neural-pipeline",
     version=neural_pipeline.__version__,
     author="Anton Fedotov",
-    author_email="anton.fedotov.af@gmail.com.com",
+    author_email="anton.fedotov.af@gmail.com",
     description="Neural networks training pipeline based on PyTorch. Designed to standardize training process and to increase coding preformance",
     long_description=long_description,
     long_description_content_type="text/markdown",

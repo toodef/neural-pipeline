@@ -96,10 +96,14 @@ class FileStructManagerTest(UseFileStructure):
 
         with self.assertRaises(FileStructManager.FSMException):
             fsm.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'))
+            fsm.register_dir(self.TestObj(fsm, 'another_dir', 'another_name'))
+        with self.assertRaises(FileStructManager.FSMException):
             fsm_exist_ok.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'))
+            fsm_exist_ok.register_dir(self.TestObj(fsm, 'another_dir', 'another_name'))
+
         try:
-            fsm.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'), check_name_registered=False)
-            fsm_exist_ok.register_dir(self.TestObj(fsm, 'another_dir', 'test_name'), check_name_registered=False)
+            fsm.register_dir(self.TestObj(fsm, 'another_dir2', 'test_name'), check_name_registered=False)
+            fsm_exist_ok.register_dir(self.TestObj(fsm, 'another_dir2', 'test_name'), check_name_registered=False)
         except:
             self.fail("Folder registrable test fail when it's disabled")
 
