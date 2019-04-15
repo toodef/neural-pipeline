@@ -71,17 +71,20 @@ class DataProcessor:
         """
         self._model.save_weights()
 
-    def _pass_data_to_device(self, data: torch.Tensor or dict) -> torch.Tensor or dict:
+    def _pass_data_to_device(self, data) -> torch.Tensor or dict:
         """
         Internal method, that pass data to specified device
 
-        :param data: data as :class:`torch.Tensor` or dict with key ``data``
+        :param data: data as any object type. If will passed to device if it's instance of :class:`torch.Tensor` or dict with key
+        ``data``. Otherwise data will be doesn't changed
         :return: processed on target device
         """
         if isinstance(data, dict):
             return dict_recursive_bypass(data, lambda v: v.to(self._device))
-        else:
+        elif isinstance(data, torch.Tensor):
             return data.to(self._device)
+        else:
+            return data
 
 
 class TrainDataProcessor(DataProcessor):
