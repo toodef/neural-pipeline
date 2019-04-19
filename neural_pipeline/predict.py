@@ -21,10 +21,10 @@ class Predictor:
     :param device: device for run inference
     """
 
-    def __init__(self, model: Model, fsm: FileStructManager, device: torch.device = None):
+    def __init__(self, model: Model, fsm: FileStructManager, from_best_state: bool = False, device: torch.device = None):
         self._fsm = fsm
         self.__data_processor = DataProcessor(model, device=device)
-        checkpoint_manager = CheckpointsManager(self._fsm)
+        checkpoint_manager = CheckpointsManager(self._fsm, prefix='best' if from_best_state else None)
         self.__data_processor.set_checkpoints_manager(checkpoint_manager)
         checkpoint_manager.unpack()
         self.__data_processor.load()
