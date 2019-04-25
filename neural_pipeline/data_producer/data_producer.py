@@ -43,6 +43,8 @@ class DataProducer:
 
         self._update_datasets_idx_space()
 
+        self._indices = None
+
     def shuffle_datasets_order(self, is_need: bool) -> 'DataProducer':
         """
         Is need to shuffle datasets order. Shuffling performs after every 0 index access
@@ -82,6 +84,24 @@ class DataProducer:
         self._need_pass_indices = need_pass
         return self
 
+    def set_indices(self, indices: [str]) -> 'DataProducer':
+        """
+        Set indices to :class:`DataProducer`. After that, :class:`DataProducer` start produce data only by indices
+
+        :param indices: list of indices in format "<dataset_idx>_<data_idx>` like: ['0_0', '0_1', '1_0']
+        :return: self object
+        """
+        self._indices = indices
+        return self
+
+    def get_indices(self) -> [str] or None:
+        """
+        Get current indices
+
+        :return: list of current indices or None if method :meth:`set_indices` doesn't called
+        """
+        return self._indices
+
     def _is_passed_indices(self) -> bool:
         """
         Internal method for know if :class:`DataProducer` passed indices
@@ -113,22 +133,24 @@ class DataProducer:
         return self.__overall_len
 
     def __getitem__(self, item):
-        if item == 0 and (not self._glob_shuffle) and self._shuffle_datasets_order:
+        if item == 0 and self._indices is None and (not self._glob_shuffle) and self._shuffle_datasets_order:
             self._update_datasets_idx_space()
 
-        dataset_idx = 0
-        data_idx = item
-        for i in range(len(self.__datasets)):
-            if item > self.__datatsets_idx_space[i]:
-                dataset_idx = i + 1
-                data_idx = item - self.__datatsets_idx_space[i] - 1
+        if self._indices is None:
+            dataset_idx, data_idx = 0, item
+            for i in range(len(self.__datasets)):
+                if item > self._datatsets_idx_space[i]:
+                    dataset_idx = i + 1
+                    data_idx = item - self._datatsets_idx_space[i] - 1
+        else:
+            dataset_idx, data_idx = self._indices[item].split('_')
 
         return self.get_data(dataset_idx, data_idx)
 
     def get_loader(self, indices: [str] = None) -> DataLoader:
         """
         Get PyTorch :class:`DataLoader` object, that aggregate :class:`DataProducer`.
-        If ``indices`` is specified - DataLoader wil output data only by this indices. In this case indices will not passed.
+        If ``indices`` is specified - DataLoader will output data only by this indices. In this case indices will not passed.
 
         :param indices: list of indices. Each item of list is a string in format '{}_{}'.format(dataset_idx, data_idx)
         :return: :class:`DataLoader` object
@@ -157,10 +179,10 @@ class DataProducer:
 
         datasets_len = [len(d) for d in self.__datasets]
         self.__overall_len = sum(datasets_len)
-        self.__datatsets_idx_space = []
+        self._datatsets_idx_space = []
         cur_len = 0
         for dataset_len in datasets_len:
-            self.__datatsets_idx_space.append(dataset_len + cur_len - 1)
+            self._datatsets_idx_space.append(dataset_len + cur_len - 1)
             cur_len += dataset_len
 
 
