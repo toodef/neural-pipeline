@@ -130,7 +130,10 @@ class DataProducer:
         return self
 
     def __len__(self):
-        return self.__overall_len
+        if self._indices is None:
+            return self.__overall_len
+        else:
+            return len(self._indices)
 
     def __getitem__(self, item):
         if item == 0 and self._indices is None and (not self._glob_shuffle) and self._shuffle_datasets_order:
