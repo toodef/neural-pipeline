@@ -147,6 +147,7 @@ class DataProducer:
                     data_idx = item - self._datatsets_idx_space[i] - 1
         else:
             dataset_idx, data_idx = self._indices[item].split('_')
+            dataset_idx, data_idx = int(dataset_idx), int(data_idx)
 
         return self.get_data(dataset_idx, data_idx)
 
