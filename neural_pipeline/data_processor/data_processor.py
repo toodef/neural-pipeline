@@ -1,4 +1,3 @@
-import json
 import numpy as np
 
 import torch
@@ -7,7 +6,6 @@ from neural_pipeline.utils import CheckpointsManager
 from torch.nn import Module
 
 from neural_pipeline.data_processor.model import Model
-from neural_pipeline.utils.utils import dict_recursive_bypass
 
 __all__ = ['DataProcessor', 'TrainDataProcessor']
 
@@ -20,14 +18,10 @@ class DataProcessor:
     :param device: what device pass model and data for processing
     """
 
-    def __init__(self, model: Module, device: torch.device=None):
-        self._device = device
+    def __init__(self, model: Module):
         self._checkpoints_manager = None
 
         self._model = Model(model)
-
-        if self._device is not None:
-            self.model().to(device)
 
     def set_checkpoints_manager(self, checkpoint_manager: CheckpointsManager) -> 'DataProcessor':
         self._checkpoints_manager = checkpoint_manager
@@ -48,15 +42,9 @@ class DataProcessor:
         :return: processed output
         :rtype: the model output type
         """
-
-        def make_predict():
-            if self._device is not None:
-                data['data'] = self._pass_data_to_device(data['data'])
-            return self._model(data['data'])
-
         self.model().eval()
         with torch.no_grad():
-            output = make_predict()
+            output = self._model(data['data'])
         return output
 
     def load(self) -> None:
@@ -71,29 +59,12 @@ class DataProcessor:
         """
         self._model.save_weights()
 
-    def _pass_data_to_device(self, data) -> torch.Tensor or dict:
-        """
-        Internal method, that pass data to specified device
-
-        :param data: data as any object type. If will passed to device if it's instance of :class:`torch.Tensor` or dict with key
-        ``data``. Otherwise data will be doesn't changed
-        :return: processed on target device
-        """
-        if isinstance(data, dict):
-            return dict_recursive_bypass(data, lambda v: v.to(self._device))
-        elif isinstance(data, torch.Tensor):
-            return data.to(self._device)
-        else:
-            return data
-
 
 class TrainDataProcessor(DataProcessor):
     """
     TrainDataProcessor is make all of DataProcessor but produce training process.
 
-    :param model: model, that will be used for process data
     :param train_config: train config
-    :param device: what device pass model, data and optimizer for processing
     """
 
     class TDPException(Exception):
@@ -103,14 +74,10 @@ class TrainDataProcessor(DataProcessor):
         def __str__(self):
             return self._msg
 
-    def __init__(self, model: Module, train_config: 'TrainConfig', device: torch.device = None):
-        super().__init__(model, device)
+    def __init__(self, train_config: 'TrainConfig'):
+        super().__init__(train_config.model())
 
         self.__criterion = train_config.loss()
-
-        if self._device is not None:
-            self.__criterion.to(self._device)
-
         self.__optimizer = train_config.optimizer()
 
     def predict(self, data, is_train=False) -> torch.Tensor or dict:
@@ -124,14 +91,9 @@ class TrainDataProcessor(DataProcessor):
         :rtype: model return type
         """
 
-        def make_predict():
-            if self._device is not None:
-                data['data'] = self._pass_data_to_device(data['data'])
-            return self._model(data['data'])
-
         if is_train:
             self.model().train()
-            output = make_predict()
+            output = self._model(data['data'])
         else:
             output = super().predict(data)
 
@@ -146,9 +108,6 @@ class TrainDataProcessor(DataProcessor):
         :param metrics_processor: metrics processor for collect metrics after batch is processed
         :return: array of losses with shape (N, ...) where N is batch size
         """
-        if self._device:
-            batch['target'] = self._pass_data_to_device(batch['target'])
-
         if is_train:
             self.__optimizer.zero_grad()
         res = self.predict(batch, is_train)
