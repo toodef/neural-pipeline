@@ -328,7 +328,10 @@ class Trainer:
         Returns:
             self object
 
-        Examples::
+        Example:
+
+        .. highlight:: python
+        .. code-block:: python
 
             trainer.add_stop_rule(lambda: trainer.data_processor().get_lr() < 1e-6)
         """
