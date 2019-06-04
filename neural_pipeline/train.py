@@ -142,7 +142,7 @@ class Trainer:
         self._data_processor = TrainDataProcessor(self._train_config).set_checkpoints_manager(self._checkpoint_manager)
         self._lr = LearningRate(self._data_processor.get_lr())
 
-        self._stop_rule = None
+        self._stop_rules = []
 
     def set_epoch_num(self, epoch_number: int) -> 'Trainer':
         """
@@ -196,6 +196,9 @@ class Trainer:
 
         with self.monitor_hub:
             for epoch_idx in range(start_epoch_idx, self.__epoch_num + start_epoch_idx):
+                if self._stop_rules is not None and self._stop_rules():
+                    break
+
                 self.monitor_hub.set_epoch_num(epoch_idx)
                 for stage in self._train_config.stages():
                     stage.run(self._data_processor)
@@ -315,14 +318,20 @@ class Trainer:
         self._on_epoch_end.append(callback)
         return self
 
-    def set_stop_rule(self, rule: callable) -> 'Trainer':
+    def add_stop_rule(self, rule: callable) -> 'Trainer':
         """
-        Set the rule by which the training process will stop.
+        Add the rule by which the training process will stop
 
-        :param rule: callable, that return True or False. When rule return True - training process wil be canceled
-        :return: self object
+        Params:
+            rule (callable): callable, that doesn't get params and return boolean. When one of rules returns `True` training loop will be interrupted
+
+        Returns:
+            self object
+
+        Examples:
+            trainer.add_stop_rule(lambda: trainer.data_processor().get_lr() < 1e-6)
         """
-        self._stop_rule = rule
+        self._stop_rules.append(rule)
         return self
 
     def train_config(self) -> TrainConfig:
