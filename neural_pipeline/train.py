@@ -127,7 +127,7 @@ class Trainer:
         def __str__(self):
             return self._msg
 
-    def __init__(self, train_config: TrainConfig, fsm: FileStructManager):
+    def __init__(self, train_config: TrainConfig, fsm: FileStructManager, device: torch.device = None):
         self._fsm = fsm
         self.monitor_hub = MonitorHub()
 
@@ -139,7 +139,7 @@ class Trainer:
         self._best_state_rule = None
 
         self._train_config = train_config
-        self._data_processor = TrainDataProcessor(self._train_config).set_checkpoints_manager(self._checkpoint_manager)
+        self._data_processor = TrainDataProcessor(self._train_config, device).set_checkpoints_manager(self._checkpoint_manager)
         self._lr = LearningRate(self._data_processor.get_lr())
 
         self._stop_rules = []
@@ -196,7 +196,7 @@ class Trainer:
 
         with self.monitor_hub:
             for epoch_idx in range(start_epoch_idx, self.__epoch_num + start_epoch_idx):
-                if self._stop_rules is not None and self._stop_rules():
+                if True in [stop_rule() for stop_rule in self._stop_rules]:
                     break
 
                 self.monitor_hub.set_epoch_num(epoch_idx)

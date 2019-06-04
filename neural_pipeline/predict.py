@@ -1,6 +1,7 @@
 """
 The main module for run inference
 """
+from abc import ABCMeta
 
 from tqdm import tqdm
 import torch
@@ -11,24 +12,30 @@ from neural_pipeline.data_processor import Model
 from neural_pipeline.utils.fsm import FileStructManager
 from neural_pipeline.data_processor.data_processor import DataProcessor
 
+__all__ = ['Predictor', 'DataProducerPredictor']
 
-class Predictor:
-    """
-    Predictor run inference by training parameters
 
-    :param model: model object, used for predict
-    :param fsm: :class:`FileStructManager` object
-    :param device: device for run inference
-    """
-
-    def __init__(self, model: Model, fsm: FileStructManager, from_best_state: bool = False, device: torch.device = None):
+class BasePredictor(metaclass=ABCMeta):
+    def __init__(self, model: Model, fsm: FileStructManager, from_best_state: bool = False):
         self._fsm = fsm
-        self.__data_processor = DataProcessor(model, device=device)
+        self.__data_processor = DataProcessor(model)
         checkpoint_manager = CheckpointsManager(self._fsm, prefix='best' if from_best_state else None)
         self.__data_processor.set_checkpoints_manager(checkpoint_manager)
         checkpoint_manager.unpack()
         self.__data_processor.load()
         checkpoint_manager.pack()
+
+
+class Predictor(BasePredictor):
+    """
+    Predictor run inference by training parameters
+
+    :param model: model object, used for predict
+    :param fsm: :class:`FileStructManager` object
+    """
+
+    def __init__(self, model: Model, fsm: FileStructManager):
+        super().__init__(model, fsm)
 
     def predict(self, data: torch.Tensor or dict):
         """
@@ -40,7 +47,12 @@ class Predictor:
         """
         return self.__data_processor.predict(data)
 
-    def predict_dataset(self, data_producer: DataProducer, callback: callable) -> None:
+
+class DataProducerPredictor(BasePredictor):
+    def __init__(self, model: Model, fsm: FileStructManager):
+        super().__init__(model, fsm)
+
+    def predict(self, data_producer: DataProducer, callback: callable) -> None:
         """
         Run prediction iterates by ``data_producer``
 
