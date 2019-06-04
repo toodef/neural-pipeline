@@ -18,11 +18,11 @@ __all__ = ['Predictor', 'DataProducerPredictor']
 class BasePredictor(metaclass=ABCMeta):
     def __init__(self, model: Model, fsm: FileStructManager, from_best_state: bool = False):
         self._fsm = fsm
-        self.__data_processor = DataProcessor(model)
+        self._data_processor = DataProcessor(model)
         checkpoint_manager = CheckpointsManager(self._fsm, prefix='best' if from_best_state else None)
-        self.__data_processor.set_checkpoints_manager(checkpoint_manager)
+        self._data_processor.set_checkpoints_manager(checkpoint_manager)
         checkpoint_manager.unpack()
-        self.__data_processor.load()
+        self._data_processor.load()
         checkpoint_manager.pack()
 
 
@@ -45,7 +45,7 @@ class Predictor(BasePredictor):
         :return: processed output
         :rtype: model output type
         """
-        return self.__data_processor.predict(data)
+        return self._data_processor.predict(data)
 
 
 class DataProducerPredictor(BasePredictor):
@@ -62,5 +62,5 @@ class DataProducerPredictor(BasePredictor):
         loader = data_producer.get_loader()
 
         for img in tqdm(loader):
-            callback(self.__data_processor.predict(img))
+            callback(self._data_processor.predict(img))
             del img
