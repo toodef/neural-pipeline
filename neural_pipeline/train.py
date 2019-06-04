@@ -328,7 +328,7 @@ class Trainer:
         Returns:
             self object
 
-        Example:
+        Examples:
 
         .. highlight:: python
         .. code-block:: python
