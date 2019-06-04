@@ -320,7 +320,7 @@ class Trainer:
 
     def add_stop_rule(self, rule: callable) -> 'Trainer':
         """
-        Add the rule by which the training process will stop
+        Add the rule that control training process interruption
 
         Params:
             rule (callable): callable, that doesn't get params and return boolean. When one of rules returns `True` training loop will be interrupted
@@ -328,7 +328,8 @@ class Trainer:
         Returns:
             self object
 
-        Examples:
+        Examples::
+
             trainer.add_stop_rule(lambda: trainer.data_processor().get_lr() < 1e-6)
         """
         self._stop_rules.append(rule)
