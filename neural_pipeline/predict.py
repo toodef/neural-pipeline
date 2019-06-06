@@ -34,8 +34,8 @@ class Predictor(BasePredictor):
     :param fsm: :class:`FileStructManager` object
     """
 
-    def __init__(self, model: Model, fsm: FileStructManager):
-        super().__init__(model, fsm)
+    def __init__(self, model: Model, fsm: FileStructManager, from_best_state: bool = False):
+        super().__init__(model, fsm, from_best_state=from_best_state)
 
     def predict(self, data: torch.Tensor or dict):
         """
@@ -49,8 +49,8 @@ class Predictor(BasePredictor):
 
 
 class DataProducerPredictor(BasePredictor):
-    def __init__(self, model: Model, fsm: FileStructManager):
-        super().__init__(model, fsm)
+    def __init__(self, model: Model, fsm: FileStructManager, from_best_state: bool = False):
+        super().__init__(model, fsm, from_best_state=from_best_state)
 
     def predict(self, data_producer: DataProducer, callback: callable) -> None:
         """
