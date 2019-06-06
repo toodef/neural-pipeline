@@ -108,7 +108,7 @@ class TrainDataProcessor(DataProcessor):
     def __init__(self, train_config: 'TrainConfig', device: torch.device = None):
         super().__init__(train_config.model(), device)
 
-        self._data_preprocess = lambda data: data if device is None else self._pass_data_to_device
+        self._data_preprocess = (lambda data: data) if device is None else self._pass_data_to_device
         self._pick_target = lambda data: data['target']
 
         self._loss_input_preproc = lambda data: data
