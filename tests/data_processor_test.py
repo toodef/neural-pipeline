@@ -197,31 +197,6 @@ class TrainDataProcessorTest(UseFileStructure):
         train_config = TrainConfig(model, [], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
         dp = TrainDataProcessor(train_config=train_config)
         self.assertFalse(model.fc.weight.is_cuda)
-        res = dp.predict({'data': torch.rand(1, 3)}, is_train=False)
-        self.assertIs(type(res), torch.Tensor)
-
-        model = NonStandardIOModel()
-        train_config = TrainConfig(model, [], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
-        dp = TrainDataProcessor(train_config=train_config)
-        self.assertFalse(model.fc.weight.is_cuda)
-        res = dp.predict({'data': {'data1': torch.rand(1, 3), 'data2': torch.rand(1, 3)}}, is_train=False)
-        self.assertIs(type(res), dict)
-        self.assertIn('res1', res)
-        self.assertIs(type(res['res1']), torch.Tensor)
-        self.assertIn('res2', res)
-        self.assertIs(type(res['res2']), torch.Tensor)
-
-        self.assertFalse(model.training)
-        self.assertFalse(res['res1'].requires_grad)
-        self.assertIsNone(res['res1'].grad)
-        self.assertFalse(res['res2'].requires_grad)
-        self.assertIsNone(res['res2'].grad)
-
-    def test_prediction_notrain_output(self):
-        model = SimpleModel()
-        train_config = TrainConfig(model, [], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
-        dp = TrainDataProcessor(train_config=train_config)
-        self.assertFalse(model.fc.weight.is_cuda)
         res = dp.predict({'data': torch.rand(1, 3)}, is_train=True)
         self.assertIs(type(res), torch.Tensor)
 
@@ -237,6 +212,31 @@ class TrainDataProcessorTest(UseFileStructure):
         self.assertIs(type(res['res2']), torch.Tensor)
 
         self.assertTrue(model.training)
+        self.assertFalse(res['res1'].requires_grad)
+        self.assertIsNone(res['res1'].grad)
+        self.assertFalse(res['res2'].requires_grad)
+        self.assertIsNone(res['res2'].grad)
+
+    def test_prediction_notrain_output(self):
+        model = SimpleModel()
+        train_config = TrainConfig(model, [], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
+        dp = TrainDataProcessor(train_config=train_config)
+        self.assertFalse(model.fc.weight.is_cuda)
+        res = dp.predict({'data': torch.rand(1, 3)}, is_train=False)
+        self.assertIs(type(res), torch.Tensor)
+
+        model = NonStandardIOModel()
+        train_config = TrainConfig(model, [], torch.nn.Module(), torch.optim.SGD(model.parameters(), lr=0.1))
+        dp = TrainDataProcessor(train_config=train_config)
+        self.assertFalse(model.fc.weight.is_cuda)
+        res = dp.predict({'data': {'data1': torch.rand(1, 3), 'data2': torch.rand(1, 3)}}, is_train=False)
+        self.assertIs(type(res), dict)
+        self.assertIn('res1', res)
+        self.assertIs(type(res['res1']), torch.Tensor)
+        self.assertIn('res2', res)
+        self.assertIs(type(res['res2']), torch.Tensor)
+
+        self.assertFalse(model.training)
         self.assertFalse(res['res1'].requires_grad)
         self.assertIsNone(res['res1'].grad)
         self.assertFalse(res['res2'].requires_grad)
