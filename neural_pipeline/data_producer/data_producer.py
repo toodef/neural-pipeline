@@ -38,12 +38,17 @@ class DataProducer:
         self._glob_shuffle = False
         self._pin_memory = False
         self._collate_fn = default_collate
+        self._drop_last = False
 
         self._need_pass_indices = False
 
         self._update_datasets_idx_space()
 
         self._indices = None
+
+    def drop_last(self, need_drop: bool) -> 'DataProducer':
+        self._drop_last = need_drop
+        return self
 
     def shuffle_datasets_order(self, is_need: bool) -> 'DataProducer':
         """
@@ -162,7 +167,8 @@ class DataProducer:
         if indices is not None:
             return self._get_loader_by_indices(indices)
         return DataLoader(self, batch_size=self.__batch_size, num_workers=self.__num_workers,
-                          shuffle=self._glob_shuffle, pin_memory=self._pin_memory, collate_fn=self._collate_fn)
+                          shuffle=self._glob_shuffle, pin_memory=self._pin_memory, collate_fn=self._collate_fn,
+                          drop_last=self._drop_last)
 
     def _get_loader_by_indices(self, indices: [str]) -> DataLoader:
         """
@@ -172,7 +178,8 @@ class DataProducer:
         :return: :class:`DataLoader` object
         """
         return DataLoader(_ByIndices(self.__datasets, indices), batch_size=self.__batch_size, num_workers=self.__num_workers,
-                          shuffle=self._glob_shuffle, pin_memory=self._pin_memory, collate_fn=self._collate_fn)
+                          shuffle=self._glob_shuffle, pin_memory=self._pin_memory, collate_fn=self._collate_fn,
+                          drop_last=self._drop_last)
 
     def _update_datasets_idx_space(self) -> None:
         """
