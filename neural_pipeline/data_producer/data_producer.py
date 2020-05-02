@@ -1,22 +1,86 @@
 import itertools
-from random import shuffle
 
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
 from abc import ABCMeta, abstractmethod
+import numpy as np
 
 
-__all__ = ['AbstractDataset', 'DataProducer']
+__all__ = ['AbstractDataset', 'DataProducer', 'BasicDataset']
 
 
 class AbstractDataset(metaclass=ABCMeta):
     @abstractmethod
-    def __len__(self):
+    def __getitem__(self, item):
         pass
 
     @abstractmethod
-    def __getitem__(self, item):
+    def __len__(self):
         pass
+
+
+class IndexesDataset(AbstractDataset):
+
+class BasicDataset(AbstractDataset, metaclass=ABCMeta):
+    """
+    The standard dataset basic class.
+
+    Basic dataset get array of items and works with it. Array of items is just an array of shape [N, ?]
+    """
+    def __init__(self, items: list):
+        self._items = items
+        self._indices = None
+
+    @abstractmethod
+    def _interpret_item(self, item) -> any:
+        """
+        Interpret one item from dataset. This method get index of item and returns interpreted data? that will be passed from dataset
+
+        Args:
+            item: item of items array
+
+        Returns:
+            One item, that
+        """
+
+    def get_items(self) -> list:
+        """
+        Get array of items
+
+        :return: array of indices
+        """
+        return self._items
+
+    def set_indices(self, indices: [int], remove_unused: bool = False) -> 'AbstractDataset':
+        if remove_unused:
+            self._items = [self._items[idx] for idx in indices]
+            self._indices = None
+        else:
+            self._indices = indices
+        return self
+
+    def get_indices(self) -> list:
+        return self._indices
+
+    def load_indices(self, path: str, remove_unused: bool = False) -> 'AbstractDataset':
+        self.set_indices(np.load(path), remove_unused)
+        return self
+
+    def flush_indices(self, path: str) -> 'AbstractDataset':
+        np.save(path, self._indices)
+        return self
+
+    def __getitem__(self, idx):
+        if self._indices is None:
+            return self._interpret_item(self._items[idx])
+        else:
+            return self._interpret_item(self._items[self._indices[idx]])
+
+    def __len__(self):
+        if self._indices is None:
+            return len(self._items)
+        else:
+            return len(self._indices)
 
 
 class DataProducer:
@@ -29,40 +93,25 @@ class DataProducer:
     :param num_workers: number of processes, that load data from datasets and pass it for output
     """
 
-    def __init__(self, datasets: [AbstractDataset], batch_size: int = 1, num_workers: int = 0):
-        self.__datasets = datasets
-        self.__batch_size = batch_size
-        self.__num_workers = num_workers
+    def __init__(self, dataset: [AbstractDataset], batch_size: int = 1, num_workers: int = 0):
+        self._dataset = dataset
+        self._batch_size = batch_size
+        self._num_workers = num_workers
 
-        self._shuffle_datasets_order = False
-        self._glob_shuffle = False
+        self._glob_shuffle = True
         self._pin_memory = False
         self._collate_fn = default_collate
         self._drop_last = False
 
         self._need_pass_indices = False
 
-        self._update_datasets_idx_space()
-
-        self._indices = None
-
     def drop_last(self, need_drop: bool) -> 'DataProducer':
         self._drop_last = need_drop
         return self
 
-    def shuffle_datasets_order(self, is_need: bool) -> 'DataProducer':
-        """
-        Is need to shuffle datasets order. Shuffling performs after every 0 index access
-
-        :param is_need: is need
-        :return: self object
-        """
-        self._shuffle_datasets_order = is_need
-        return self
-
     def global_shuffle(self, is_need: bool) -> 'DataProducer':
         """
-        Is need global shuffling. If global shuffling enable - batches will compile from random indices of all datasets. In this case datasets order shuffling was ignoring
+        Is need global shuffling. If global shuffling enable - batches will compile from random indices.
 
         :param is_need: is need global shuffling
         :return: self object
@@ -89,24 +138,6 @@ class DataProducer:
         self._need_pass_indices = need_pass
         return self
 
-    def set_indices(self, indices: [str]) -> 'DataProducer':
-        """
-        Set indices to :class:`DataProducer`. After that, :class:`DataProducer` start produce data only by indices
-
-        :param indices: list of indices in format "<dataset_idx>_<data_idx>` like: ['0_0', '0_1', '1_0']
-        :return: self object
-        """
-        self._indices = indices
-        return self
-
-    def get_indices(self) -> [str] or None:
-        """
-        Get current indices
-
-        :return: list of current indices or None if method :meth:`set_indices` doesn't called
-        """
-        return self._indices
-
     def _is_passed_indices(self) -> bool:
         """
         Internal method for know if :class:`DataProducer` passed indices
@@ -123,7 +154,7 @@ class DataProducer:
         :param data_idx: index of data in this dataset
         :return: dataset output
         """
-        data = self.__datasets[dataset_idx][data_idx]
+        data = self._dataset[data_idx]
         if self._need_pass_indices:
             if not isinstance(data, dict):
                 data = {'data': data}
@@ -133,28 +164,6 @@ class DataProducer:
     def set_collate_func(self, func: callable) -> 'DataProducer':
         self._collate_fn = func
         return self
-
-    def __len__(self):
-        if self._indices is None:
-            return self.__overall_len
-        else:
-            return len(self._indices)
-
-    def __getitem__(self, item):
-        if item == 0 and self._indices is None and (not self._glob_shuffle) and self._shuffle_datasets_order:
-            self._update_datasets_idx_space()
-
-        if self._indices is None:
-            dataset_idx, data_idx = 0, item
-            for i in range(len(self.__datasets)):
-                if item > self._datatsets_idx_space[i]:
-                    dataset_idx = i + 1
-                    data_idx = item - self._datatsets_idx_space[i] - 1
-        else:
-            dataset_idx, data_idx = self._indices[item].split('_')
-            dataset_idx, data_idx = int(dataset_idx), int(data_idx)
-
-        return self.get_data(dataset_idx, data_idx)
 
     def get_loader(self, indices: [str] = None) -> DataLoader:
         """
@@ -166,7 +175,7 @@ class DataProducer:
         """
         if indices is not None:
             return self._get_loader_by_indices(indices)
-        return DataLoader(self, batch_size=self.__batch_size, num_workers=self.__num_workers,
+        return DataLoader(self._dataset, batch_size=self._batch_size, num_workers=self._num_workers,
                           shuffle=self._glob_shuffle, pin_memory=self._pin_memory, collate_fn=self._collate_fn,
                           drop_last=self._drop_last)
 
@@ -177,30 +186,14 @@ class DataProducer:
         :param indices: required indices
         :return: :class:`DataLoader` object
         """
-        return DataLoader(_ByIndices(self.__datasets, indices), batch_size=self.__batch_size, num_workers=self.__num_workers,
+        return DataLoader(_ByIndices(self._dataset, indices), batch_size=self._batch_size, num_workers=self._num_workers,
                           shuffle=self._glob_shuffle, pin_memory=self._pin_memory, collate_fn=self._collate_fn,
                           drop_last=self._drop_last)
 
-    def _update_datasets_idx_space(self) -> None:
-        """
-        Update idx space of datasets. Idx space used for correct mapping global idx to corresponding dataset data index
-        """
-        if self._shuffle_datasets_order:
-            shuffle(self.__datasets)
-
-        datasets_len = [len(d) for d in self.__datasets]
-        self.__overall_len = sum(datasets_len)
-        self._datatsets_idx_space = []
-        cur_len = 0
-        for dataset_len in datasets_len:
-            self._datatsets_idx_space.append(dataset_len + cur_len - 1)
-            cur_len += dataset_len
-
 
 class _ByIndices(DataProducer):
-    def __init__(self, datasets: [AbstractDataset], indices: []):
-        super().__init__(datasets)
-        self.shuffle_datasets_order(False)
+    def __init__(self, dataset:AbstractDataset, indices: list):
+        super().__init__(dataset)
         self.indices = list(itertools.chain(*indices))
 
     def __getitem__(self, item):

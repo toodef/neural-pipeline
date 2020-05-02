@@ -1,1 +1,1 @@
-from .data_producer import AbstractDataset, DataProducer
+from .data_producer import AbstractDataset, DataProducer, BasicDataset
