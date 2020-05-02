@@ -5,9 +5,9 @@ import unittest
 import torch
 import numpy as np
 
-from neural_pipeline.data_processor import DataProcessor, TrainDataProcessor, Model
-from neural_pipeline.utils import FileStructManager, dict_pair_recursive_bypass, CheckpointsManager
-from neural_pipeline.train_config import TrainConfig
+from piepline.data_processor import DataProcessor, TrainDataProcessor, Model
+from piepline.utils import FileStructManager, dict_pair_recursive_bypass, CheckpointsManager
+from piepline.train_config import TrainConfig
 from tests.common import UseFileStructure, data_remove
 
 __all__ = ['ModelTest', 'DataProcessorTest', 'TrainDataProcessorTest']

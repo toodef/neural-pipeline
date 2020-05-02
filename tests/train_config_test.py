@@ -5,10 +5,10 @@ import torch
 from torch.nn import functional as F
 from torch import Tensor
 
-from neural_pipeline import Trainer
-from neural_pipeline.data_producer import DataProducer
-from neural_pipeline.train_config.train_config import MetricsGroup, AbstractMetric, TrainStage, MetricsProcessor, TrainConfig
-from neural_pipeline.utils.fsm import FileStructManager
+from piepline import Trainer
+from piepline.data_producer import DataProducer
+from piepline.train_config.train_config import MetricsGroup, AbstractMetric, TrainStage, MetricsProcessor, TrainConfig
+from piepline.utils.fsm import FileStructManager
 from tests.common import UseFileStructure
 from tests.data_processor_test import SimpleModel, SimpleLoss
 from tests.data_producer_test import TestDataProducer

@@ -3,7 +3,7 @@ from random import randint
 
 from torch.utils.data import DataLoader
 
-from neural_pipeline.data_producer.data_producer import AbstractDataset, DataProducer
+from piepline.data_producer.data_producer import AbstractDataset, DataProducer
 
 __all__ = ['DataProducerTest']
 

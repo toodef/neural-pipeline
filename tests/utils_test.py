@@ -10,8 +10,8 @@ from torch import Tensor
 import numpy as np
 import unittest
 
-from neural_pipeline.utils import FileStructManager, CheckpointsManager, dict_recursive_bypass
-from neural_pipeline.utils.fsm import FolderRegistrable
+from piepline.utils import FileStructManager, CheckpointsManager, dict_recursive_bypass
+from piepline.utils.fsm import FolderRegistrable
 from tests.common import UseFileStructure
 
 __all__ = ['UtilsTest', 'FileStructManagerTest', 'CheckpointsManagerTests']

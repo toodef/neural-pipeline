@@ -2,9 +2,9 @@
 
 Neural networks training pipeline based on PyTorch. Designed to standardize training process and accelerate experiments.
 
-[![Build Status](https://travis-ci.org/toodef/piepline.svg?branch=master)](https://travis-ci.org/toodef/piepline)
-[![Coverage Status](https://coveralls.io/repos/github/toodef/piepline/badge.svg?branch=master)](https://coveralls.io/github/toodef/piepline?branch=master)
-[![Maintainability](https://api.codeclimate.com/v1/badges/1feaafcc614adf27c30f/maintainability)](https://codeclimate.com/github/toodef/piepline/maintainability)
+[![Build Status](https://travis-ci.org/PiePline/piepline.svg?branch=master)](https://travis-ci.org/PiePline/piepline)
+[![Coverage Status](https://coveralls.io/repos/github/PiePline/piepline/badge.svg?branch=master)](https://coveralls.io/github/PiePline/piepline?branch=master)
+[![Maintainability](https://api.codeclimate.com/v1/badges/7da18cb28e7e7dc13268/maintainability)](https://codeclimate.com/github/PiePline/piepline/maintainability)
 [![Gitter chat](https://badges.gitter.im/piepline/gitter.png)](https://gitter.im/piepline/community)
 
 * Core is about 2K lines, covered by tests, that you don't need to write again
@@ -16,9 +16,9 @@ Neural networks training pipeline based on PyTorch. Designed to standardize trai
 
 # Getting started:
 ### Documentation
-[![Documentation Status](https://readthedocs.org/projects/piepline/badge/?version=master)](https://piepline.readthedocs.io/en/master/?badge=master)
-* [See the full documentation there](https://piepline.readthedocs.io/en/master/)
-* [Read getting started guide](https://piepline.readthedocs.io/en/master/getting_started/index.html)
+[![Documentation Status](https://readthedocs.org/projects/piepline/badge/?version=stable)](https://piepline.readthedocs.io/en/stable/?badge=stable)
+* [See the full documentation there](https://piepline.readthedocs.io/en/stable/)
+* [Read getting started guide](https://piepline.readthedocs.io/en/stable/getting_started/index.html)
 
 ### See the examples
 * MNIST classification - [notebook](https://github.com/toodef/piepline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/piepline/blob/master/examples/files/img_classification.py), [Kaggle kernel](https://www.kaggle.com/toodef/cnn-training-with-less-code)

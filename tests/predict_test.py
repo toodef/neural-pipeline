@@ -1,9 +1,9 @@
 import torch
 
-from neural_pipeline.train_config import MetricsProcessor, TrainStage
-from neural_pipeline.train_config.train_config import ValidationStage, TrainConfig
-from neural_pipeline.utils.fsm import FileStructManager
-from neural_pipeline import Predictor, Trainer
+from piepline.train_config import MetricsProcessor, TrainStage
+from piepline.train_config.train_config import ValidationStage, TrainConfig
+from piepline.utils.fsm import FileStructManager
+from piepline import Predictor, Trainer
 from tests.common import UseFileStructure
 
 from tests.data_processor_test import SimpleModel, SimpleLoss

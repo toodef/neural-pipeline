@@ -5,9 +5,9 @@ import shutil
 import torch
 import numpy as np
 
-from neural_pipeline.monitoring import LogMonitor
-from neural_pipeline.train_config import MetricsGroup
-from neural_pipeline.utils import FileStructManager
+from piepline.monitoring import LogMonitor
+from piepline.train_config import MetricsGroup
+from piepline.utils import FileStructManager
 from tests.common import UseFileStructure, SimpleMetric
 
 __all__ = ['MonitorLogTest']

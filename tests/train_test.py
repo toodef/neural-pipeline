@@ -4,11 +4,11 @@ from random import randint
 import torch
 import numpy as np
 
-from neural_pipeline import Trainer
-from neural_pipeline.train import DecayingLR
-from neural_pipeline.train_config import TrainConfig, TrainStage, MetricsProcessor
-from neural_pipeline.train_config.train_config import ValidationStage
-from neural_pipeline.utils.fsm import FileStructManager
+from piepline import Trainer
+from piepline.train import DecayingLR
+from piepline.train_config import TrainConfig, TrainStage, MetricsProcessor
+from piepline.train_config.train_config import ValidationStage
+from piepline.utils.fsm import FileStructManager
 from tests.common import UseFileStructure
 from tests.data_processor_test import SimpleModel
 from tests.data_producer_test import TestDataProducer
