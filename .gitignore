@@ -9,7 +9,6 @@ workdir
 doctrees/
 .buildinfo
 docs/source/_*
-dist
-/build
+dist/
+build/
 neural_pipeline.egg-info
-

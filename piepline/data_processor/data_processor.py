@@ -108,7 +108,7 @@ class TrainDataProcessor(DataProcessor):
     def __init__(self, train_config: 'TrainConfig', device: torch.device = None):
         super().__init__(train_config.model(), device)
 
-        self._data_preprocess = lambda data: data if device is None else self._pass_data_to_device
+        self._data_preprocess = (lambda data: data) if device is None else self._pass_data_to_device
         self._pick_target = lambda data: data['target']
 
         self._loss_input_preproc = lambda data: data
@@ -147,15 +147,17 @@ class TrainDataProcessor(DataProcessor):
 
         if is_train:
             self.__optimizer.zero_grad()
+
         res = self.predict(internal_batch, is_train)
-
-        if metrics_processor is not None:
-            metrics_processor.calc_metrics(res, self._pick_target(internal_batch))
-
         loss = self.__criterion(res, self._pick_target(internal_batch))
+
         if is_train:
             loss.backward()
             self.__optimizer.step()
+
+        with torch.no_grad():
+            if metrics_processor is not None:
+                metrics_processor.calc_metrics(res, self._pick_target(internal_batch))
 
         return loss.data.cpu().numpy()
 
@@ -260,7 +262,7 @@ class TrainDataProcessor(DataProcessor):
         .. highlight:: python
         .. code-block:: python
 
-            from neural_pipeline.utils import dict_recursive_bypass
+            from piepline.utils import dict_recursive_bypass
             data_processor.set_data_preprocess(lambda data: dict_recursive_bypass(data, lambda v: v.cuda()))
         """
         self._data_preprocess = data_preprocess

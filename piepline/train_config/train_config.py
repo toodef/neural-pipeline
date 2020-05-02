@@ -26,7 +26,7 @@ __all__ = ['TrainConfig', 'ComparableTrainConfig', 'TrainStage', 'ValidationStag
 
 class AbstractMetric(metaclass=ABCMeta):
     """
-    Abstract class for metrics. When it works in neural_pipeline, it store metric value for every call of :meth:`calc`
+    Abstract class for metrics. When it works in piepline, it store metric value for every call of :meth:`calc`
 
     :param name: name of metric. Name wil be used in monitors, so be careful in use unsupported characters
     """

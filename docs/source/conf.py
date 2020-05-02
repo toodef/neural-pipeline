@@ -25,11 +25,11 @@ author = 'Anton Fedotov'
 
 # import importlib.util
 #
-# spec = importlib.util.spec_from_file_location("neural_pipeline",
+# spec = importlib.util.spec_from_file_location("piepline",
 #                                               os.path.join(os.path.dirname(os.path.abspath(__file__)),
-#                                                            '..', '..', 'neural_pipeline', '__init__.py'))
-# neural_pipeline = importlib.util.module_from_spec(spec)
-# spec.loader.exec_module(neural_pipeline)
+#                                                            '..', '..', 'piepline', '__init__.py'))
+# piepline = importlib.util.module_from_spec(spec)
+# spec.loader.exec_module(piepline)
 
 import neural_pipeline
 
