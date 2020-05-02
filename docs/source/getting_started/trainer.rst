@@ -28,7 +28,7 @@ Now we need build our training process. It's done by implements ``Trainer`` clas
 
 .. code:: python
 
-    from neural_pipeline import FileStructManager, Trainer
+    from piepline import FileStructManager, Trainer
 
     # define file structure for experiment
     fsm = FileStructManager(base_dir='data', is_continue=False)

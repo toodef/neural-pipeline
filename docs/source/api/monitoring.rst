@@ -1,4 +1,4 @@
 Monitoring
 ==============================
-.. automodule:: neural_pipeline.monitoring
+.. automodule:: piepline.monitoring
     :members:

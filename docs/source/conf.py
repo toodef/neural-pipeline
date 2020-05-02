@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'Neural Pipeline'
+project = 'PiePline'
 copyright = '2019, Anton Fedotov'
 author = 'Anton Fedotov'
 
@@ -31,10 +31,10 @@ author = 'Anton Fedotov'
 # piepline = importlib.util.module_from_spec(spec)
 # spec.loader.exec_module(piepline)
 
-import neural_pipeline
+import piepline
 
 # The short X.Y version
-version = neural_pipeline.__version__
+version = piepline.__version__
 # The full version, including alpha/beta/rc tags
 release = version
 
@@ -127,7 +127,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'NeuralPipelinedoc'
+htmlhelp_basename = 'PiePLinedoc'
 
 # -- Options for LaTeX output ------------------------------------------------
 
@@ -153,7 +153,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'NeuralPipeline.tex', 'Neural Pipeline Documentation',
+    (master_doc, 'PiePline.tex', 'PiePline Documentation',
      'Anton Fedotov', 'manual'),
 ]
 
@@ -162,7 +162,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'neuralpipeline', 'Neural Pipeline Documentation',
+    (master_doc, 'neuralpipeline', 'PiePline Documentation',
      [author], 1)
 ]
 
@@ -172,8 +172,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'NeuralPipeline', 'Neural Pipeline Documentation',
-     author, 'NeuralPipeline', 'Neural networks training pipeline based on PyTorch. Designed to standardize training process and to increase coding preformance.',
+    (master_doc, 'PiePline', 'PiePline Documentation',
+     author, 'PiePline', 'Neural networks training pipeline based on PyTorch. Designed to standardize training process and to increase coding preformance.',
      'Miscellaneous'),
 ]
 

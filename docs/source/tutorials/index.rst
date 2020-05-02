@@ -3,7 +3,7 @@ DVC
 
 Portrait segmentation network.
 
-This based on PyTorch, NeuralPipeline and high-level pipeline build by [DVC](dvc.org).
+This based on PyTorch, PiePline and high-level pipeline build by [DVC](dvc.org).
 
 Creation repo tutorial (explain, that code also exists):
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

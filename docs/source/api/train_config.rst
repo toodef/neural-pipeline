@@ -1,4 +1,4 @@
 Train Config
 ==============================
-.. automodule:: neural_pipeline.train_config.train_config
+.. automodule:: piepline.train_config.train_config
     :members:

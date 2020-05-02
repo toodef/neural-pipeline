@@ -25,6 +25,6 @@ If we need to do some more training epochs but doesn't have previously defined o
 
 
 Parameter ``from_best_checkpoint=False`` tell Trainer, that it need continue from last checkpoint.
-Neural Pipeline can save best checkpoints by specified rule. For more information about it read about `enable_lr_decaying <https://neural-pipeline.readthedocs.io/en/master/api/train.html#neural_pipeline.train.Trainer.enable_best_states_saving>`_ method of `Trainer`.
+PiePline can save best checkpoints by specified rule. For more information about it read about `enable_lr_decaying <https://piepline.readthedocs.io/en/master/api/train.html#piepline.train.Trainer.enable_best_states_saving>`_ method of `Trainer`.
 
 Don't worry about incorrect training history displaying. If history also exists - monitors just add new data to it.

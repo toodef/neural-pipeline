@@ -1,4 +1,4 @@
 Predictor
 ==============================
-.. automodule:: neural_pipeline.predict
+.. automodule:: piepline.predict
     :members:

@@ -1,9 +1,9 @@
 Tensorboard
 ==============================
-.. automodule:: neural_pipeline.builtin.monitors.tensorboard
+.. automodule:: piepline.builtin.monitors.tensorboard
     :members:
 
 Matplotlib
 ==============================
-.. automodule:: neural_pipeline.builtin.monitors.mpl
+.. automodule:: piepline.builtin.monitors.mpl
     :members:

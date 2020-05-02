@@ -1,4 +1,4 @@
 Trainer
 ==============================
-.. automodule:: neural_pipeline.train
+.. automodule:: piepline.train
     :members:

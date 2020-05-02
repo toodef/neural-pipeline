@@ -14,7 +14,7 @@ That's all. Console output will look like that:
 | Epoch: [3]; train: [0.000182, 0.180328, 5.218509]; validation: [0.000135, 0.155546, 2.512275]
 | train:  31%|███           | 4651/15000 [00:31<01:07, 154.06it/s, loss=[0.154871]]
 
-First 3 lines is standard output of `ConsoleMonitor <https://neural-pipeline.readthedocs.io/en/master/api/monitoring.html#neural_pipeline.monitoring.ConsoleMonitor>`_.
+First 3 lines is standard output of `ConsoleMonitor <https://piepline.readthedocs.io/en/master/api/monitoring.html#piepline.monitoring.ConsoleMonitor>`_.
 This monitor included for ``MonitorHub`` by default.
 Every line show loss values of correspondence stage in format [min, mean, max] values.
 
@@ -29,7 +29,7 @@ For do it we need before training connect builtin `TensorboardMonitor` to `Train
 
 .. code:: python
 
-    from neural_pipeline.builtin.monitors.tensorboard import TensorboardMonitor
+    from piepline.builtin.monitors.tensorboard import TensorboardMonitor
 
     trainer.monitor_hub.add_monitor(TensorboardMonitor(fsm, is_continue=False))
 

@@ -1,7 +1,7 @@
 Implement dataset class
 =======================
 
-In Neural Pipeline dataset is iterable class. This means, that class need contain ``__getitem__`` and ``__len__`` methods.
+In PiePline dataset is iterable class. This means, that class need contain ``__getitem__`` and ``__len__`` methods.
 
 For every i-th output, dataset need produce Python ``dict`` with keys 'data' and 'target'.
 
@@ -32,7 +32,7 @@ For work with this dataset we need wrap it by ``DataProducer``:
 
 .. code:: python
 
-    from neural_pipeline import DataProducer
+    from piepline import DataProducer
 
     # create train and validation datasets objects
     train_dataset = DataProducer([MNISTDataset('data/dataset', True)], batch_size=4, num_workers=2)

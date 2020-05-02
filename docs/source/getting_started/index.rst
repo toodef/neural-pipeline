@@ -1,13 +1,13 @@
 Getting started guide
 =====================
 
-First of all look at main classes of Neural Pipeline:
+First of all look at main classes of PiePline:
 
-* `Trainer <https://neural-pipeline.readthedocs.io/en/master/api/train.html#neural_pipeline.train.Trainer>`_ - class, that implements training process
-* `TrainConfig <https://neural-pipeline.readthedocs.io/en/master/api/train_config.html#neural_pipeline.train_config.train_config.TrainConfig>`_ - class, that store hyperparameters
-* `AbstractTrainStage <https://neural-pipeline.readthedocs.io/en/master/api/train_config.html#neural_pipeline.train_config.train_config.AbstractStage>`_ - base class for single stage of training process. Don't worry, Neural Pipeline have predefined classes for common use cases: `TrainStage <https://neural-pipeline.readthedocs.io/en/master/api/train_config.html#neural_pipeline.train_config.train_config.TrainStage>`_, `ValidationStage <https://neural-pipeline.readthedocs.io/en/master/api/train_config.html#neural_pipeline.train_config.train_config.ValidationStage>`_ and more common - `StandardStage <https://neural-pipeline.readthedocs.io/en/master/api/train_config.html#neural_pipeline.train_config.train_config.StandardStage>`_
-* `DataProducer <https://neural-pipeline.readthedocs.io/en/master/api/data_producer.html#neural_pipeline.data_producer.data_producer.DataProducer>`_ - class, that unite datasets and unite it's interface
-* `FileStructManager <https://neural-pipeline.readthedocs.io/en/master/api/utils.html#neural_pipeline.utils.file_structure_manager.FileStructManager>`_ - class, that manage file structure
+* `Trainer <https://piepline.readthedocs.io/en/master/api/train.html#piepline.train.Trainer>`_ - class, that implements training process
+* `TrainConfig <https://piepline.readthedocs.io/en/master/api/train_config.html#piepline.train_config.train_config.TrainConfig>`_ - class, that store hyperparameters
+* `AbstractTrainStage <https://piepline.readthedocs.io/en/master/api/train_config.html#piepline.train_config.train_config.AbstractStage>`_ - base class for single stage of training process. Don't worry, PiePline have predefined classes for common use cases: `TrainStage <https://piepline.readthedocs.io/en/master/api/train_config.html#piepline.train_config.train_config.TrainStage>`_, `ValidationStage <https://piepline.readthedocs.io/en/master/api/train_config.html#piepline.train_config.train_config.ValidationStage>`_ and more common - `StandardStage <https://piepline.readthedocs.io/en/master/api/train_config.html#piepline.train_config.train_config.StandardStage>`_
+* `DataProducer <https://piepline.readthedocs.io/en/master/api/data_producer.html#piepline.data_producer.data_producer.DataProducer>`_ - class, that unite datasets and unite it's interface
+* `FileStructManager <https://piepline.readthedocs.io/en/master/api/utils.html#piepline.utils.file_structure_manager.FileStructManager>`_ - class, that manage file structure
 
 Training stages needed for customize training process. With it `Trainer` work by this scheme (dataflow scheme for single epoch):
 
@@ -23,4 +23,4 @@ Training stages needed for customize training process. With it `Trainer` work by
    training
    continue
 
-After this tutorial look to `segmentation example <https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_segmentation.ipynb>`_ for explore how to work with specific metrics.
+After this tutorial look to `segmentation example <https://github.com/toodef/piepline/blob/master/examples/notebooks/img_segmentation.ipynb>`_ for explore how to work with specific metrics.

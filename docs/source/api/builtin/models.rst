@@ -1,4 +1,4 @@
 AlbUNet
 ==============================
-.. automodule:: neural_pipeline.builtin.models.albunet
+.. automodule:: piepline.builtin.models.albunet
     :members:

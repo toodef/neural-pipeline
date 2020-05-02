@@ -8,7 +8,7 @@ Respectively ``ValidatioStage`` do same but in ``eval()`` mode.
 
 .. code:: python
 
-    from neural_pipeline import TrainConfig, TrainStage, ValidationStage
+    from piepline import TrainConfig, TrainStage, ValidationStage
 
     # define train stages
     train_stages = [TrainStage(train_dataset), ValidationStage(validation_dataset)]
