@@ -1,11 +1,11 @@
-# Neural Pipeline
+# PiePline
 
 Neural networks training pipeline based on PyTorch. Designed to standardize training process and accelerate experiments.
 
-[![Build Status](https://travis-ci.org/toodef/neural-pipeline.svg?branch=master)](https://travis-ci.org/toodef/neural-pipeline)
-[![Coverage Status](https://coveralls.io/repos/github/toodef/neural-pipeline/badge.svg?branch=master)](https://coveralls.io/github/toodef/neural-pipeline?branch=master)
-[![Maintainability](https://api.codeclimate.com/v1/badges/1feaafcc614adf27c30f/maintainability)](https://codeclimate.com/github/toodef/neural-pipeline/maintainability)
-[![Gitter chat](https://badges.gitter.im/neural-pipeline/gitter.png)](https://gitter.im/neural-pipeline/community)
+[![Build Status](https://travis-ci.org/toodef/piepline.svg?branch=master)](https://travis-ci.org/toodef/piepline)
+[![Coverage Status](https://coveralls.io/repos/github/toodef/piepline/badge.svg?branch=master)](https://coveralls.io/github/toodef/piepline?branch=master)
+[![Maintainability](https://api.codeclimate.com/v1/badges/1feaafcc614adf27c30f/maintainability)](https://codeclimate.com/github/toodef/piepline/maintainability)
+[![Gitter chat](https://badges.gitter.im/piepline/gitter.png)](https://gitter.im/piepline/community)
 
 * Core is about 2K lines, covered by tests, that you don't need to write again
 * Flexible and customizable training process
@@ -16,16 +16,16 @@ Neural networks training pipeline based on PyTorch. Designed to standardize trai
 
 # Getting started:
 ### Documentation
-[![Documentation Status](https://readthedocs.org/projects/neural-pipeline/badge/?version=master)](https://neural-pipeline.readthedocs.io/en/master/?badge=master)
-* [See the full documentation there](https://neural-pipeline.readthedocs.io/en/master/)
-* [Read getting started guide](https://neural-pipeline.readthedocs.io/en/master/getting_started/index.html)
+[![Documentation Status](https://readthedocs.org/projects/piepline/badge/?version=master)](https://piepline.readthedocs.io/en/master/?badge=master)
+* [See the full documentation there](https://piepline.readthedocs.io/en/master/)
+* [Read getting started guide](https://piepline.readthedocs.io/en/master/getting_started/index.html)
 
 ### See the examples
-* MNIST classification - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_classification.py), [Kaggle kernel](https://www.kaggle.com/toodef/cnn-training-with-less-code)
-* Segmentation - [notebook](https://github.com/toodef/neural-pipeline/blob/master/examples/notebooks/img_segmentation.ipynb), [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/img_segmentation.py)
-* Resume training process - [file](https://github.com/toodef/neural-pipeline/blob/master/examples/files/resume_train.py)
+* MNIST classification - [notebook](https://github.com/toodef/piepline/blob/master/examples/notebooks/img_classification.ipynb), [file](https://github.com/toodef/piepline/blob/master/examples/files/img_classification.py), [Kaggle kernel](https://www.kaggle.com/toodef/cnn-training-with-less-code)
+* Segmentation - [notebook](https://github.com/toodef/piepline/blob/master/examples/notebooks/img_segmentation.ipynb), [file](https://github.com/toodef/piepline/blob/master/examples/files/img_segmentation.py)
+* Resume training process - [file](https://github.com/toodef/piepline/blob/master/examples/files/resume_train.py)
 
-### Neural Pipeline short overview:
+### PiePline short overview:
 ```python
 import torch
 
@@ -54,14 +54,14 @@ trainer.train()
 This example of training MyNet on MyDataset with vizualisation in Tensorflow and with metrics logging for further experiments comparison.
 
 # Installation:
-[![PyPI version](https://badge.fury.io/py/neural-pipeline.svg)](https://badge.fury.io/py/neural-pipeline)
-[![PyPI Downloads/Month](https://pepy.tech/badge/neural-pipeline/month)](https://pepy.tech/project/neural-pipeline)
-[![PyPI Downloads](https://pepy.tech/badge/neural-pipeline)](https://pepy.tech/project/neural-pipeline)
+[![PyPI version](https://badge.fury.io/py/piepline.svg)](https://badge.fury.io/py/piepline)
+[![PyPI Downloads/Month](https://pepy.tech/badge/piepline/month)](https://pepy.tech/project/piepline)
+[![PyPI Downloads](https://pepy.tech/badge/piepline)](https://pepy.tech/project/piepline)
 
-`pip install neural-pipeline`
+`pip install piepline`
 
 ##### For `builtin` module using install:
 `pip install tensorboardX matplotlib`
 
 ##### Install latest version before it's published on PyPi
-`pip install -U git+https://github.com/toodef/neural-pipeline`
+`pip install -U git+https://github.com/toodef/piepline`
