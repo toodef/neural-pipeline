@@ -183,7 +183,7 @@ class TrainConfigTest(UseFileStructure):
             stage.hnm._losses = np.array([0])
 
         stage.hnm._process_batch = on_batch
-        stage.hnm.exec(None, losses, [['0_{}'.format(i)] for i in range(20)])
+        stage.hnm.exec(None, losses, [[str(i)] for i in range(20)])
 
         self.assertEqual(len(samples), 2)
 
