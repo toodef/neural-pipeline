@@ -1,4 +1,4 @@
 File structure management utils
 ===============================
-.. automodule:: piepline.utils.file_structure_manager
+.. automodule:: piepline.utils.fsm
     :members:

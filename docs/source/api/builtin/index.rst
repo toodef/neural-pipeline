@@ -5,4 +5,3 @@ In builtin module contains all modules that can't be tested, or have specific fi
 .. toctree::
 
     monitors
-    models

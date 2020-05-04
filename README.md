@@ -64,4 +64,4 @@ This example of training MyNet on MyDataset with vizualisation in Tensorflow and
 `pip install tensorboardX matplotlib`
 
 ##### Install latest version before it's published on PyPi
-`pip install -U git+https://github.com/toodef/piepline`
+`pip install -U git+https://github.com/PiePline/piepline`

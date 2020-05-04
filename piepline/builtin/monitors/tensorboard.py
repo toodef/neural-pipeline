@@ -10,10 +10,10 @@ try:
 except ImportError:
     print("Looks like tensorboardX doesn't installed. Install in via 'pip install tensorboardX' and try again")
 
-from neural_pipeline.monitoring import AbstractMonitor
-from neural_pipeline.data_processor import Model
-from neural_pipeline.train_config import AbstractMetric, MetricsGroup
-from neural_pipeline.utils.fsm import FileStructManager, FolderRegistrable
+from piepline.monitoring import AbstractMonitor
+from piepline.data_processor import Model
+from piepline.train_config import AbstractMetric, MetricsGroup
+from piepline.utils.fsm import FileStructManager, FolderRegistrable
 
 import warnings
 

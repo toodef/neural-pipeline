@@ -14,8 +14,8 @@ except ImportError:
 
 import numpy as np
 
-from neural_pipeline import AbstractMonitor
-from neural_pipeline.train_config import MetricsGroup
+from piepline import AbstractMonitor
+from piepline.train_config import MetricsGroup
 
 
 class MPLMonitor(AbstractMonitor):
