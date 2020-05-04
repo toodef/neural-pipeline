@@ -1,5 +1,4 @@
 import itertools
-from random import shuffle
 from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
 
@@ -9,7 +8,7 @@ from piepline.data_producer.datasets import AbstractDataset
 __all__ = ['DataProducer']
 
 
-class DataProducer:
+class DataProducer(AbstractDataset):
     """
     Data Producer. Accumulate one or more datasets and pass it's data by batches for processing.
     This use PyTorch builtin :class:`DataLoader` for increase performance of data delivery.
@@ -29,8 +28,6 @@ class DataProducer:
         self._drop_last = False
 
         self._need_pass_indices = False
-
-        self._indices = None
 
     def drop_last(self, need_drop: bool) -> 'DataProducer':
         self._drop_last = need_drop
@@ -62,22 +59,6 @@ class DataProducer:
         self._need_pass_indices = need_pass
         return self
 
-    def set_indices(self, indices: [str]) -> 'DataProducer':
-        """
-        Set indices to :class:`DataProducer`. After that, :class:`DataProducer` start produce data only by indices
-        :param indices: list of indices in format "<dataset_idx>_<data_idx>` like: ['0_0', '0_1', '1_0']
-        :return: self object
-        """
-        self._indices = indices
-        return self
-
-    def get_indices(self) -> [str] or None:
-        """
-        Get current indices
-        :return: list of current indices or None if method :meth:`set_indices` doesn't called
-        """
-        return self._indices
-
     def _is_passed_indices(self) -> bool:
         """
         Internal method for know if :class:`DataProducer` passed indices
@@ -103,11 +84,10 @@ class DataProducer:
         return self
 
     def __len__(self):
-        return len(self._dataset) if self._indices is None else len(self._indices)
+        return len(self._dataset)
 
     def __getitem__(self, item):
-        data_idx = item if self._indices is None else int(self._indices[item])
-        return self.get_data(data_idx)
+        return self.get_data(item)
 
     def get_loader(self, indices: [str] = None) -> DataLoader:
         """
