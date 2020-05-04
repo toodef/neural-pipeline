@@ -212,9 +212,9 @@ class TrainDataProcessorTest(UseFileStructure):
         self.assertIs(type(res['res2']), torch.Tensor)
 
         self.assertTrue(model.training)
-        self.assertFalse(res['res1'].requires_grad)
+        self.assertTrue(res['res1'].requires_grad)
         self.assertIsNone(res['res1'].grad)
-        self.assertFalse(res['res2'].requires_grad)
+        self.assertTrue(res['res2'].requires_grad)
         self.assertIsNone(res['res2'].grad)
 
     def test_prediction_notrain_output(self):

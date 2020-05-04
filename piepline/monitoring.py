@@ -14,9 +14,9 @@ import os
 from abc import ABCMeta
 import numpy as np
 
-from neural_pipeline.train_config import MetricsGroup
-from neural_pipeline.utils import dict_recursive_bypass
-from neural_pipeline.utils.fsm import FileStructManager, FolderRegistrable
+from piepline.train_config import MetricsGroup
+from piepline.utils import dict_recursive_bypass
+from piepline.utils.fsm import FileStructManager, FolderRegistrable
 
 __all__ = ['MonitorHub', 'AbstractMonitor', 'ConsoleMonitor', 'LogMonitor']
 

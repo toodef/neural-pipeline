@@ -6,11 +6,11 @@ from abc import ABCMeta
 from tqdm import tqdm
 import torch
 
-from neural_pipeline.utils import CheckpointsManager
-from neural_pipeline.data_producer.data_producer import DataProducer
-from neural_pipeline.data_processor import Model
-from neural_pipeline.utils.fsm import FileStructManager
-from neural_pipeline.data_processor.data_processor import DataProcessor
+from piepline.utils import CheckpointsManager
+from piepline.data_producer.data_producer import DataProducer
+from piepline.data_processor import Model
+from piepline.utils.fsm import FileStructManager
+from piepline.data_processor.data_processor import DataProcessor
 
 __all__ = ['Predictor', 'DataProducerPredictor']
 

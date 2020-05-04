@@ -17,8 +17,8 @@ try:
 except ImportError:
     from tqdm import tqdm
 
-from neural_pipeline.data_producer.data_producer import DataProducer
-from neural_pipeline.data_processor.data_processor import TrainDataProcessor
+from piepline.data_producer.data_producer import DataProducer
+from piepline.data_processor.data_processor import TrainDataProcessor
 
 __all__ = ['TrainConfig', 'ComparableTrainConfig', 'TrainStage', 'ValidationStage', 'AbstractMetric', 'MetricsGroup', 'MetricsProcessor', 'AbstractStage',
            'StandardStage']

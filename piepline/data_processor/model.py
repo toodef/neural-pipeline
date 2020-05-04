@@ -1,7 +1,7 @@
 import torch
 from torch.nn import Module
 
-from neural_pipeline.utils.fsm import CheckpointsManager
+from piepline.utils.fsm import CheckpointsManager
 
 __all__ = ['Model']
 

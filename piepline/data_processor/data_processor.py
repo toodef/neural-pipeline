@@ -1,12 +1,12 @@
 import numpy as np
 
 import torch
-from neural_pipeline.utils import dict_recursive_bypass
+from piepline.utils import dict_recursive_bypass
 
-from neural_pipeline.utils import CheckpointsManager
+from piepline.utils import CheckpointsManager
 from torch.nn import Module
 
-from neural_pipeline.data_processor.model import Model
+from piepline.data_processor.model import Model
 
 __all__ = ['DataProcessor', 'TrainDataProcessor']
 

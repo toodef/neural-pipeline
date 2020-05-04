@@ -16,10 +16,10 @@ class PredictTest(UseFileStructure):
         fsm = FileStructManager(base_dir=self.base_dir, is_continue=False)
 
         metrics_processor = MetricsProcessor()
-        stages = [TrainStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
-                                                for _ in list(range(20))]]), metrics_processor),
-                  ValidationStage(TestDataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)}
-                                                     for _ in list(range(20))]]), metrics_processor)]
+        stages = [TrainStage(TestDataProducer([{'data': torch.rand(1, 3), 'target': torch.rand(1)} for _ in list(range(20))]),
+                             metrics_processor),
+                  ValidationStage(TestDataProducer([{'data': torch.rand(1, 3), 'target': torch.rand(1)} for _ in list(range(20))]),
+                                  metrics_processor)]
         Trainer(TrainConfig(model, stages, SimpleLoss(), torch.optim.SGD(model.parameters(), lr=1)), fsm)\
             .set_epoch_num(1).train()
 

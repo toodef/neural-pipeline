@@ -7,15 +7,15 @@ import numpy as np
 import torch
 from torch.nn import Module
 
-from neural_pipeline import AbstractMetric
+from piepline import AbstractMetric
 
-from neural_pipeline.data_processor import TrainDataProcessor
-from neural_pipeline.utils import FileStructManager, CheckpointsManager
-from neural_pipeline.train_config.train_config import TrainConfig, ComparableTrainConfig
-from neural_pipeline.monitoring import MonitorHub, ConsoleMonitor
-from neural_pipeline.utils.fsm import MultipleFSM
+from piepline.data_processor import TrainDataProcessor
+from piepline.utils import FileStructManager, CheckpointsManager
+from piepline.train_config.train_config import TrainConfig, ComparableTrainConfig
+from piepline.monitoring import MonitorHub, ConsoleMonitor
+from piepline.utils.fsm import MultipleFSM
 
-__all__ = ['Trainer', 'GridSearchTrainer']
+__all__ = ['Trainer']
 
 
 class LearningRate:

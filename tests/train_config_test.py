@@ -152,7 +152,7 @@ class TrainConfigTest(UseFileStructure):
         self.assertEqual(metrics_group_lv1.name(), name)
 
     def test_train_stage(self):
-        data_producer = DataProducer([[{'data': torch.rand(1, 3), 'target': torch.rand(1)} for _ in list(range(20))]])
+        data_producer = DataProducer([{'data': torch.rand(1, 3), 'target': torch.rand(1)} for _ in list(range(20))])
         metrics_processor = FakeMetricsProcessor()
         train_stage = TrainStage(data_producer, metrics_processor).enable_hard_negative_mining(0.1)
 
@@ -173,8 +173,7 @@ class TrainConfigTest(UseFileStructure):
         with self.assertRaises(ValueError):
             stage = TrainStage(None).enable_hard_negative_mining(1.1)
 
-        dp = TestDataProducer([[{'data': torch.Tensor([i]), 'target': torch.rand(1)}
-                                for i in list(range(20))]]).pass_indices(True)
+        dp = TestDataProducer([{'data': torch.Tensor([i]), 'target': torch.rand(1)} for i in list(range(20))]).pass_indices(True)
         stage = TrainStage(dp).enable_hard_negative_mining(0.1)
         losses = np.random.rand(20)
         samples = []
