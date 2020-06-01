@@ -1,3 +1,5 @@
+# This project are closed. New versions and much more are there: [PiePline](https://github.com/PiePline)
+
 # Neural Pipeline
 
 Neural networks training pipeline based on PyTorch. Designed to standardize training process and accelerate experiments.
